@@ -36,6 +36,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleOverviewLevelDescriptor;
+import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -162,7 +163,7 @@ public class GranuleTest extends Assert {
 		final Hints crsHints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, DefaultGeographicCRS.WGS84);	
 		final ImageMosaicReader reader = (ImageMosaicReader) new ImageMosaicFormat().getReader(testMosaic,crsHints);
 		assertNotNull(reader);
-		final RasterManager manager = new RasterManager(reader);
+		final RasterManager manager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
 		
 		// use imageio with defined tiles
 		final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -254,7 +255,7 @@ public class GranuleTest extends Assert {
                 .getReader(testMosaic);
 
         assertNotNull(reader);
-        final RasterManager manager = new RasterManager(reader);
+        final RasterManager manager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
 
         // FIXME: somehow when run under JUnit the bounds end up as (y,x) rather than (x,y). Works
         // fine in GeoServer. Hack it :(
@@ -274,7 +275,7 @@ public class GranuleTest extends Assert {
         final RasterLayerRequest requestNE = new RasterLayerRequest(
                 new GeneralParameterValue[] { requestedBBox }, manager);
 
-        BoundingBox checkCropBBox = requestNE.getCropBBox();
+        BoundingBox checkCropBBox = requestNE.spatialRequestHelper.getCropBBox();
         assertNotNull(checkCropBBox);
         assertEquals(
                 "ReferencedEnvelope[1587997.8835 : 1612003.2265, 6162000.4515 : 6198002.1165]",
@@ -289,7 +290,7 @@ public class GranuleTest extends Assert {
         final RasterLayerRequest requestEN = new RasterLayerRequest(
                 new GeneralParameterValue[] { requestedBBox }, manager);
 
-        checkCropBBox = requestEN.getCropBBox();
+        checkCropBBox = requestEN.spatialRequestHelper.getCropBBox();
         assertNotNull(checkCropBBox);
         assertEquals(
                 "ReferencedEnvelope[1587997.8835 : 1612003.2265, 6162000.4515 : 6198002.1165]",

@@ -167,7 +167,15 @@
        </activation>
        <modules>
          <module>transform</module>
-
+       </modules>
+     </profile>
+     <profile>
+       <id>coveragex</id>
+       <activation>
+         <property><name>all</name></property>
+       </activation>
+       <modules>
+         <module>coverage-experiment</module>
        </modules>
      </profile>
      <profile>
@@ -187,6 +195,7 @@
          <module>mongodb</module>
          <module>property-ng</module>
          <module>shapefile-ng</module>
+         <module>coverage-experiment</module>
        </modules>
      </profile>
   </profiles>

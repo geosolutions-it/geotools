@@ -158,7 +158,7 @@ public final class ArcGridReader extends AbstractGridCoverage2DReader implements
 		            this.crs=(CoordinateReferenceSystem) tempCRS;
 		            LOGGER.log(Level.WARNING,"Using default coordinate reference system ");
 		        } else			
-		            getCoordinateReferenceSystem();
+		            initCoordinateReferenceSystem();
 
 			// /////////////////////////////////////////////////////////////////////
 			//
@@ -655,7 +655,7 @@ public final class ArcGridReader extends AbstractGridCoverage2DReader implements
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private void getCoordinateReferenceSystem() throws FileNotFoundException,
+	private void initCoordinateReferenceSystem() throws FileNotFoundException,
 			IOException {
 
 		// check to see if there is a projection file

@@ -7,6 +7,7 @@ import java.io.File;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.test.TestData;
@@ -26,7 +27,7 @@ public class RasterLayerRequestTest {
         // build the objects we need to get to build a raster layer request
         final ImageMosaicReader reader = (ImageMosaicReader) new ImageMosaicFormat().getReader(
                 testMosaic, null);
-        final RasterManager manager = new RasterManager(reader);
+        final RasterManager manager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
 
         GeneralEnvelope oe = reader.getOriginalEnvelope();
         System.out.println(oe);
@@ -47,7 +48,7 @@ public class RasterLayerRequestTest {
         // Creating a request
         final RasterLayerRequest request = new RasterLayerRequest(
                 new GeneralParameterValue[] { ggParam }, manager);
-        double[] rr = request.getRequestedResolution();
+        double[] rr = request.spatialRequestHelper.getRequestedResolution();
         // System.out.println(Arrays.toString(rr));
         double resolution = Math.min(rr[0], rr[1]);
         // System.out.println(resolution);

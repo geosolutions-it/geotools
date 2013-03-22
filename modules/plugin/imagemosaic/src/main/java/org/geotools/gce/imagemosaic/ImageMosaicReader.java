@@ -22,8 +22,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +42,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.geometry.GeneralEnvelope;
@@ -93,6 +92,12 @@ import org.opengis.referencing.operation.MathTransform;
 public class ImageMosaicReader extends AbstractGridCoverage2DReader implements GridCoverageReader {
 
 
+    @Override
+    public String[] getGridCoverageNames() {
+        return coveragesManager.getCoverageNames();
+    }
+
+
     /** Logger. */
 	private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(ImageMosaicReader.class);
 
@@ -110,14 +115,15 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 
 	String locationAttributeName=Utils.DEFAULT_LOCATION_ATTRIBUTE;
 
-	RasterManager rasterManager;
+	CoveragesManager coveragesManager;
 
         int maxAllowedTiles=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue();
 
 	/** The suggested SPI to avoid SPI lookup*/
 	ImageReaderSpi suggestedSPI;
-
-	GranuleCatalog catalog;
+	
+	// TODO: Move it out to RasterManagers
+	GranuleCatalog granuleCatalog;
 
 	boolean cachingIndex;
 
@@ -189,7 +195,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
             throw new DataSourceException("Unable to create reader for this mosaic since we could not parse the configuration.");
         }
         extractProperties(configuration);
-        catalog = source.getCatalog();
+        GranuleCatalog catalog = source.getCatalog();
         if (catalog == null) {
             throw new DataSourceException("Unable to create reader for this mosaic since the inner catalog is null.");
         }
@@ -204,11 +210,12 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
         setGridGeometry();
         
         // raster manager
-        rasterManager = new RasterManager(this,configuration);
-        rasterManager.defaultSM = configuration.getSampleModel();
+        coveragesManager = new CoveragesManager(this);
+        String name = configuration.getName();
+        coveragesManager.addRasterManager(name, configuration, catalog);
         
-        
-        
+        //TODO: CHECK THAT : Can we have different coverages with different types of data?
+//        mosaicManager.defaultSM = configuration.getSampleModel();
     }
 
     /**
@@ -226,6 +233,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		// Load properties file with information about levels and envelope
 		//
+		// TODO: Need to define different mosaicConfigurations when dealing with multiple coverages.
+		// Edit coveragesManager accordingly
 		MosaicConfigurationBean configuration = Utils.loadMosaicProperties(sourceURL,this.locationAttributeName);
 		if(configuration==null){
 			//
@@ -256,8 +265,10 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		if(configuration==null)
 			throw new DataSourceException("Unable to create reader for this mosaic since we could not parse the configuration.");
 		
+		CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
 		// now load the configuration and extract properties from there
 		extractProperties(configuration);
+		GranuleCatalog catalog = null;
 		
 		//location attribute override
 		if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
@@ -270,7 +281,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		try {
 			// create the index
-			catalog= GranuleCatalogFactory.createGranuleCatalog(sourceURL, configuration);
+			catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
 			// error
 			if(catalog==null){
 			    throw new DataSourceException("Unable to create index for this URL "+sourceURL);
@@ -286,7 +297,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 				LOGGER.fine("Connected mosaic reader to its index "
 						+ sourceURL.toString());
 
-			setGridGeometry(configuration.getEnvelope());
+			setGridGeometry(configuration.getEnvelope(), catalog);
 
             //
             // get the crs if able to
@@ -323,7 +334,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 			}
 			
 			// creating the raster manager
-			rasterManager = new RasterManager(this,configuration);
+			coveragesManager = new CoveragesManager(this);
+			String name = configuration.getName();
+		        coveragesManager.addRasterManager(name, configuration, catalog);
 		}
 		catch (Throwable e) {
 			try {
@@ -341,14 +354,15 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 			
 			// dispose raster manager as well
 			try {
-				if(rasterManager!=null)
-					rasterManager.dispose();
+				if (coveragesManager != null) {
+					coveragesManager.dispose();
+                }
 			} catch (Throwable e1) {
 				if (LOGGER.isLoggable(Level.FINEST))
 					LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
 			}
 			finally{
-				rasterManager=null;
+				coveragesManager = null;
 			}
 						
 			// rethrow
@@ -358,7 +372,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		
 	}
 
-	private void setGridGeometry(ReferencedEnvelope envelope) {
+	private void setGridGeometry(final ReferencedEnvelope envelope, final GranuleCatalog catalog) {
 		Utilities.ensureNonNull("index", catalog);
 	    //
         // save the bbox and prepare other info
@@ -396,7 +410,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 	}
 
 	private void setGridGeometry () {
-	    setGridGeometry(null); 
+	    setGridGeometry(null, granuleCatalog); 
     }
 	private void extractProperties(final MosaicConfigurationBean configuration) throws IOException {
 
@@ -427,19 +441,21 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		// we do not find it.
 		expandMe = configuration.isExpandToRGB();
 		
+		CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
+		
 		// do we have heterogenous granules
-		heterogeneousGranules = configuration.isHeterogeneous();
+		heterogeneousGranules = catalogConfigurationBean.isHeterogeneous();
 
 		// absolute or relative path
-		pathType = configuration.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE;
+		pathType = catalogConfigurationBean.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE;
 		
 		//
 		// location attribute
 		//
-		locationAttributeName = configuration.getLocationAttribute();
+		locationAttributeName = catalogConfigurationBean.getLocationAttribute();
 		
 		// suggested SPI
-		final String suggestedSPIClass = configuration.getSuggestedSPI();
+		final String suggestedSPIClass = catalogConfigurationBean.getSuggestedSPI();
 		if (suggestedSPIClass != null){
 			try {
 				final Class<?> clazz=Class.forName(suggestedSPIClass);
@@ -455,7 +471,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		}
 
 		// caching for the index
-		cachingIndex = configuration.isCaching();
+		cachingIndex = catalogConfigurationBean.isCaching();
 		
 		// imposed BBOX
                 if(configuration.getEnvelope()!=null){
@@ -466,7 +482,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
                 }
 		
 		// typeName to be used for reading the mosaic
-		this.typeName=configuration.getTypeName();
+		this.typeName = catalogConfigurationBean.getTypeName();
 		
 	}
 
@@ -492,14 +508,19 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		return new ImageMosaicFormat();
 	}
 
+    public GridCoverage2D read(GeneralParameterValue[] params) throws IOException {
+	     return read (CoveragesManager.UNSPECIFIED, params); 
+	}
+
 	/**
 	 * 
 	 * @see org.opengis.coverage.grid.GridCoverageReader#read(org.opengis.parameter.GeneralParameterValue[])
+	 * @Override
 	 */
-	public GridCoverage2D read(GeneralParameterValue[] params) throws IOException {
+	public GridCoverage2D read(String coverageName, GeneralParameterValue[] params) throws IOException {
 	   
 	    // check if we were disposed already
-	    if(rasterManager==null){
+	    if(coveragesManager == null){
 	        throw new IOException("Looks like this reader has been already disposed or it has not been properly initialized.");
 	    }
 		if (LOGGER.isLoggable(Level.FINE)) {
@@ -549,7 +570,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		// Loading tiles trying to optimize as much as possible
 		//
-		final Collection<GridCoverage2D> response = rasterManager.read(params);
+		final Collection<GridCoverage2D> response = coveragesManager.read(params, coverageName);
 		if (response.isEmpty()) {
 		    if (LOGGER.isLoggable(Level.FINE)){
 		        LOGGER.fine("The response is empty. ==> returning a null GridCoverage");
@@ -606,9 +627,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
     	return coverageFactory;
     }
 
-	String getName() {
-		return super.coverageName;
-	}
+//	String getName() {
+//		return mosaicManager.getName();
+//	}
 
 	/**
 	 * Number of coverages for this reader is 1
@@ -617,7 +638,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 	 */
 	@Override
 	public int getGridCoverageCount() {
-		return 1;
+		return coveragesManager.getNumCoverages();
 	}
 
 	/**
@@ -628,103 +649,51 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 	public synchronized void dispose() {
 		super.dispose();
 		try{
-		    if(rasterManager!=null)
-		        rasterManager.dispose();
+		    if(coveragesManager != null)
+		        coveragesManager.dispose();
 		} catch (Exception e) {
                     if(LOGGER.isLoggable(Level.FINE))
                         LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
                 } finally {
-                    rasterManager=null;
+                    coveragesManager = null;
                 }
 	}
 
-	@Override
-	public String[] getMetadataNames() {
-	    final String []parentNames = super.getMetadataNames();
-            final List<String> metadataNames = new ArrayList<String>();
-            metadataNames.add(TIME_DOMAIN);
-            metadataNames.add(HAS_TIME_DOMAIN);
-            metadataNames.add(TIME_DOMAIN_MINIMUM);
-            metadataNames.add(TIME_DOMAIN_MAXIMUM);
-            metadataNames.add(TIME_DOMAIN_RESOLUTION);
-            metadataNames.add(ELEVATION_DOMAIN);
-            metadataNames.add(ELEVATION_DOMAIN_MINIMUM);
-            metadataNames.add(ELEVATION_DOMAIN_MAXIMUM);
-            metadataNames.add(HAS_ELEVATION_DOMAIN);
-            metadataNames.add(ELEVATION_DOMAIN_RESOLUTION);
-            if (rasterManager.domainsManager != null) {
-                metadataNames.addAll(rasterManager.domainsManager.getMetadataNames());
-            }
-            if(parentNames!=null)
-                metadataNames.addAll(Arrays.asList(parentNames));
-            return metadataNames.toArray(new String[metadataNames.size()]);
-	}
+    @Override
+    public String[] getMetadataNames() {
+        return getMetadataNames(CoveragesManager.UNSPECIFIED);
+    }
 
-	@Override
-	public String getMetadataValue(final String name) {
-	    String value=super.getMetadataValue(name);
-	    if(value!=null){
-	        return value;
-	    }
-	    final boolean hasTimeDomain = rasterManager.timeDomainManager!=null;
-	    final boolean hasElevationDomain = rasterManager.elevationDomainManager!=null;
-	    
-            if (name.equalsIgnoreCase(HAS_ELEVATION_DOMAIN))
-                return String.valueOf(hasElevationDomain);
-    
-            if (name.equalsIgnoreCase(HAS_TIME_DOMAIN)){
-                return String.valueOf(hasTimeDomain);
-            }
-    
-            // NOT supported
-            if (name.equalsIgnoreCase(TIME_DOMAIN_RESOLUTION)){
-                return null;
-            }            
-            // NOT supported
-            if (name.equalsIgnoreCase(ELEVATION_DOMAIN_RESOLUTION)){
-                return null;
-            }
-    
-            
-            if (hasTimeDomain){
-                if(name.equalsIgnoreCase("time_domain")) {
-                    return rasterManager.timeDomainManager.getMetadataValue(name);    
-                }
-                if ((name.equalsIgnoreCase("time_domain_minimum") || name.equalsIgnoreCase("time_domain_maximum"))) {
-                    return rasterManager.timeDomainManager.getMetadataValue(name);
-                }
-            }
-            
-            
-            if (hasElevationDomain) {
-                if(name.equalsIgnoreCase("elevation_domain")){
-                    return rasterManager.elevationDomainManager.getMetadataValue(name);
-                }
-                
-                if(name.equalsIgnoreCase("elevation_domain_minimum") || name.equalsIgnoreCase("elevation_domain_maximum")){
-                    return rasterManager.elevationDomainManager.getMetadataValue(name);
-                }
-    
-            }
- 
-        		
-            // check additional domains
-            if (rasterManager.domainsManager != null) {
-                return rasterManager.domainsManager.getMetadataValue(name);
-            } 
+    @Override
+    public String[] getMetadataNames(String coverageName) {
+        return coveragesManager.getMetadataNames(coverageName);
+    }
 
-            // 
-            return value;
-	}
+    @Override
+    public String getMetadataValue(final String name) {
+        return getMetadataValue(CoveragesManager.UNSPECIFIED, name);
+    }
 
-
+    @Override
+    public String getMetadataValue(final String coverageName, final String name) {
+        return coveragesManager.getMetadataValue(coverageName, name);
+    }
 
     @Override
     public Set<ParameterDescriptor<List>> getDynamicParameters() {
-        return rasterManager.domainsManager != null ? rasterManager.domainsManager.getDynamicParameters() : super.getDynamicParameters();
+        return getDynamicParameters(CoveragesManager.UNSPECIFIED);
+    }
+    
+    @Override
+    public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName) {
+        return coveragesManager.getDynamicParameters(coverageName);
     }
 
     public boolean isParameterSupported(Identifier name) {
-        return rasterManager.domainsManager != null ? rasterManager.domainsManager.isParameterSupported(name) : false;
+        return isParameterSupported(CoveragesManager.UNSPECIFIED, name);
+    }
+
+    public boolean isParameterSupported(String coverageName, Identifier name) {
+        return coveragesManager.isParameterSupported(coverageName, name);
     }
 }

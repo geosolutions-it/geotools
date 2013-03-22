@@ -45,6 +45,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.filter.SortByImpl;
+import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.test.OnlineTestCase;
@@ -84,8 +85,8 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 			super(source, uHints);
 		}
 		
-		public RasterManager getRasterManager(){
-			return rasterManager;
+		public CoveragesManager getMosaicManager(){
+			return coveragesManager;
 		}
 		
 	}
@@ -268,14 +269,15 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 		// dispose and create new reader
 		reader.dispose();
 		final MyImageMosaicReader reader1 = new MyImageMosaicReader(timeElevURL);
-		final RasterManager rm = reader1.getRasterManager();
+		final CoveragesManager mm = reader1.getMosaicManager();
+		final RasterManager rm = mm.getRasterManager(mm.getCoverageNames()[0]);
 		
 		// query
-		final SimpleFeatureType type = rm.granuleCatalog.getType();
+		final SimpleFeatureType type = rm.parentManager.granuleCatalog.getType();
 		Query query = null;
 		if (type != null){
 			// creating query
-			query= new Query(rm.granuleCatalog.getType().getTypeName());
+			query= new Query(rm.parentManager.granuleCatalog.getType().getTypeName());
 			
 			// sorting and limiting
             // max number of elements

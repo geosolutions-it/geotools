@@ -75,8 +75,9 @@ import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.filter.SortByImpl;
 import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
+import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
+import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
-import org.geotools.gce.imagemosaic.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
 import org.geotools.gce.imagemosaic.processing.ArtifactsFilterDescriptor;
 import org.geotools.geometry.Envelope2D;
@@ -350,9 +351,9 @@ class RasterLayerResponse{
             if (granuleFilter.evaluate(granuleDescriptor.originator)) {
                 final GranuleLoader loader = new GranuleLoader(baseReadParameters, imageChoice, mosaicBBox, finalWorldToGridCorner, granuleDescriptor, request, hints);
                 if (!dryRun) {
-                    if (multithreadingAllowed && rasterManager.parent.multiThreadedLoader != null) {
+                    if (multithreadingAllowed && rasterManager.parentManager.parentReader.multiThreadedLoader != null) {
                         // MULTITHREADED EXECUTION submitting the task
-                        granulesFutures.add(rasterManager.parent.multiThreadedLoader.submit(loader));
+                        granulesFutures.add(rasterManager.parentManager.parentReader.multiThreadedLoader.submit(loader));
                     } else {
                         // SINGLE THREADED Execution, we defer the execution to when we have done the loading
                         final FutureTask<GranuleLoadingResult> task = new FutureTask<GranuleLoadingResult>(loader);
@@ -393,7 +394,6 @@ class RasterLayerResponse{
            // execute them all
            final StringBuilder paths = new StringBuilder();
            final List<MosaicElement> returnValues= new ArrayList<RasterLayerResponse.MosaicElement>();
-           
            // collect sources for the current dimension and then process them
            for (Future<GranuleLoadingResult> future :granulesFutures) {
                      
@@ -743,9 +743,9 @@ class RasterLayerResponse{
                     overallROI = new ROIGeometry(((ROIGeometry) mosaicElement.roi).getAsGeometry());
                 } else {
                     if (mosaicElement.roi != null) {
-                        overallROI=overallROI.add(mosaicElement.roi);
+                        overallROI = overallROI.add(mosaicElement.roi);
                     }
-                }                
+                }
             }
 
             // execute mosaic
@@ -910,9 +910,9 @@ class RasterLayerResponse{
             LOGGER.fine("Producing the final mosaic, step 1, loop through granule collectors");   
             final List<MosaicElement> mosaicInputs = new ArrayList<RasterLayerResponse.MosaicElement>();
             GranuleCollector first = null; // we take this apart to steal some val
-            final int size=granuleCollectors.size();
+            final int size = granuleCollectors.size();
             for (GranuleCollector collector : granuleCollectors) {
-                if(LOGGER.isLoggable(Level.FINE)){
+                if(LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("Using collector with filter:" + collector.granuleFilter.toString());
                 }
                 final MosaicElement preparedMosaic = new Mosaicker(collector.collectGranules(), MergeBehavior.FLAT).createMosaic();
@@ -922,7 +922,7 @@ class RasterLayerResponse{
                 }
             }
             LOGGER.fine("Producing the final mosaic, step 2, final mosaicking"); 
-            if(size==1){
+            if (size == 1) {
                 // we don't need to mosaick again
                 return mosaicInputs.get(0).source;
             }
@@ -1020,7 +1020,7 @@ class RasterLayerResponse{
 		setRoiProperty = request.isSetRoiProperty();
 		backgroundValues = request.getBackgroundValues();
 		interpolation = request.getInterpolation();
-		needsReprojection = request.isNeedsReprojection();
+		needsReprojection = request.spatialRequestHelper.isNeedsReprojection();
 		defaultArtifactsFilterThreshold = request.getDefaultArtifactsFilterThreshold();
 		artifactsFilterPTileThreshold = request.getArtifactsFilterPTileThreshold();
 	}
@@ -1099,7 +1099,7 @@ class RasterLayerResponse{
                         final AffineTransform sourceGridToWorld = new AffineTransform((AffineTransform) finalGridToWorldCorner);
 		        
 		        // target world to grid at the corner
-                        final AffineTransform targetGridToWorld = new AffineTransform(request.getRequestedGridToWorld());
+                        final AffineTransform targetGridToWorld = new AffineTransform(request.spatialRequestHelper.getRequestedGridToWorld());
                         targetGridToWorld.concatenate(CoverageUtilities.CENTER_TO_CORNER);
                         
                         // target world to grid at the corner
@@ -1197,7 +1197,7 @@ class RasterLayerResponse{
             if (returnValue != null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("Loaded bbox " + mosaicBBox.toString() + " while crop bbox "
-                            + request.getCropBBox().toString());
+                            + request.spatialRequestHelper.getCropBBox().toString());
                 }
                 return returnValue;
             }
@@ -1212,7 +1212,7 @@ class RasterLayerResponse{
             final Utils.BBOXFilterExtractor bboxExtractor = new Utils.BBOXFilterExtractor();
             query.getFilter().accept(bboxExtractor, null);
             query.setFilter(FeatureUtilities.DEFAULT_FILTER_FACTORY.bbox(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.granuleCatalog.getType().getGeometryDescriptor().getName()),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType().getGeometryDescriptor().getName()),
                     bboxExtractor.getBBox()));
             query.setMaxFeatures(1);
             rasterManager.getGranules(query, dryRunVisitor);
@@ -1267,7 +1267,7 @@ class RasterLayerResponse{
         final OverviewLevel selectedLevel = rasterManager.overviewsController.resolutionsLevels.get(imageChoice);
         final double resX = baseLevel.resolutionX;
         final double resY = baseLevel.resolutionY;
-        final double[] requestRes = request.getRequestedResolution();
+        final double[] requestRes = request.spatialRequestHelper.getRequestedResolution();
 
         g2w = new AffineTransform((AffineTransform) baseGridToWorld);
         g2w.concatenate(CoverageUtilities.CENTER_TO_CORNER);
@@ -1295,7 +1295,7 @@ class RasterLayerResponse{
      */
     private void initBBOX() {
         // ok we got something to return, let's load records from the index
-        final BoundingBox cropBBOX = request.getCropBBox();
+        final BoundingBox cropBBOX = request.spatialRequestHelper.getCropBBox();
         if (cropBBOX != null){
             mosaicBBox = ReferencedEnvelope.reference(cropBBOX);
         }else{
@@ -1310,7 +1310,7 @@ class RasterLayerResponse{
      * 
      * See {@link ReadParamsController}
      */
-    private void chooseOverview(){
+    private void chooseOverview() throws IOException, TransformException {
         //
         // prepare the params for executing a mosaic operation.
         //
@@ -1326,9 +1326,9 @@ class RasterLayerResponse{
         // level dimension and envelope. The grid to world transforms for
         // the other levels can be computed accordingly knowing the scale
         // factors.            
-        if (request.getRequestedBBox() != null && request.getRequestedRasterArea() != null && !request.isHeterogeneousGranules()){
+        if (request.spatialRequestHelper.getRequestedBBox() != null && request.spatialRequestHelper.getRequestedRasterArea() != null && !request.isHeterogeneousGranules()){
             imageChoice = ReadParamsController.setReadParams(
-                    request.getRequestedResolution(),
+                    request.spatialRequestHelper.getRequestedResolution(),
                     request.getOverviewPolicy(),
                     request.getDecimationPolicy(),
                     baseReadParameters,
@@ -1358,16 +1358,16 @@ class RasterLayerResponse{
         final GeneralEnvelope levelRasterArea_ = CRS.transform(finalWorldToGridCorner, rasterManager.spatialDomainManager.coverageBBox);
         final GridEnvelope2D levelRasterArea = new GridEnvelope2D(new Envelope2D(levelRasterArea_), PixelInCell.CELL_CORNER);
         XRectangle2D.intersect(levelRasterArea, rasterBounds, rasterBounds);                    
-        final SimpleFeatureType type = rasterManager.granuleCatalog.getType();
+        final SimpleFeatureType type = rasterManager.getGranuleCatalog().getType();
         Filter bbox = null;
         if (type != null){
-            Query query = new Query(rasterManager.granuleCatalog.getType().getTypeName());
+            Query query = new Query(rasterManager.getGranuleCatalog().getType().getTypeName());
             // max number of elements
             if(request.getMaximumNumberOfGranules()>0){
                 query.setMaxFeatures(request.getMaximumNumberOfGranules());
             }            
             bbox = FeatureUtilities.DEFAULT_FILTER_FACTORY.bbox(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.granuleCatalog.getType().getGeometryDescriptor().getName()),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType().getGeometryDescriptor().getName()),
                     mosaicBBox);
             query.setFilter( bbox);
             return query;
@@ -1469,7 +1469,7 @@ class RasterLayerResponse{
 
                 // assign to query if sorting is supported!
                 final SortBy[] sb = clauses.toArray(new SortBy[] {});
-                if (rasterManager.granuleCatalog.getQueryCapabilities().supportsSorting(sb)) {
+                if (rasterManager.getGranuleCatalog().getQueryCapabilities().supportsSorting(sb)) {
                     query.setSortBy(sb);
                 }
             } else {

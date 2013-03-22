@@ -67,16 +67,16 @@ public abstract class GranuleCatalogFactory {
 
 	public static GranuleCatalog createGranuleCatalog(
 			final URL sourceURL,
-			final MosaicConfigurationBean configuration){
+			final CatalogConfigurationBean catalogConfigurationBean){
 		final File sourceFile=DataUtilities.urlToFile(sourceURL);
 		final String extension= FilenameUtils.getExtension(sourceFile.getAbsolutePath());	
 		
 		// STANDARD PARAMS
 		final Map<String, Serializable> params = new HashMap<String, Serializable>();
-		params.put(Utils.Prop.PATH_TYPE,configuration.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE);
-		params.put(Utils.Prop.LOCATION_ATTRIBUTE,configuration.getLocationAttribute());
-		params.put(Utils.Prop.SUGGESTED_SPI,configuration.getSuggestedSPI());
-		params.put(Utils.Prop.HETEROGENEOUS, configuration.isHeterogeneous());
+		params.put(Utils.Prop.PATH_TYPE, catalogConfigurationBean.isAbsolutePath()?PathType.ABSOLUTE:PathType.RELATIVE);
+		params.put(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
+		params.put(Utils.Prop.SUGGESTED_SPI, catalogConfigurationBean.getSuggestedSPI());
+		params.put(Utils.Prop.HETEROGENEOUS, catalogConfigurationBean.isHeterogeneous());
 		if(sourceURL!=null){
 			File parentDirectory=DataUtilities.urlToFile(sourceURL);
 			if(parentDirectory.isFile())
@@ -86,9 +86,9 @@ public abstract class GranuleCatalogFactory {
 		else
 			params.put(Utils.Prop.PARENT_LOCATION, null);
 		// add typename
-		String typeName=configuration.getTypeName();
+		String typeName = catalogConfigurationBean.getTypeName();
 		if(typeName!=null){
-			params.put(Utils.Prop.TYPENAME, configuration.getTypeName());
+			params.put(Utils.Prop.TYPENAME, catalogConfigurationBean.getTypeName());
 		}		
 		// SPI
 		DataStoreFactorySpi spi=null;
@@ -136,7 +136,7 @@ public abstract class GranuleCatalogFactory {
 			}
 		}		
 		// istantiate
-		return configuration.isCaching()?new STRTreeGranuleCatalog(params,spi):new GTDataStoreGranuleCatalog(params,false,spi);
+		return catalogConfigurationBean.isCaching()?new STRTreeGranuleCatalog(params,spi):new GTDataStoreGranuleCatalog(params,false,spi);
 	}
 
 }

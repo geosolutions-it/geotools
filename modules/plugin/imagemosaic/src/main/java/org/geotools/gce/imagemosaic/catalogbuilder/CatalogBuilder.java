@@ -81,6 +81,7 @@ import org.geotools.gce.image.WorldImageFormat;
 import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
 import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.Utils.Prop;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
@@ -519,7 +520,8 @@ public class CatalogBuilder implements Runnable {
 					}
 					
 				} else {
-				    if (!mosaicConfiguration.isHeterogeneous()){
+				    CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration.getCatalogConfigurationBean();
+				    if (!catalogConfigurationBean.isHeterogeneous()){
 				        // //
 				        //
 				        // There is no need to check resolutions if the mosaic
@@ -528,7 +530,7 @@ public class CatalogBuilder implements Runnable {
 				        // //
 				        int numberOfLevels = imageioReader.getNumImages(true);
                                         if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
-                                            mosaicConfiguration.setHeterogeneous(true);
+                                            catalogConfigurationBean.setHeterogeneous(true);
                                             if (numberOfLevels > mosaicConfiguration.getLevelsNum()){
                                                 final double[][] resolutionLevels = new double[2][numberOfLevels];
                                                 setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
@@ -540,7 +542,7 @@ public class CatalogBuilder implements Runnable {
                                             final double[][] resolutionLevels = new double[2][numberOfLevels];
                                             final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, mosaicLevels);
                                             if (!homogeneousLevels){
-                                                mosaicConfiguration.setHeterogeneous(true);
+                                                catalogConfigurationBean.setHeterogeneous(true);
                                             }
                                         }
 				    }
@@ -945,6 +947,8 @@ public class CatalogBuilder implements Runnable {
     private SimpleFeatureType indexSchema;
 
     private AbstractGridFormat cachedFormat;
+
+    private CatalogConfigurationBean catalogConfigurationBean;
 	
 	/* (non-Javadoc)
 	 * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#run()
@@ -1359,6 +1363,8 @@ public class CatalogBuilder implements Runnable {
 		//
 		mosaicConfiguration= new MosaicConfigurationBean();
 		mosaicConfiguration.setName(runConfiguration.getIndexName());
+		catalogConfigurationBean = new CatalogConfigurationBean();
+		mosaicConfiguration.setCatalogConfigurationBean(catalogConfigurationBean);
 		
 		//
 		// IMPOSED ENVELOPE
@@ -1371,7 +1377,7 @@ public class CatalogBuilder implements Runnable {
 			if(LOGGER.isLoggable(Level.WARNING))
 				LOGGER.log(Level.WARNING,"Unable to parse imposed bbox",e);
 		}
-		mosaicConfiguration.setCaching(runConfiguration.isCaching());
+		catalogConfigurationBean.setCaching(runConfiguration.isCaching());
 		//
 		// load property collectors
 		//
@@ -1502,12 +1508,12 @@ public class CatalogBuilder implements Runnable {
         		createSampleImage();
 		
         		// complete initialization of mosaic configuration
-        		if(numberOfProcessedFiles>0){
+        		if (numberOfProcessedFiles > 0) {
         			mosaicConfiguration.setName(runConfiguration.getIndexName());
         			mosaicConfiguration.setExpandToRGB(mustConvertToRGB);
-        			mosaicConfiguration.setAbsolutePath(runConfiguration.isAbsolute());
-        			mosaicConfiguration.setLocationAttribute(runConfiguration.getLocationAttribute());
-        			mosaicConfiguration.setCaching(runConfiguration.isCaching());
+        			catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
+        			catalogConfigurationBean.setLocationAttribute(runConfiguration.getLocationAttribute());
+        			catalogConfigurationBean.setCaching(runConfiguration.isCaching());
         			final String timeAttribute= runConfiguration.getTimeAttribute();
         			if (timeAttribute != null) {
         				mosaicConfiguration.setTimeAttribute(runConfiguration.getTimeAttribute());
@@ -1582,8 +1588,8 @@ public class CatalogBuilder implements Runnable {
 	
 		// envelope
 		final Properties properties = new Properties();
-		properties.setProperty(Utils.Prop.ABSOLUTE_PATH, Boolean.toString(mosaicConfiguration.isAbsolutePath()));
-		properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, mosaicConfiguration.getLocationAttribute());
+		properties.setProperty(Utils.Prop.ABSOLUTE_PATH, Boolean.toString(catalogConfigurationBean.isAbsolutePath()));
+		properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
 		final String timeAttribute=mosaicConfiguration.getTimeAttribute();
 		if (timeAttribute != null) {
 			properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
@@ -1611,7 +1617,7 @@ public class CatalogBuilder implements Runnable {
 		properties.setProperty(Utils.Prop.NAME, mosaicConfiguration.getName());
 		properties.setProperty(Utils.Prop.TYPENAME, mosaicConfiguration.getName());
 		properties.setProperty(Utils.Prop.EXP_RGB, Boolean.toString(mustConvertToRGB));
-		properties.setProperty(Utils.Prop.HETEROGENEOUS, Boolean.toString(mosaicConfiguration.isHeterogeneous()));
+		properties.setProperty(Utils.Prop.HETEROGENEOUS, Boolean.toString(catalogConfigurationBean.isHeterogeneous()));
 		
 		if (cachedReaderSPI != null){
 			// suggested spi
@@ -1622,7 +1628,7 @@ public class CatalogBuilder implements Runnable {
 		if (imposedBBox != null){
 			properties.setProperty(Utils.Prop.ENVELOPE2D, imposedBBox.getMinX()+","+imposedBBox.getMinY()+" "+imposedBBox.getMaxX()+","+imposedBBox.getMaxY());
 		}
-		properties.setProperty(Utils.Prop.CACHING, Boolean.toString(mosaicConfiguration.isCaching()));
+		properties.setProperty(Utils.Prop.CACHING, Boolean.toString(catalogConfigurationBean.isCaching()));
 		OutputStream outStream=null;
 		try {
 			outStream = new BufferedOutputStream(new FileOutputStream(runConfiguration.getRootMosaicDirectory() + "/" + runConfiguration.getIndexName() + ".properties"));

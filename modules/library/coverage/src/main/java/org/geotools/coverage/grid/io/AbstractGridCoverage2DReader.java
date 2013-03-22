@@ -62,7 +62,6 @@ import org.geotools.util.logging.Logging;
 import org.opengis.coverage.ColorInterpretation;
 import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridCoverage;
-import org.opengis.coverage.grid.GridCoverageReader;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.InvalidParameterNameException;
@@ -95,12 +94,91 @@ import org.opengis.referencing.operation.TransformException;
  *
  * @source $URL$
  */
-public abstract class AbstractGridCoverage2DReader implements GridCoverageReader {
+public abstract class AbstractGridCoverage2DReader implements GridCoverage2DReader {
 
     /**
      * The time domain (comma separated list of values)
      */
     public static final String TIME_DOMAIN = "TIME_DOMAIN";
+
+    @Override
+    public GeneralEnvelope getOriginalEnvelope(String coverageName) {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getOriginalEnvelope();
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @Override
+    public GridEnvelope getOriginalGridRange(String coverageName) {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getOriginalGridRange();
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @Override
+    public MathTransform getOriginalGridToWorld(String coverageName, PixelInCell pixInCell) {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getOriginalGridToWorld(pixInCell);
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @Override
+    public GridCoverage2D read(String coverageName, GeneralParameterValue[] parameters)
+            throws IllegalArgumentException, IOException {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return read(parameters);
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem(String coverageName) {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getCoordinateReferenceSystem();
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName)
+            throws IOException {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getDynamicParameters();
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+
+    @Override
+    public double[] getReadingResolutions(String coverageName, OverviewPolicy policy,
+            double[] requestedResolution) throws IOException {
+        // Default implementation for backwards compatibility
+        if (coverageName.equalsIgnoreCase(this.coverageName)) {
+            return getReadingResolutions(policy, requestedResolution);
+        }
+        // Subclasses should do more checks on coverageName
+        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+    }
+    
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+        return getCrs();
+    }
 
     /**
      * Time domain resolution (when using min/max/resolution)
@@ -770,6 +848,7 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverageReader
 	 * 
 	 * @return the {@link CoordinateReferenceSystem} for dataset pointed by this
 	 *         {@link AbstractGridCoverage2DReader}.
+	 *@deprecated use {@link #getCoordinateReferenceSystem()}
 	 */
 	public final CoordinateReferenceSystem getCrs() {
 		return crs;
@@ -867,6 +946,7 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverageReader
 
 	/**
 	 * @see org.opengis.coverage.grid.GridCoverageReader#skip()
+	 * @deprecated no replacement for that method
 	 */
 	public void skip() {
 		throw new UnsupportedOperationException("Unsupported operation.");
@@ -874,31 +954,42 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverageReader
 
 	/**
 	 * @see org.opengis.coverage.grid.GridCoverageReader#hasMoreGridCoverages()
+	 * @deprecated no replacement for that method
 	 */
 	public boolean hasMoreGridCoverages() {
 		throw new UnsupportedOperationException("Unsupported operation.");
 	}
 
-	/**
-	 * @see org.opengis.coverage.grid.GridCoverageReader#listSubNames()
-	 */
-	public String[] listSubNames() {
-		throw new UnsupportedOperationException("Unsupported operation.");
-	}
+    /**
+     * @deprecated use {@link #getGridCoverageNames()}
+     */
+    public String[] listSubNames() {
+        return getGridCoverageNames();
+    }
 
-	/**
+    @Override
+    public String[] getGridCoverageNames() {
+        return new String[]{coverageName};
+    }
+
+    /**
 	 * @see org.opengis.coverage.grid.GridCoverageReader#getCurrentSubname()
+	 * @deprecated no replacement for that method
 	 */
 	public String getCurrentSubname() {
 		throw new UnsupportedOperationException("Unsupported operation.");
 	}
 
-	/**
-	 * @see org.opengis.coverage.grid.GridCoverageReader#getMetadataNames()
-	 */
-	public String[] getMetadataNames() {
+	public String[] getMetadataNames(final String coverageName) {
 		return null;
 	}
+	
+	/**
+     * @see org.opengis.coverage.grid.GridCoverageReader#getMetadataNames()
+     */
+    public String[] getMetadataNames() {
+        return null;
+    }
 
 	/**
 	 * @see org.opengis.coverage.grid.GridCoverageReader#getMetadataValue(java.lang.String)
@@ -906,12 +997,16 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverageReader
 	public String getMetadataValue(final String name) {
 		return null;
 	}
+	
+    public String getMetadataValue(final String coverageName, final String name) {
+        return null;
+    }
 
 	/**
 	 * @see org.opengis.coverage.grid.GridCoverageReader#getGridCoverageCount()
 	 */
 	public int getGridCoverageCount() {
-		throw new UnsupportedOperationException("Unsupported operation.");
+		return 1;
 	}
 	
 	

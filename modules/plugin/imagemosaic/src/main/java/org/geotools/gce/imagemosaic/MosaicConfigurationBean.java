@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.Utilities;
 
@@ -56,11 +57,6 @@ public class MosaicConfigurationBean {
         }
 	
 	/**
-	 * <code>true</code> it tells us if the mosaic points to absolute paths or to relative ones. (in case of <code>false</code>).
-	 */
-	private boolean absolutePath= Utils.DEFAULT_PATH_BEHAVIOR;
-	
-	/**
 	 * <code>true</code> if we need to expand to RGB(A) the single tiles in case they use a different {@link IndexColorModel}.
 	 */
 	private boolean expandToRGB;
@@ -74,12 +70,6 @@ public class MosaicConfigurationBean {
 	/** number of levels*/
 	private int levelsNum;
 	
-	/** location attribute name*/
-	private String locationAttribute=Utils.DEFAULT_LOCATION_ATTRIBUTE;
-	
-	/**Suggested SPI for the various tiles. May be null.**/
-	private String suggestedSPI;
-	
 	/** time attribute name. <code>null</code> if absent.*/
 	private String timeAttribute;
 	
@@ -88,17 +78,6 @@ public class MosaicConfigurationBean {
 
         /** additional domain attributes names. <code>null</code> if absent.*/
         private String additionalDomainAttributes;
-
-        /** The typename to use for the mosaic index*/
-	private String typeName;
-	
-    public String getTypeName() {
-    	return typeName;
-	}
-
-	public void setTypeName(String typeName) {
-		this.typeName = typeName;
-	}
 
 		/** 
          * mosaic's dummy sample model useful to store dataType and number of bands. All the other fields
@@ -109,7 +88,7 @@ public class MosaicConfigurationBean {
 	/** Imposed envelope for this mosaic. If not present we need to compute from catalogue.*/
 	private ReferencedEnvelope envelope;
 	
-	private boolean heterogeneous;
+	private CatalogConfigurationBean catalogConfigurationBean;
 
 	public ReferencedEnvelope getEnvelope() {
 		return envelope;
@@ -134,9 +113,6 @@ public class MosaicConfigurationBean {
 		this.elevationAttribute = elevationAttribute;
 	}
 
-	/** we want to use caching for our index.*/
-	private boolean caching = Utils.DEFAULT_CONFIGURATION_CACHING;
-
    /** <code>true</code> if we need to manage footprint if available.  */
     private boolean footprintManagement;
 
@@ -154,25 +130,7 @@ public class MosaicConfigurationBean {
     public void setAdditionalDomainAttributes(String additionalDomainAttributes) {
         this.additionalDomainAttributes = additionalDomainAttributes;
     }
-	/**
-	 * @return the suggestedSPI
-	 */
-	public String getSuggestedSPI() {
-		return suggestedSPI;
-	}
-	/**
-	 * @param suggestedSPI the suggestedSPI to set
-	 */
-	public void setSuggestedSPI(final String suggestedSPI) {
-		this.suggestedSPI = suggestedSPI;
-	}
 	
-	public boolean isAbsolutePath() {
-		return absolutePath;
-	}
-	public void setAbsolutePath(final boolean absolutePath) {
-		this.absolutePath = absolutePath;
-	}
 	public boolean isExpandToRGB() {
 		return expandToRGB;
 	}
@@ -197,18 +155,6 @@ public class MosaicConfigurationBean {
 	public void setLevels(final double[][] levels) {
 		this.levels = levels.clone();
 	}
-	public String getLocationAttribute() {
-		return locationAttribute;
-	}
-	public void setLocationAttribute(final String locationAttribute) {
-		this.locationAttribute = locationAttribute;
-	}
-	public boolean isCaching() {
-		return caching;
-	}
-	public void setCaching(final boolean caching) {
-		this.caching = caching;
-	}
 
     public void setFootprintManagement(final boolean footprintManagement) {
             this.footprintManagement = footprintManagement;
@@ -218,26 +164,22 @@ public class MosaicConfigurationBean {
         return footprintManagement;
     }
 
-    public boolean isHeterogeneous() {
-        return heterogeneous;
+	public CatalogConfigurationBean getCatalogConfigurationBean() {
+        return catalogConfigurationBean;
     }
 
-    public void setHeterogeneous(boolean heterogeneous) {
-        this.heterogeneous = heterogeneous;
+    public void setCatalogConfigurationBean(CatalogConfigurationBean catalogConfigurationBean) {
+        this.catalogConfigurationBean = catalogConfigurationBean;
     }
 
-	@Override
+    @Override
 	public String toString() {
-		return "MosaicConfigurationBean [absolutePath=" + absolutePath
-				+ ", expandToRGB=" + expandToRGB + ", levels="
+		return "MosaicConfigurationBean [expandToRGB=" + expandToRGB + ", levels="
 				+ Arrays.toString(levels) + ", name=" + name
-				+ ", levelsNum=" + levelsNum + ", locationAttribute="
-				+ locationAttribute + ", suggestedSPI=" + suggestedSPI
-				+ ", timeAttribute=" + timeAttribute
+				+ ", levelsNum=" + levelsNum + ", timeAttribute=" + timeAttribute
 				+ ", elevationAttribute=" + elevationAttribute
-				+ ", typeName=" + typeName + ", sampleModel=" + sampleModel
-				+ ", envelope=" + envelope + ", heterogeneous="
-				+ heterogeneous + ", caching=" + caching
+				+ ",sampleModel=" + sampleModel
+				+ ", envelope=" + envelope 
 				+ ", footprintManagement=" + footprintManagement + "]";
 		}
 }

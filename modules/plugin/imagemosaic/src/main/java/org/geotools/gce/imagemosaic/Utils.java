@@ -81,6 +81,7 @@ import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.factory.Hints;
 import org.geotools.filter.visitor.DefaultFilterVisitor;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ExceptionEvent;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ProcessingEvent;
@@ -312,6 +313,8 @@ public class Utils {
 		
 		// ret value
 		final MosaicConfigurationBean retValue = new MosaicConfigurationBean();
+		final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
+		retValue.setCatalogConfigurationBean(catalogConfigurationBean);
 		final boolean ignoreSome = ignorePropertiesSet != null && !ignorePropertiesSet.isEmpty();
 
 		//
@@ -389,7 +392,7 @@ public class Utils {
 		//              
 		if (!ignoreSome || !ignorePropertiesSet.contains(Prop.TYPENAME)) {
 			String typeName = properties.getProperty(Prop.TYPENAME, null);
-			retValue.setTypeName(typeName);
+			catalogConfigurationBean.setTypeName(typeName);
 		}
 
 		//
@@ -399,7 +402,7 @@ public class Utils {
 			if (properties.containsKey(Prop.SUGGESTED_SPI)) {
 				final String suggestedSPI = properties.getProperty(
 						Prop.SUGGESTED_SPI).trim();
-				retValue.setSuggestedSPI(suggestedSPI);
+				catalogConfigurationBean.setSuggestedSPI(suggestedSPI);
 			}
 		}
 
@@ -433,9 +436,9 @@ public class Utils {
 		if (properties.containsKey(Prop.CACHING)) {
 			String caching = properties.getProperty(Prop.CACHING).trim();
 			try {
-				retValue.setCaching(Boolean.valueOf(caching));
+			    catalogConfigurationBean.setCaching(Boolean.valueOf(caching));
 			} catch (Throwable e) {
-				retValue.setCaching(Boolean.valueOf(Utils.DEFAULT_CACHING_BEHAVIOR));
+			    catalogConfigurationBean.setCaching(Boolean.valueOf(Utils.DEFAULT_CACHING_BEHAVIOR));
 			}
 		}
 
@@ -467,7 +470,7 @@ public class Utils {
                 if (!ignoreSome || !ignorePropertiesSet.contains(Prop.HETEROGENEOUS)) {
                     final boolean heterogeneous = Boolean.valueOf(properties.getProperty(
                             Prop.HETEROGENEOUS, "false").trim());
-                    retValue.setHeterogeneous(heterogeneous);
+                    catalogConfigurationBean.setHeterogeneous(heterogeneous);
                 }
 
 		//
@@ -478,7 +481,7 @@ public class Utils {
 					.getProperty(Prop.ABSOLUTE_PATH,
 							Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR))
 					.trim());
-			retValue.setAbsolutePath(absolutePath);
+			catalogConfigurationBean.setAbsolutePath(absolutePath);
 		}
 
 		//
@@ -496,7 +499,7 @@ public class Utils {
 		//  
 		if (!ignoreSome
 				|| !ignorePropertiesSet.contains(Prop.LOCATION_ATTRIBUTE)) {
-			retValue.setLocationAttribute(properties.getProperty(
+		    catalogConfigurationBean.setLocationAttribute(properties.getProperty(
 					Prop.LOCATION_ATTRIBUTE, Utils.DEFAULT_LOCATION_ATTRIBUTE).trim());
 		}
 
