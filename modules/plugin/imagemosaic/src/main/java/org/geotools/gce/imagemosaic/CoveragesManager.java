@@ -44,11 +44,11 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.DecimationPolicy;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
-import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.feature.visitor.CalcResult;
 import org.geotools.feature.visitor.FeatureCalc;
@@ -70,7 +70,6 @@ import org.geotools.util.Utilities;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.sort.SortOrder;
@@ -78,7 +77,6 @@ import org.opengis.geometry.BoundingBox;
 import org.opengis.metadata.Identifier;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterDescriptor;
-import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -258,19 +256,19 @@ public class CoveragesManager {
         final boolean hasTimeDomain = manager.timeDomainManager != null;
         final boolean hasElevationDomain = manager.elevationDomainManager != null;
 
-        if (name.equalsIgnoreCase(ImageMosaicReader.HAS_ELEVATION_DOMAIN))
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
             return String.valueOf(hasElevationDomain);
 
-        if (name.equalsIgnoreCase(ImageMosaicReader.HAS_TIME_DOMAIN)) {
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
             return String.valueOf(hasTimeDomain);
         }
 
         // NOT supported
-        if (name.equalsIgnoreCase(ImageMosaicReader.TIME_DOMAIN_RESOLUTION)) {
+        if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
             return null;
         }
         // NOT supported
-        if (name.equalsIgnoreCase(ImageMosaicReader.ELEVATION_DOMAIN_RESOLUTION)) {
+        if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
             return null;
         }
 
@@ -312,16 +310,16 @@ public class CoveragesManager {
     public String[] getMetadataNames(final String coverageName) {
         String name = checkUnspecifiedCoverage(coverageName);
         final List<String> metadataNames = new ArrayList<String>();
-        metadataNames.add(ImageMosaicReader.TIME_DOMAIN);
-        metadataNames.add(ImageMosaicReader.HAS_TIME_DOMAIN);
-        metadataNames.add(ImageMosaicReader.TIME_DOMAIN_MINIMUM);
-        metadataNames.add(ImageMosaicReader.TIME_DOMAIN_MAXIMUM);
-        metadataNames.add(ImageMosaicReader.TIME_DOMAIN_RESOLUTION);
-        metadataNames.add(ImageMosaicReader.ELEVATION_DOMAIN);
-        metadataNames.add(ImageMosaicReader.ELEVATION_DOMAIN_MINIMUM);
-        metadataNames.add(ImageMosaicReader.ELEVATION_DOMAIN_MAXIMUM);
-        metadataNames.add(ImageMosaicReader.HAS_ELEVATION_DOMAIN);
-        metadataNames.add(ImageMosaicReader.ELEVATION_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
         RasterManager manager = getRasterManager(name);
         if (manager.domainsManager != null) {
             metadataNames.addAll(manager.domainsManager.getMetadataNames());

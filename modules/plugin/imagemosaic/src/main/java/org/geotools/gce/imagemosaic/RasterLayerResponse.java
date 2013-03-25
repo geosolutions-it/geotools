@@ -69,14 +69,15 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.filter.SortByImpl;
-import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
 import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager.DomainDescriptor;
+import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
 import org.geotools.gce.imagemosaic.processing.ArtifactsFilterDescriptor;
@@ -1394,7 +1395,7 @@ class RasterLayerResponse{
         // handle elevation indexing first since we then combine this with the max in case we are asking for current in time
         if (hasElevation) {            
             final Filter elevationF = rasterManager.elevationDomainManager.createFilter(
-                    ImageMosaicReader.ELEVATION_DOMAIN, elevations);
+                    GridCoverage2DReader.ELEVATION_DOMAIN, elevations);
             query.setFilter(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(query.getFilter(), elevationF));
         }
 
@@ -1405,7 +1406,7 @@ class RasterLayerResponse{
 
         // fuse time query with the bbox query
         if (hasTime) {
-            final Filter timeFilter = this.rasterManager.timeDomainManager.createFilter(ImageMosaicReader.TIME_DOMAIN, times);
+            final Filter timeFilter = this.rasterManager.timeDomainManager.createFilter(GridCoverage2DReader.TIME_DOMAIN, times);
             query.setFilter(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(query.getFilter(),timeFilter));
         }
 

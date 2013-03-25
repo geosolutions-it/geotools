@@ -39,6 +39,7 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
@@ -49,8 +50,8 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.util.Utilities;
+import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.coverage.grid.Format;
-import org.opengis.coverage.grid.GridCoverageReader;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.metadata.Identifier;
@@ -89,7 +90,7 @@ import org.opengis.referencing.operation.MathTransform;
  * @source $URL$
  */
 @SuppressWarnings("rawtypes")
-public class ImageMosaicReader extends AbstractGridCoverage2DReader implements GridCoverageReader {
+public class ImageMosaicReader extends AbstractGridCoverage2DReader implements GridCoverage2DReader {
 
 
     @Override
@@ -483,7 +484,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		
 		// typeName to be used for reading the mosaic
 		this.typeName = catalogConfigurationBean.getTypeName();
-		
+
 	}
 
 	/**

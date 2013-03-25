@@ -16,12 +16,17 @@
  */
 package org.geotools.coverage.grid.io;
 
+import java.awt.image.ColorModel;
+import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import javax.media.jai.ImageLayout;
+
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.GeneralEnvelope;
+import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridCoverageReader;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.parameter.GeneralParameterValue;
@@ -36,15 +41,17 @@ import org.opengis.referencing.operation.MathTransform;
  * 
  * @author Daniele Romagnoli, GeoSolutions SAS
  * @author Andrea Aime, GeoSolutions SAS
+ * @author Simone Giannecchini, GeoSolutions SAS
  *
  */
+@SuppressWarnings("rawtypes")
 public interface GridCoverage2DReader extends GridCoverageReader {
-    
+
     /**
      * The time domain (comma separated list of values)
      */
     public static final String TIME_DOMAIN = "TIME_DOMAIN";
-    
+
     /**
      * Time domain resolution (when using min/max/resolution)
      */
@@ -100,19 +107,219 @@ public interface GridCoverage2DReader extends GridCoverageReader {
     public static final String FILE_SOURCE_PROPERTY = "OriginalFileSource";
 
     
+    /**
+     * Return the original {@link GeneralEnvelope} for the default coverage served by the underlying store.
+     * 
+     * @return the original {@link GeneralEnvelope} for the default coverage served by the underlying store.
+     */
     GeneralEnvelope getOriginalEnvelope();
+
+    /**
+     * Return the original {@link GeneralEnvelope} for the specified coverageName.
+     * 
+     * @param coverageName the name of the coverage to work on.
+     * @return the original {@link GeneralEnvelope} for the specified coverageName.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     GeneralEnvelope getOriginalEnvelope(String coverageName);
+
+    /**
+     * Retrieves the {@link CoordinateReferenceSystem} associated to the default coverage for this {@link GridCoverage2DReader}.
+     * 
+     * <p>
+     * @return the {@link CoordinateReferenceSystem} mapped to the specified coverageName, or {@code null} if the provided coverageName does not map
+     *         to a real coverage.
+     * 
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     */
     CoordinateReferenceSystem getCoordinateReferenceSystem();
+
+    /**
+     * Retrieves the {@link CoordinateReferenceSystem} associated to this {@link GridCoverage2DReader} for the specified coverageName.
+     * 
+     * <p>
+     * @return the {@link CoordinateReferenceSystem} mapped to the specified coverageName
+     * 
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     CoordinateReferenceSystem getCoordinateReferenceSystem(String coverageName);
+
+    /**
+     * Retrieves the {@link GridEnvelope} associated to the default coverage for this {@link GridCoverage2DReader}.
+     * <p>
+     * The {@link GridEnvelope} describes the raster area (in pixels) covered by the coverage.
+     * 
+     * <p>
+     * @return the {@link CoordinateReferenceSystem} mapped to the default coverageName
+     */
     GridEnvelope getOriginalGridRange();
+
+    /**
+     * Retrieves the {@link GridEnvelope} associated to the specified coverageName for this {@link GridCoverage2DReader}.
+     * <p>
+     * The {@link GridEnvelope} describes the raster area (in pixels) covered by the coverage.
+     * 
+     * @param coverageName the name of the coverage to work with
+     * @return the {@link GridEnvelope} mapped to the specified coverageName
+     * 
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     GridEnvelope getOriginalGridRange(String coverageName);
+
+    /**
+     * Retrieves the {@link MathTransform} associated to the default coverage for this {@link GridCoverage2DReader}.
+     * 
+     * <p>
+     * @return the {@link CoordinateReferenceSystem} mapped to the default coverageName
+     */
     MathTransform getOriginalGridToWorld(PixelInCell pixInCell);
+
+    /**
+     * Retrieves the {@link MathTransform} associated to the requested coverageName for this {@link GridCoverage2DReader}.
+     * 
+     * @param coverageName the name of the coverage to work with
+     * @return the {@link MathTransform} mapped to the specified coverageName
+     * 
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     MathTransform getOriginalGridToWorld(String coverageName, PixelInCell pixInCell);
-    GridCoverage2D read(GeneralParameterValue[] parameters) throws IllegalArgumentException, IOException;
-    GridCoverage2D read(String coverageName, GeneralParameterValue[] parameters) throws IllegalArgumentException, IOException;
+
+    /**
+     * Created a {@link GridCoverage2D} out of this {@link GridCoverage2DReader} for the default coverage.
+     * 
+     * @param parameters an array of {@link GeneralParameterValue} that uses a subset of the available read params for this
+     *        {@link GridCoverage2DReader} as specified by the {@link Format}
+     * @return a {@link GridCoverage2D} for the underlying default coverage for this {@link GridCoverage2DReader} or <code>null</code> in case no
+     *         {@link GridCoverage2D} can be read for the provided parameters.
+     * @throws IOException in case an error happen during read time.
+     */
+    GridCoverage2D read(GeneralParameterValue[] parameters) throws IOException;
+
+    /**
+     * Retrieves the {@link GridEnvelope} associated to the specified coverageName for this {@link GridCoverage2DReader}.
+     * 
+     * @param coverageName the name of the coverage to work with
+     * @param parameters an array of {@link GeneralParameterValue} that uses a subset of the available read params for this
+     *        {@link GridCoverage2DReader} as specified by the {@link Format}
+     * @return a {@link GridCoverage2D} for the underlying default coverage for this {@link GridCoverage2DReader} or <code>null</code> in case no
+     *         {@link GridCoverage2D} can be read for the provided parameters.
+     * 
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
+    GridCoverage2D read(String coverageName, GeneralParameterValue[] parameters) throws IOException;
+
+    /**
+     * Return the {@link Set} of dynamic read parameters supported by this {@link GridCoverage2DReader} for the default coverage.
+     * 
+     * @return the {@link Set} of dynamic read parameters supported by this {@link GridCoverage2DReader}.
+     * @throws IOException in case an error occurs while creating the {@link Set} of dynamic parameters.
+     */
     Set<ParameterDescriptor<List>> getDynamicParameters() throws IOException;
+
+    /**
+     * Return the {@link Set} of dynamic read parameters supported by this {@link GridCoverage2DReader} for the specified coverage.
+     * 
+     * @param coverageName the name of the coverage to work with
+     * @return the {@link Set} of dynamic read parameters supported by this {@link GridCoverage2DReader}.
+     * @throws IOException in case an error occurs while creating the {@link Set} of dynamic parameters.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName) throws IOException;
+
+    /**
+     * Return the resolution of the overview which would be picked out for the provided requested resolution
+     * using the provided {@link OverviewPolicy}. This method works on the default coverage for this {@link GridCoverage2DReader}.
+     *  
+     * @param policy the {@link OverviewPolicy} to use during evaluation.
+     * @param requestedResolution the requested resolution 
+     * @return an array of 2 double with the resolution of the selected overview.
+     * @throws IOException in case an error occurs.
+     */
     double[] getReadingResolutions(OverviewPolicy policy, double[] requestedResolution) throws IOException;
+
+    /**
+     * Return the resolution of the overview which would be picked out for the provided requested resolution
+     * using the provided {@link OverviewPolicy}. This method works on the specified coverage for this {@link GridCoverage2DReader}.
+     *  
+     * @param coverageName the name of the coverage to work on.
+     * @param policy the {@link OverviewPolicy} to use during evaluation.
+     * @param requestedResolution the requested resolution 
+     * @return an array of 2 double with the resolution of the selected overview.
+     * @throws IOException in case an error occurs.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
     double[] getReadingResolutions(String coverageName, OverviewPolicy policy, double[] requestedResolution) throws IOException;
 
+    /**
+     * Number of predetermined overviews for the default coverage.
+     * 
+     * @return The number of predetermined overviews for the default coverage. Zero if none are available, -1 if infinite are available, otherwise a
+     *         positive number.
+     */
+    int getNumOverviews();
+
+    /**
+     * Number of predetermined overviews for the specified coverage.
+     * 
+     * @param coverageName the name of the coverage for which we do want to get the number of overviews.
+     * 
+     * @return The number of predetermined overviews for the specified coverage. 0 if none are available, -1 if infinite are available, otherwise a
+     *         positive number.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
+    int getNumOverviews(String coverageName);
+
+    /**
+     * Retrieve the {@link ImageLayout} for the default coverage.
+     * <p>
+     * Throw an {@link IllegalArgumentException} in case the name is wrong and/or no such a coverage exists.
+     * 
+     * @return an {@link ImageLayout} that is useful for actually knowing the {@link ColorModel}, the {@link SampleModel} as well as the tile grid for
+     *         the default coverage.
+     */
+    ImageLayout getImageLayout()throws IOException;
+
+    /**
+     * Retrieve the {@link ImageLayout} for the specified coverage.
+     * <p>
+     * Throw an {@link IllegalArgumentException} in case the name is wrong and/or no such a coverage exists.
+     * 
+     * @param coverageName the name of the coverage for which we want to know the {@link GridEnvelope}.
+     * @return an {@link ImageLayout} that is useful for actually knowing the {@link ColorModel}, the {@link SampleModel} as well as the tile grid for
+     *         a certain coverage.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
+    ImageLayout getImageLayout(String coverageName)throws IOException;
+
+    /**
+     * Retrieve the resolution levels for the default coverage.
+     * <p>
+     * Throw an {@link IllegalArgumentException} in case the name is wrong and/or no such a coverage exists.
+     * 
+     * @return the resolution levels for the default coverage.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
+    double[][] getResolutionLevels() throws IOException;
+
+    /**
+     * Retrieve the resolution levels for the specified coverage.
+     * <p>
+     * Throw an {@link IllegalArgumentException} in case the name is wrong and/or no such a coverage exists.
+     * 
+     * @param coverageName the name of the coverage for which we want to know the resolution levels.
+     * @return the resolution levels for the specified coverage.
+     * @throws NullPointerException if the specified coverageName is <code>null</code>
+     * @throws IllegalArgumentException if the specified coverageName does not exist
+     */
+    double[][] getResolutionLevels(String coverageName) throws IOException;
 }

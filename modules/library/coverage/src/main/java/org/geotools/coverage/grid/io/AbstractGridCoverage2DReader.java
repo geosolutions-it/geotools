@@ -35,8 +35,10 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
+import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.spi.ImageInputStreamSpi;
 import javax.imageio.stream.ImageInputStream;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.PlanarImage;
 
 import org.geotools.coverage.CoverageFactoryFinder;
@@ -58,7 +60,9 @@ import org.geotools.referencing.operation.transform.IdentityTransform;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.i18n.ErrorKeys;
 import org.geotools.resources.i18n.Errors;
+import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
+import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.coverage.ColorInterpretation;
 import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridCoverage;
@@ -96,39 +100,43 @@ import org.opengis.referencing.operation.TransformException;
  */
 public abstract class AbstractGridCoverage2DReader implements GridCoverage2DReader {
 
-    /**
-     * The time domain (comma separated list of values)
-     */
-    public static final String TIME_DOMAIN = "TIME_DOMAIN";
-
     @Override
     public GeneralEnvelope getOriginalEnvelope(String coverageName) {
-        // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getOriginalEnvelope();
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
         }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        return getOriginalEnvelope();
+        
     }
 
     @Override
     public GridEnvelope getOriginalGridRange(String coverageName) {
-        // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getOriginalGridRange();
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
         }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        return getOriginalGridRange();
+        
     }
 
     @Override
     public MathTransform getOriginalGridToWorld(String coverageName, PixelInCell pixInCell) {
-        // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getOriginalGridToWorld(pixInCell);
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
         }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        // Default implementation for backwards compatibility
+        return getOriginalGridToWorld(pixInCell);
+    }
+
+    /**
+     * This method is responsible for checking the provided coverage name against
+     * the coverage name for this {@link GridCoverage2DReader}.
+     * 
+     * @param coverageName the coverage name to check.
+     * @return <code>true</code> if this {@link GridCoverage2DReader} contains the provided coverage name, <code>false</code> otherwise.
+     */
+    private final boolean checkName(String coverageName) {
+        Utilities.ensureNonNull("coverageName", coverageName);
+        return coverageName.equalsIgnoreCase(this.coverageName);
     }
 
     @Override
@@ -144,35 +152,35 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverage2DRead
 
     @Override
     public CoordinateReferenceSystem getCoordinateReferenceSystem(String coverageName) {
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        }        
+
         // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getCoordinateReferenceSystem();
-        }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        return getCoordinateReferenceSystem();
     }
 
     @SuppressWarnings("rawtypes")
     @Override
     public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName)
             throws IOException {
-        // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getDynamicParameters();
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
         }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        // Default implementation for backwards compatibility
+        return getDynamicParameters();
+        
     }
 
     @Override
     public double[] getReadingResolutions(String coverageName, OverviewPolicy policy,
             double[] requestedResolution) throws IOException {
-        // Default implementation for backwards compatibility
-        if (coverageName.equalsIgnoreCase(this.coverageName)) {
-            return getReadingResolutions(policy, requestedResolution);
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
         }
-        // Subclasses should do more checks on coverageName
-        throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        // Default implementation for backwards compatibility
+        return getReadingResolutions(policy, requestedResolution);
+        
     }
     
     @Override
@@ -180,66 +188,10 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverage2DRead
         return getCrs();
     }
 
-    /**
-     * Time domain resolution (when using min/max/resolution)
-     */
-    public static final String TIME_DOMAIN_RESOLUTION = "TIME_DOMAIN_RESOLUTION";
-
-    /**
-     * If the time domain is available (or if a min/max/resolution approach has been chosen)
-     */
-    public static final String HAS_TIME_DOMAIN = "HAS_TIME_DOMAIN";
-
-    /**
-     * The time domain max value
-     */
-    public static final String TIME_DOMAIN_MAXIMUM = "TIME_DOMAIN_MAXIMUM";
-
-    /**
-     * The time domain min value
-     */
-    public static final String TIME_DOMAIN_MINIMUM = "TIME_DOMAIN_MINIMUM";
-
-    /**
-     * Whether the elevation is expressed as a full domain or min/max/resolution (true if domain
-     * list available)
-     */
-    public static final String HAS_ELEVATION_DOMAIN = "HAS_ELEVATION_DOMAIN";
-
-    /**
-     * Elevation domain (comma separated list of values)
-     */
-    public static final String ELEVATION_DOMAIN = "ELEVATION_DOMAIN";
-
-    /**
-     * Elevation domain maximum value
-     */
-    public static final String ELEVATION_DOMAIN_MAXIMUM = "ELEVATION_DOMAIN_MAXIMUM";
-
-    /**
-     * Elevation domain minimum value
-     */
-    public static final String ELEVATION_DOMAIN_MINIMUM = "ELEVATION_DOMAIN_MINIMUM";
-
-    /**
-     * Elevation domain resolution
-     */
-    public static final String ELEVATION_DOMAIN_RESOLUTION = "ELEVATION_DOMAIN_RESOLUTION";
-
-    /**
-     * If a coverage has this property is means it been read straight out of a file without 
-     * any sub-setting, it means the coverage represents the full contents of the file.
-     * This can be used for different types of optimizations, such as avoiding reading
-     * and re-encoding the original file when the original file would do.
-     */
-    public static final String FILE_SOURCE_PROPERTY = "OriginalFileSource";
-
     /** The {@link Logger} for this {@link AbstractGridCoverage2DReader}. */
     private final static Logger LOGGER = Logging.getLogger("org.geotools.data.coverage.grid");
 
-	public static final double EPS = 1E-6;
-
-	/**
+        /**
 	 * This contains the  number of overviews.aaa
 	 */
 	protected int numOverviews = 0;
@@ -299,6 +251,8 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverage2DRead
 	private ArrayList<Resolution> resolutionsLevels;
 
     protected ImageInputStreamSpi inStreamSPI;
+
+    private ImageLayout imageLayout;
 
 	
  
@@ -1074,5 +1028,98 @@ public abstract class AbstractGridCoverage2DReader implements GridCoverage2DRead
     @SuppressWarnings("rawtypes")
     public Set<ParameterDescriptor<List>> getDynamicParameters() {
         return Collections.emptySet();
+    }
+
+    @Override
+    public int getNumOverviews(String coverageName) {
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        }
+        // Default implementation for backwards compatibility
+        return getNumOverviews();
+    }
+
+    @Override
+    public int getNumOverviews() {
+        return overViewResolutions != null ? overViewResolutions.length : 0;
+    }
+
+    public GridEnvelope getOverviewGridEnvelope(int overviewIndex) throws IOException {
+        return getOverviewGridEnvelope(coverageName, overviewIndex);
+    }
+
+    public GridEnvelope getOverviewGridEnvelope(String coverageName, int overviewIndex)
+            throws IOException {
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        }
+        
+        // Default implementation for backwards compatibility
+        return null;
+    }
+
+    @Override
+    public ImageLayout getImageLayout(String coverageName) throws IOException {
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        }
+        
+        // Default implementation for backwards compatibility
+        return getImageLayout();
+    }
+
+
+    @Override
+    public ImageLayout getImageLayout() throws IOException {
+        return (ImageLayout) imageLayout.clone();
+    }
+
+    /**
+     * Extract the ImageLayout from the provided reader for the first available image.
+     * 
+     * @param reader an istance of {@link ImageReader}
+     * @throws IOException in case an error occurs
+     */
+    protected void setLayout(ImageReader reader) throws IOException {
+
+        Utilities.ensureNonNull("reader", reader);
+        // save ImageLayout
+        ImageLayout2 layout = new ImageLayout2();
+        ImageTypeSpecifier its= reader.getImageTypes(0).next();
+        layout.setColorModel(its.getColorModel()).setSampleModel(its.getSampleModel());
+        layout.setMinX(0).setMinY(0).setWidth(reader.getWidth(0)).setHeight(reader.getHeight(0));
+        layout.setTileGridXOffset(0).setTileGridYOffset(0).setTileWidth(reader.getTileWidth(0)).setTileHeight(reader.getTileHeight(0));
+        setlayout(layout);
+    }
+
+    /**
+     * Set the provided layout for this {@link GridCoverage2DReader}-
+     * 
+     * @param layout the {@link ImageLayout} to set. It must be nont null
+     */
+    protected void setlayout(ImageLayout layout) {
+        Utilities.ensureNonNull("layout", layout);
+        this.imageLayout=(ImageLayout) layout.clone();
+        
+    }
+    
+    @Override
+    public double[][] getResolutionLevels() throws IOException {
+        final double [][] returnValue=new double[numOverviews+1][2];
+        System.arraycopy(highestRes, 0, returnValue[0], 0, 2);
+        for(int i=1;i<returnValue.length;i++){
+            System.arraycopy(overViewResolutions[i-1], 0, returnValue[i], 0, 2);
+        }
+        return returnValue;
+    }
+
+    @Override
+    public double[][] getResolutionLevels(String coverageName) throws IOException {
+        if(!checkName(coverageName)){
+            throw new IllegalArgumentException("The specified coverageName " + coverageName + "is not supported");
+        }
+        
+        // Default implementation for backwards compatibility
+        return getResolutionLevels();
     }
 }
