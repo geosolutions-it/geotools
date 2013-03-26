@@ -31,7 +31,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
  *
  */
 public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
-    
+
     /**
      * Returns the granule source for the specified coverage (might be null, if there is only one supported coverage)
      * 
@@ -41,29 +41,28 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      * @throws IOException
      * @throws UnsupportedOperationException
      */
-    GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException,UnsupportedOperationException;
+    GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException, UnsupportedOperationException;
 
     /**
      * Describes the dimensions supported by the specified coverage, if any. 
      * (might be null, if there is only one supported coverage)
      */
     Set<DimensionDescriptor> getDimensionDescriptors(String coverageName);
-    
+
     /**
      * Return whether this reader can modify the granule source 
      * @return
      */
     boolean isReadOnly();
-    
+
     /**
      * Creates a granule store for a new coverage with the given feature type
      */
     void createCoverage(String coverageName, SimpleFeatureType schema, Set<DimensionDescriptor> dimensions) throws
                                                IOException, UnsupportedOperationException;
-    
+
     /**
      * removes a granule store for the specified coverageName
      */
     boolean removeType(String coverageName) throws IOException, UnsupportedOperationException;
-    
 }

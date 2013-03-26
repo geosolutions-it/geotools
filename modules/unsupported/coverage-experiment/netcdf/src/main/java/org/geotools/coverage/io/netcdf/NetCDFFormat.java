@@ -16,7 +16,9 @@
  */
 package org.geotools.coverage.io.netcdf;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +26,7 @@ import java.util.logging.Logger;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
+import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
 import org.geotools.parameter.DefaultParameterDescriptorGroup;
 import org.geotools.parameter.ParameterGroup;
@@ -100,8 +103,21 @@ public class NetCDFFormat extends AbstractGridFormat{
 
     @Override
     public boolean accepts(Object source, Hints hints) {
-        // TODO check the format and some other minimal stuff before returning
-        return true;
+        File file = null;
+        if (source instanceof URL) {
+            file = DataUtilities.urlToFile((URL) source);
+        } else if (source instanceof File ){
+            file = (File) source;  
+        }
+        if (file != null) {
+            if (file.isDirectory()) {
+                return false;
+            }
+            if (file.getAbsolutePath().endsWith("nc")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

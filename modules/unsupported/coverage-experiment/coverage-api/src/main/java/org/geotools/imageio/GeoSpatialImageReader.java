@@ -20,14 +20,26 @@ package org.geotools.imageio;
 import it.geosolutions.imageio.utilities.SoftValueHashMap;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.spi.ImageReaderSpi;
 
 import org.geotools.coverage.io.CoverageSourceDescriptor;
+import org.geotools.coverage.io.catalog.CoverageSlice;
+import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
+import org.geotools.data.DataStoreFactorySpi;
+import org.geotools.data.Query;
+import org.geotools.resources.coverage.FeatureUtilities;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
 
 /**
  * @author Daniele Romagnoli, GeoSolutions SAS
@@ -37,8 +49,15 @@ import org.opengis.feature.type.Name;
  */
 public abstract class GeoSpatialImageReader extends ImageReader {
 
+    /** the coverage slices slicesCatalog currently stored as H2 DB */
+    protected CoverageSlicesCatalog slicesCatalog = null;
+
+    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
+
     protected int numImages = -1;
-    
+
+    private String auxiliaryFilesPath = null;
+
     /** Internal Cache for CoverageSourceDescriptor.**/
     private final SoftValueHashMap<String, CoverageSourceDescriptor> coverageSourceDescriptorsCache= new SoftValueHashMap<String, CoverageSourceDescriptor>();
 
@@ -54,14 +73,22 @@ public abstract class GeoSpatialImageReader extends ImageReader {
         }
         throw new UnsupportedOperationException("ImageMetadata are not supported for this ImageReader");
     }
-    
+
     @Override
     public void dispose() {
         super.dispose();
         synchronized (coverageSourceDescriptorsCache) {
             coverageSourceDescriptorsCache.clear();
         }
-        
+        try {
+            if (slicesCatalog != null) {
+                slicesCatalog.dispose();
+            }
+        } catch (Throwable t) {
+            
+        } finally {
+            slicesCatalog = null;
+        }
     }
 
     @Override
@@ -90,7 +117,6 @@ public abstract class GeoSpatialImageReader extends ImageReader {
         return numImages;
     }
 
-
     /**
      * Return the name of coverages made available by this provider
      */
@@ -100,7 +126,6 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      * The number of coverages made available by this provider.
      */
     public abstract int getCoveragesNumber();
-    
 
     /**
      * Forces implementors to create the {@link CoverageSourceDescriptor} for the provided name.
@@ -109,25 +134,85 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      * @return
      */
     protected abstract CoverageSourceDescriptor createCoverageDescriptor(Name name);
-    
-    
+
     /**
      * 
      * @param name
      * @return
      */
     public CoverageSourceDescriptor getCoverageDescriptor(Name name){
-
         final String name_ = name.toString();
         synchronized (coverageSourceDescriptorsCache) {
             if(coverageSourceDescriptorsCache.containsKey(name_)){
                 return coverageSourceDescriptorsCache.get(name_);
             }
-            
+
             // create, cache and return
             CoverageSourceDescriptor cd = createCoverageDescriptor(name);
             coverageSourceDescriptorsCache.put(name_, cd);
             return cd;
         }
+    }
+
+    /**
+     * Init the slicesCatalog based on the provided parameters
+     * 
+     * @param params the parameters to be used for initialization
+     * @param create whether to create the store
+     * @param spi the {@link DataStoreFactorySpi} to be used 
+     * @param indexSchema the {@link SimpleFeatureType} schema to be used to create type if not set yet
+     * @throws IOException
+     */
+    protected void initCatalog(final Map<String, Serializable> params, final boolean create, final DataStoreFactorySpi spi, final SimpleFeatureType indexSchema) throws IOException {
+        slicesCatalog = new CoverageSlicesCatalog(params, create, spi);
+        if (create) {
+            final SimpleFeatureType type = slicesCatalog.getSchema();
+            if (type == null) {
+                slicesCatalog.createType(indexSchema);
+            } else {
+                // remove them all, assuming the schema has not changed
+                final Query query = new Query(type.getTypeName());
+                query.setFilter(Filter.INCLUDE);
+                slicesCatalog.removeGranules(query);
+            }
+        }
+    }
+
+    /**
+     * Return the list of imageIndex related to the feature in the slicesCatalog
+     * which result from the specified query.
+     * 
+     * @param filterQuery the filter query (temporal, vertical, name selection) to 
+     * restrict the requested imageIndexes 
+     * @return
+     * @throws IOException
+     */
+    public List<Integer> getImageIndex(Query filterQuery) throws IOException {
+        Query query = new Query(slicesCatalog.getSchema().getTypeName());
+        query.setFilter(FF.and(query.getFilter(), filterQuery.getFilter()));
+        List<CoverageSlice> descs = slicesCatalog.getGranules(query);
+        List<Integer> indexes = new ArrayList<Integer>();
+        for (CoverageSlice desc : descs) {
+            Integer index = (Integer) desc.getOriginator().getAttribute(CoverageSlice.Attributes.INDEX);
+            indexes.add(index);
+        }
+        return indexes;
+    }
+
+    public String getAuxiliaryFilesPath() {
+        return auxiliaryFilesPath;
+    }
+
+    public void setAuxiliaryFilesPath(String auxiliaryFilesPath) {
+        this.auxiliaryFilesPath = auxiliaryFilesPath;
+    }
+
+    /**
+     * Returns the underlying slicesCatalog. 
+     * 
+     * @return
+     */
+    public CoverageSlicesCatalog getCatalog() {
+        return slicesCatalog;
     }
 }

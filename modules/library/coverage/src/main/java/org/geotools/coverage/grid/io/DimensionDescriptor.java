@@ -16,44 +16,69 @@
  */
 package org.geotools.coverage.grid.io;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.opengis.filter.Filter;
+
 /**
- * Dimension descriptor.
+ * Describes a "dimension" exposed by a structured grid coverage reader. The dimension can be either
+ * a point or a range type, see PointDimensionDescriptor and RangeDomainDescriptor
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
  * @author Andrea Aime, GeoSolutions SAS
  * @author Daniele Romagnoli, GeoSolutions SAS
+ * 
+ * @param <T>
  */
-public interface DimensionDescriptor {
-    
-    /**
-     * return the name of the dimension
-     * @return
-     */
-    String getName();
-    
-    /**
-     * return the type of the dimension
-     * @return
-     */
-    Class<?> getType();
-    
-    /**
-     * provide information of the dimension. return {@code true} in case of a range dimension,
-     * false otherwise
-     * @return
-     */
-    boolean isRange();
-    
-    /**
-     * Return the main attribute's name in the feature related to this dimension
-     * @return
-     */
-    String getAttributeName();
-    
-    /**
-     * Return the second attribute name (if any) in the feature related to this dimension in
-     * case of range dimension.
-     * @return
-     */
-    String getEndAttributeName();
+public interface DimensionDescriptor<T> {
+
+   /**
+    * The dimension name
+    *
+    * @return
+    */
+   String getName();
+
+   /**
+    * The dimension data type
+    *
+    * @return
+    */
+   Class<T> getType();
+
+   /**
+    * The minimum value in the dimension domain
+    */
+   T getMinimum() throws IOException;
+
+   /**
+    * The maximum value in the dimension domain
+    *
+    * @return
+    */
+   T getMaximum() throws IOException;
+
+   /**
+    * The domain size
+    *
+    * @return
+    */
+   int getSize() throws IOException;
+
+   /**
+    * Returns the domain
+    *
+    * @param filter Allows to specify a filter to get a subset of the domain. The attribute names
+    *        that can be used to build the filter are specified in the {@link DimensionDescriptor}
+    *        sub-interfaces
+    *
+    * @param offset The start of the page, must be zero or positive
+    * @param limit The maximum number of items to be returned, or a negative value to pose no limit
+    * @return the returned list contains either point values (T) or range values (Range<T>)
+    *         according to the domain nature
+    */
+   List<? extends Object> getDomain(Filter filter, int offset, int limit) throws IOException;
+
 }
+

@@ -61,8 +61,10 @@ import org.opengis.geometry.BoundingBox;
 
 /**
  * This class simply builds an index for fast indexed queries.
+ * 
+ * TODO: we may consider converting {@link CoverageSlice}s to {@link SimpleFeature}s
  */
-public class CoverageSlicesCatalog{
+public class CoverageSlicesCatalog {
 
     /** Logger. */
     final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(CoverageSlicesCatalog.class);
@@ -374,6 +376,7 @@ public class CoverageSlicesCatalog{
 
     public List<CoverageSlice> getGranules(final Query q) throws IOException {
         // create a list to return and reuse the visitor enabled method
+        //TODO revisit this to deal with iterators
         final List<CoverageSlice> returnValue = new ArrayList<CoverageSlice>();
         getGranules(q, new GranuleCatalogVisitor() {
             public void visit(CoverageSlice granule, Object o) {
@@ -387,7 +390,7 @@ public class CoverageSlicesCatalog{
         return getGranules(getBounds());
     }
 
-    public BoundingBox getBounds() {
+    public ReferencedEnvelope getBounds() {
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();
@@ -484,7 +487,7 @@ public class CoverageSlicesCatalog{
 
     }
 
-    public SimpleFeatureType getType() throws IOException {
+    public SimpleFeatureType getSchema() throws IOException {
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();
@@ -552,6 +555,6 @@ public class CoverageSlicesCatalog{
     }
 
     public int removeGranules(Query query) {
-        throw new UnsupportedOperationException("This Catalog does not support removing granules");        
+        throw new UnsupportedOperationException("This Catalog does not support removing granules");
     }
 }

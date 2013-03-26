@@ -58,24 +58,19 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.catalog.CoverageSlice;
-import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.coverage.io.util.Utilities;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
-import org.geotools.data.Query;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.h2.H2DataStoreFactory;
 import org.geotools.feature.NameImpl;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.UnidataUtilities.KeyValuePair;
-import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
-import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory2;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.Array;
@@ -102,11 +97,9 @@ import com.vividsolutions.jts.geom.Geometry;
  * TODO caching for {@link CoverageSourceDescriptor}
  */
 public abstract class UnidataImageReader extends GeoSpatialImageReader {
-    
-    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
-    
+
     private final static Logger LOGGER = Logging.getLogger(UnidataImageReader.class.toString());
-    
+
     protected static class VariableWrapper {
 
         private Variable variable;
@@ -257,10 +250,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
     protected Map<String, Variable> coordinatesVariables;
     protected CheckType checkType = CheckType.UNSET;
-   
-    /** the coverage slices slicesCatalog currently stored as H2 DB */
-    protected CoverageSlicesCatalog slicesCatalog = null;
-    
+
     /** The source file */
     protected File file;
 
@@ -408,7 +398,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     public Variable getVariableByName( final String varName ) {
         final List<Variable> varList = dataset.getVariables();
         for( Variable var : varList ) {
-            if (var.getName().equals(varName))
+            if (var.getFullName().equals(varName))
                 return var;
         }
         return null;
@@ -565,17 +555,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             
             // create the schema for the slices index
             SimpleFeatureType indexSchema = initializeSchema(params);
-            slicesCatalog = new CoverageSlicesCatalog(params, true, DatastoreProperties.SPI);
-            final SimpleFeatureType type = slicesCatalog.getType();
-            if (type == null) {
-                slicesCatalog.createType(indexSchema);
-            } else {
-                // remove them all, assuming the schema has not changed
-                final Query query = new Query(type.getTypeName());
-                query.setFilter(Filter.INCLUDE);
-                slicesCatalog.removeGranules(query);
-            }
-
+            initCatalog(params, true, DatastoreProperties.SPI, indexSchema);
             int numImages = 0;
             if (variables != null) {
                 for (final Variable variable : variables) {
@@ -862,16 +842,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             if (slicesIndexManager != null) {
                 slicesIndexManager.dispose();
             }
-            
-            if (slicesCatalog != null) {
-                slicesCatalog.dispose();
-            }
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.WARNING))
                 LOGGER.warning("Errors closing NetCDF dataset." + e.getLocalizedMessage());
         } finally {
             dataset = null;
-            slicesCatalog = null;
             slicesIndexManager = null;
         }
     }
@@ -903,7 +878,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         slicesIndexManager.open();
                         numImages = slicesIndexManager.getNumberOfRecords();
                         if (!ignoreMetadata) {
-                            slicesCatalog = initCatalog();
+                            final Map<String, Serializable> params = new HashMap<String, Serializable>();
+                            initializeParams(params);
+                            initCatalog(params, false, DatastoreProperties.SPI, null);
                             coverages = initVariablesNames();
                         }
                     }
@@ -938,17 +915,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         }
         setNumImages(numImages);
     }
-
-    private CoverageSlicesCatalog initCatalog() {
-        final Map<String, Serializable> params = new HashMap<String, Serializable>();
-            try {
-                initializeParams(params);
-            } catch (IOException e) {
-                LOGGER.log(Level.FINER, e.getMessage(), e);
-            }
-        return new CoverageSlicesCatalog(params, false,  DatastoreProperties.SPI);
-    }
-
 
 //    /**
 //     * Invoked by the NetCDF library when an error occurred during the read
@@ -1020,26 +986,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return null;
     }
     
-    /**
-     * Return the list of imageIndex related to the feature in the slicesCatalog
-     * which result from the specified query.
-     * 
-     * @param filterQuery the filter query (temporal, vertical, name selection) to 
-     * restrict the requested imageIndexes 
-     * @return
-     * @throws IOException
-     */
-    public List<Integer> getImageIndex(Query filterQuery) throws IOException {
-        Query query = new Query(slicesCatalog.getType().getTypeName());
-        query.setFilter(FF.and(query.getFilter(), filterQuery.getFilter()));
-        List<CoverageSlice> descs = slicesCatalog.getGranules(query);
-        List<Integer> indexes = new ArrayList<Integer>();
-        for (CoverageSlice desc : descs) {
-            Integer index = (Integer) desc.getOriginator().getAttribute(CoverageSlice.Attributes.INDEX);
-            indexes.add(index);
-        }
-        return indexes;
-    }
 
     @Override
     public CoverageSourceDescriptor createCoverageDescriptor(Name name) {

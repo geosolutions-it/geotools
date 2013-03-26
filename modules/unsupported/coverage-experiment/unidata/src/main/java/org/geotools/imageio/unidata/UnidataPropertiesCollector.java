@@ -80,7 +80,7 @@ public class UnidataPropertiesCollector extends CatalogPropertiesCollector {
                     + System.nanoTime());
             boolean rollback = false;
             try {
-                CoverageSlicesCatalog catalog = reader.slicesCatalog;
+                CoverageSlicesCatalog catalog = reader.getCatalog();
                 
                 // TODO: NEED TO RETRIEVE attributes from SCHEMA
                 String location = null; // Build location from URL.

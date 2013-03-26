@@ -42,7 +42,12 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.InvalidGridGeometryException;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
+import org.geotools.coverage.grid.io.GranuleSource;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
+import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.coverage.io.CoverageAccess;
 import org.geotools.coverage.io.CoverageAccess.AccessType;
 import org.geotools.coverage.io.CoverageReadRequest;
 import org.geotools.coverage.io.CoverageResponse;
@@ -50,7 +55,10 @@ import org.geotools.coverage.io.CoverageSource;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.Driver.DriverCapabilities;
+import org.geotools.coverage.io.FileDriver;
 import org.geotools.coverage.io.GridCoverageResponse;
+import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
+import org.geotools.coverage.io.catalog.CoverageSlicesCatalogSource;
 import org.geotools.coverage.io.util.DateRangeComparator;
 import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.data.DataSourceException;
@@ -70,6 +78,7 @@ import org.geotools.util.logging.Logging;
 import org.opengis.coverage.Coverage;
 import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridEnvelope;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.parameter.GeneralParameterValue;
@@ -88,16 +97,16 @@ import org.opengis.referencing.operation.TransformException;
  * @author Daniele Romagnoli, GeoSolutions SAS
  *
  */
-public class NetCDFReader extends AbstractGridCoverage2DReader {
+public class NetCDFReader extends AbstractGridCoverage2DReader implements StructuredGridCoverage2DReader{
 
     private final static Logger LOGGER = Logging
             .getLogger("org.geotools.coverage.io.netcdf.NetCDFReader");
 
-    static NetCDFDriver DRIVER = new NetCDFDriver();
-    
+    static FileDriver DRIVER = new NetCDFDriver();
+
     static NumberRangeComparator COMPARATOR = new NumberRangeComparator();
 
-    private NetCDFAccess access = null;
+    private CoverageAccess access = null;
 
     private List<Name> names = null;
 
@@ -154,16 +163,16 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
     public String[] getMetadataNames(String coverageName) {
         checkIsSupported(coverageName);
         final List<String> metadataNames = new ArrayList<String>();
-        metadataNames.add(AbstractGridCoverage2DReader.TIME_DOMAIN);
-        metadataNames.add(AbstractGridCoverage2DReader.HAS_TIME_DOMAIN);
-        metadataNames.add(AbstractGridCoverage2DReader.TIME_DOMAIN_MINIMUM);
-        metadataNames.add(AbstractGridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
-        metadataNames.add(AbstractGridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
-        metadataNames.add(AbstractGridCoverage2DReader.ELEVATION_DOMAIN);
-        metadataNames.add(AbstractGridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
-        metadataNames.add(AbstractGridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
-        metadataNames.add(AbstractGridCoverage2DReader.HAS_ELEVATION_DOMAIN);
-        metadataNames.add(AbstractGridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
 
         // TODO: Check for custom domains
         return metadataNames.toArray(new String[metadataNames.size()]);
@@ -182,19 +191,19 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
             final boolean hasTimeDomain = timeDomain != null;
             final boolean hasElevationDomain = verticalDomain != null;
 
-            if (name.equalsIgnoreCase(AbstractGridCoverage2DReader.HAS_ELEVATION_DOMAIN))
+            if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
                 return String.valueOf(hasElevationDomain);
 
-            if (name.equalsIgnoreCase(AbstractGridCoverage2DReader.HAS_TIME_DOMAIN)) {
+            if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
                 return String.valueOf(hasTimeDomain);
             }
 
             // NOT supported
-            if (name.equalsIgnoreCase(AbstractGridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
+            if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
                 return null;
             }
             // NOT supported
-            if (name.equalsIgnoreCase(AbstractGridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
+            if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
                 return null;
             }
 
@@ -262,13 +271,11 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
             if (name.endsWith("domain")) {
                 
                 // global domain
-                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain
-                        .getVerticalElements(false, null);
+                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(false, null);
                 return buildVerticalList(verticalElements);
             } else {
                 // min or max requests
-                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain
-                        .getVerticalElements(true, null);
+                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(true, null);
                 NumberRange<Double> overall = verticalElements.iterator().next();
                 if (name.endsWith("maximum")) {
                     return Double.toString(overall.getMaximum());
@@ -328,8 +335,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
      * @return
      */
     private String buildVerticalList(SortedSet<? extends NumberRange<Double>> verticalElements) {
-        Iterator<NumberRange<Double>> iterator = (Iterator<NumberRange<Double>>) verticalElements
-                .iterator();
+        Iterator<NumberRange<Double>> iterator = (Iterator<NumberRange<Double>>) verticalElements.iterator();
         LinkedHashSet<String> ranges = new LinkedHashSet<String>();
 
         if (iterator.hasNext()) {
@@ -619,8 +625,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
     public GridEnvelope getOriginalGridRange(final String coverageName) {
         try {
             final CoverageSource source = getGridCoverageSource(coverageName);
-            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source
-                    .getSpatialDomain();
+            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source.getSpatialDomain();
             return spatialDomain.getGridGeometry().getGridRange2D();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -628,23 +633,41 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
     }
 
     @Override
-    public double[] getReadingResolutions(String coverageName, OverviewPolicy policy,
+    public double[] getReadingResolutions(final String coverageName, OverviewPolicy policy,
             double[] requestedResolution) throws IOException {
             // Currently we have no overviews support so we will return the highest resolution
         final CoverageSource source = getGridCoverageSource(coverageName);
-            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source
-                    .getSpatialDomain();
-            GeneralGridGeometry gridGeometry2D = spatialDomain.getGridGeometry();
-            AffineTransform gridToCRS = (AffineTransform) gridGeometry2D.getGridToCRS();
-            return CoverageUtilities.getResolution(gridToCRS);
+        UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source.getSpatialDomain();
+        GeneralGridGeometry gridGeometry2D = spatialDomain.getGridGeometry();
+        AffineTransform gridToCRS = (AffineTransform) gridGeometry2D.getGridToCRS();
+        return CoverageUtilities.getResolution(gridToCRS);
+    }
+
+    @Override
+    public int getNumOverviews(String coverageName) {
+        // TODO Improve that
+        try {
+            final CoverageSource source = getGridCoverageSource(coverageName);
+            return 0;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public double[][] getResolutionLevels(String coverageName) throws IOException {
+        double[][] res = new double[2][1];
+        double[] readRes = getReadingResolutions(coverageName, null, null);
+        res[0][0] = readRes[0];
+        res[1][0] = readRes[1];
+        return res;
     }
 
     @Override
     public CoordinateReferenceSystem getCoordinateReferenceSystem(final String coverageName) {
         try {
             final CoverageSource source = getGridCoverageSource(coverageName);
-            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source
-                    .getSpatialDomain();
+            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source.getSpatialDomain();
             return spatialDomain.getCoordinateReferenceSystem2D();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -678,5 +701,36 @@ public class NetCDFReader extends AbstractGridCoverage2DReader {
             throw new RuntimeException(e);
         }
         throw new IllegalStateException("This reader's grid to world transform is invalid!");
+    }
+
+    @Override
+    public GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException,
+            UnsupportedOperationException {
+        final CoverageSlicesCatalog catalog = ((NetCDFAccess)access).reader.getCatalog();
+        return new CoverageSlicesCatalogSource(catalog, coverageName);
+    }
+
+    @Override
+    public Set<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
+        // TODO Need to implement that
+        return null;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return true;
+    }
+
+    @Override
+    public void createCoverage(String coverageName, SimpleFeatureType schema,
+            Set<DimensionDescriptor> dimensions) throws IOException, UnsupportedOperationException {
+        throw new UnsupportedOperationException("This operation is not supported on this reader");
+        
+    }
+
+    @Override
+    public boolean removeType(String coverageName) throws IOException,
+            UnsupportedOperationException {
+        throw new UnsupportedOperationException("This operation is not supported on this reader");
     }
 }
