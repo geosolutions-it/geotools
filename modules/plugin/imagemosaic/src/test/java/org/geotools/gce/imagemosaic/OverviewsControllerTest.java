@@ -42,7 +42,6 @@ import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.UnknownFormat;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
-import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -176,7 +175,7 @@ public class OverviewsControllerTest extends Assert {
 
         final int nOv = reader.getNumberOfOvervies();
         final double[] hRes = reader.getHighestRes();
-        final RasterManager rasterManager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
+        final RasterManager rasterManager = new RasterManager(reader);
 
         // //
         //

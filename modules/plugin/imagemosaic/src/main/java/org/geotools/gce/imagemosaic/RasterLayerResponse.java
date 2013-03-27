@@ -75,10 +75,9 @@ import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.filter.SortByImpl;
-import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
-import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
+import org.geotools.gce.imagemosaic.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
 import org.geotools.gce.imagemosaic.processing.ArtifactsFilterDescriptor;
 import org.geotools.geometry.Envelope2D;
@@ -352,9 +351,9 @@ class RasterLayerResponse{
             if (granuleFilter.evaluate(granuleDescriptor.originator)) {
                 final GranuleLoader loader = new GranuleLoader(baseReadParameters, imageChoice, mosaicBBox, finalWorldToGridCorner, granuleDescriptor, request, hints);
                 if (!dryRun) {
-                    if (multithreadingAllowed && rasterManager.parentManager.parentReader.multiThreadedLoader != null) {
+                    if (multithreadingAllowed && rasterManager.parentReader.multiThreadedLoader != null) {
                         // MULTITHREADED EXECUTION submitting the task
-                        granulesFutures.add(rasterManager.parentManager.parentReader.multiThreadedLoader.submit(loader));
+                        granulesFutures.add(rasterManager.parentReader.multiThreadedLoader.submit(loader));
                     } else {
                         // SINGLE THREADED Execution, we defer the execution to when we have done the loading
                         final FutureTask<GranuleLoadingResult> task = new FutureTask<GranuleLoadingResult>(loader);

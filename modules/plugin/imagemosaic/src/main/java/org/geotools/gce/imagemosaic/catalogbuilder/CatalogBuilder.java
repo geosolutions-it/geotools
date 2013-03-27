@@ -84,6 +84,7 @@ import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
+import org.geotools.gce.imagemosaic.catalog.GranuleCatalogStore;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
@@ -403,9 +404,9 @@ public class CatalogBuilder implements Runnable {
 					return;
 				}
 				cachedFormat=format;
-				coverageReader = (AbstractGridCoverage2DReader) format.getReader(fileBeingProcessed,runConfiguration.getHints());
+				coverageReader = (AbstractGridCoverage2DReader) format.getReader(fileBeingProcessed, runConfiguration.getHints());
 				GeneralEnvelope envelope = (GeneralEnvelope) coverageReader.getOriginalEnvelope();
-				CoordinateReferenceSystem actualCRS = coverageReader.getCrs();
+				CoordinateReferenceSystem actualCRS = coverageReader.getCoordinateReferenceSystem();
 
 				//
 				// STEP 3
@@ -591,7 +592,7 @@ public class CatalogBuilder implements Runnable {
 						pc.reset();
 					}
 
-				catalog.addGranule(feature,transaction);
+				catalog.addGranule(/*indexSchema.getTypeName(),*/ feature, transaction);
 
 				// fire event
 				fireEvent(Level.FINE,"Done with file "+fileBeingProcessed, (((fileIndex + 1) * 99.0) / numFiles));
@@ -949,7 +950,7 @@ public class CatalogBuilder implements Runnable {
     private AbstractGridFormat cachedFormat;
 
     private CatalogConfigurationBean catalogConfigurationBean;
-	
+
 	/* (non-Javadoc)
 	 * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#run()
 	 */
@@ -1334,7 +1335,7 @@ public class CatalogBuilder implements Runnable {
 				// set ParentLocation parameter since for embedded database like H2 we must change the database
 				// to incorporate the path where to write the db 
 				params.put("ParentLocation", DataUtilities.fileToURL(parent).toExternalForm());
-				catalog=GranuleCatalogFactory.createGranuleCatalog(params,false,true, spi);
+				catalog = GranuleCatalogFactory.createGranuleCatalog(params, false, true, spi);
 			} catch (ClassNotFoundException e) {
 				final IOException ioe = new IOException();
 				throw (IOException) ioe.initCause(e);

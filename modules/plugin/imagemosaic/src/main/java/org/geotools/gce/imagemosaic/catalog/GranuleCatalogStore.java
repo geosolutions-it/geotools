@@ -50,33 +50,36 @@ public class GranuleCatalogStore implements GranuleStore {
 
     private Transaction transaction;
     
-    private Filter filterName;
+    private String typeName;
+    
+//    private Filter filterName;
 
-    public GranuleCatalogStore(GranuleCatalog catalog, String coverageName) {
+    public GranuleCatalogStore(GranuleCatalog catalog, final String typeName) {
         super();
         //TODO: once we allow to create different catalogs (based on different featureTypes) 
         // we can stop filtering by name 
         this.catalog = catalog;
-        List<Filter> filters = new ArrayList<Filter>(); 
-        filters.add(FF.equal(FF.property("coverage"),
-                FF.literal(coverageName), true));
-        filterName = FF.and(filters);
+        this.typeName = typeName;
+//        List<Filter> filters = new ArrayList<Filter>(); 
+//        filters.add(FF.equal(FF.property("coverage"),
+//                FF.literal(coverageName), true));
+//        filterName = FF.and(filters);
     }
     
     @Override
     public SimpleFeatureCollection getGranules(Query q) throws IOException {
         // Filtering by coverageName
-        Filter filter = q.getFilter();
-        if (filter != null) {
-            filter = FF.and(filter, filterName);
-        } else {
-            filter = filterName;
-        }
-        q.setFilter(filter);
+//        Filter filter = q.getFilter();
+//        if (filter != null) {
+//            filter = FF.and(filter, filterName);
+//        } else {
+//            filter = filterName;
+//        }
+//        q.setFilter(filter);
         
         // TODO: Optimize me
         Collection<GranuleDescriptor> granules = catalog.getGranules(q);
-        SimpleFeatureCollection collection = new ListFeatureCollection(catalog.getType());
+        SimpleFeatureCollection collection = new ListFeatureCollection(catalog.getType(/*typeName*/));
         for (GranuleDescriptor granule: granules) {
             ((ListFeatureCollection)collection).add(granule.getOriginator());
         }
@@ -97,7 +100,7 @@ public class GranuleCatalogStore implements GranuleStore {
 
     @Override
     public SimpleFeatureType getSchema() throws IOException {
-        return catalog.getType();
+        return catalog.getType(/*typeName*/);
     }
 
     @Override
@@ -119,7 +122,7 @@ public class GranuleCatalogStore implements GranuleStore {
                 checkSchemaCompatibility(feature);
             }
             try {
-                catalog.addGranule(feature, transaction);
+                catalog.addGranule(/*typeName*/ feature, transaction);
             } catch (IOException e) {
                 throw new RuntimeException("Exception occurred while adding granules to the catalog", e);
             }
@@ -140,7 +143,7 @@ public class GranuleCatalogStore implements GranuleStore {
      */
     private void checkSchemaCompatibility(final SimpleFeature feature) {
         try {
-            if (!feature.getType().equals(catalog.getType())) {
+            if (!feature.getType().equals(catalog.getType(/*typeName*/))) {
                 throw new IllegalArgumentException("The schema of the provided collection is not the same of the underlying catalog");
             }
         } catch (IOException e) {

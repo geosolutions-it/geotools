@@ -36,7 +36,6 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleOverviewLevelDescriptor;
-import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -163,7 +162,7 @@ public class GranuleTest extends Assert {
 		final Hints crsHints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, DefaultGeographicCRS.WGS84);	
 		final ImageMosaicReader reader = (ImageMosaicReader) new ImageMosaicFormat().getReader(testMosaic,crsHints);
 		assertNotNull(reader);
-		final RasterManager manager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
+		final RasterManager manager = new RasterManager(reader);
 		
 		// use imageio with defined tiles
 		final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -255,7 +254,7 @@ public class GranuleTest extends Assert {
                 .getReader(testMosaic);
 
         assertNotNull(reader);
-        final RasterManager manager = new CoveragesManager(reader).createRasterManager(CoveragesManager.UNSPECIFIED);
+        final RasterManager manager = new RasterManager(reader);
 
         // FIXME: somehow when run under JUnit the bounds end up as (y,x) rather than (x,y). Works
         // fine in GeoServer. Hack it :(

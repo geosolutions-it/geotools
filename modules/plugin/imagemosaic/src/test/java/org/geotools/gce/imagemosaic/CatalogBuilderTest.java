@@ -289,7 +289,7 @@ public class CatalogBuilderTest extends Assert {
 			assertTrue(new ImageMosaicFormat().accepts(relativeMosaic));
 			reader = (ImageMosaicReader) new ImageMosaicReader(relativeMosaic);
 			
-			GranuleCatalog catalog = reader.coveragesManager.granuleCatalog;
+			GranuleCatalog catalog = reader.getRasterManager(reader.defaultName).granuleCatalog;
 			assertTrue(catalog.getClass().toString().endsWith("GTDataStoreGranuleCatalog"));
 		} finally {
 		    if (inStream != null){
@@ -327,7 +327,7 @@ public class CatalogBuilderTest extends Assert {
 			assertTrue(new ImageMosaicFormat().accepts(relativeMosaic));
 			reader = (ImageMosaicReader) new ImageMosaicReader(relativeMosaic);
 			
-			GranuleCatalog catalog = reader.coveragesManager.granuleCatalog;
+			GranuleCatalog catalog = reader.getRasterManager(reader.defaultName).granuleCatalog;
 			assertTrue(catalog.getClass().toString().endsWith("STRTreeGranuleCatalog"));
 
 		} finally {

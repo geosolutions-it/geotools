@@ -30,7 +30,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.geometry.BoundingBox;
 /**
- * The {@link GranuleCatalog} interface provides the basuc capabilities for the class 
+ * The {@link GranuleCatalog} interface provides the basic capabilities for the class 
  * that is as an index for the granules.
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
@@ -63,12 +63,16 @@ public interface GranuleCatalog {
 	 *         {@link BoundingBox}.
 	 * @throws IOException 
 	 */
-	public void getGranules(final BoundingBox envelope,final  GranuleCatalogVisitor visitor) throws IOException;
+	public void getGranules (final BoundingBox envelope, final  GranuleCatalogVisitor visitor) throws IOException;
 	
-	public void getGranules( final Query q, final GranuleCatalogVisitor visitor) throws IOException;	
+	public void getGranules (final Query q, final GranuleCatalogVisitor visitor) throws IOException;	
 
 	public void dispose();
-		
+
+//	       public void addGranule(final String typeName, final SimpleFeature granule, final Transaction transaction) throws IOException;
+//	        
+//	        public void addGranules(final String typeName, final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException;
+
 	public void addGranule(final SimpleFeature granule, final Transaction transaction) throws IOException;
 	
 	public void addGranules(final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException;
@@ -81,11 +85,13 @@ public interface GranuleCatalog {
 	
 	public SimpleFeatureType getType() throws IOException;
 	
+//	public SimpleFeatureType getType(final String typeName) throws IOException;
+	
 	public int removeGranules(final Query query);
 
 	public BoundingBox getBounds();
 	
-	public void computeAggregateFunction(final Query q,final FeatureCalc function) throws IOException;
+	public void computeAggregateFunction(final Query q, final FeatureCalc function) throws IOException;
 	
 	public QueryCapabilities getQueryCapabilities();
 }

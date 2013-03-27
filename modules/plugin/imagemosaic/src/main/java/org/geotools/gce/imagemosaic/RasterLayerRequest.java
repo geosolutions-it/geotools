@@ -32,7 +32,6 @@ import org.geotools.coverage.grid.io.DecimationPolicy;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.data.DataSourceException;
 import org.geotools.factory.Hints;
-import org.geotools.gce.imagemosaic.CoveragesManager.RasterManager;
 import org.geotools.gce.imagemosaic.SpatialRequestHelper.CoverageProperties;
 import org.opengis.filter.Filter;
 import org.opengis.metadata.Identifier;
@@ -217,7 +216,7 @@ class RasterLayerRequest {
     private void setDefaultParameterValues() {
         
         // get the read parameters for this format plus the ones for the basic format and set them to the default
-    	final ParameterValueGroup readParams = this.rasterManager.parentManager.parentReader.getFormat().getReadParameters();
+    	final ParameterValueGroup readParams = this.rasterManager.parentReader.getFormat().getReadParameters();
     	if (readParams == null) {
     		if(LOGGER.isLoggable(Level.FINER))
     			LOGGER.finer("No default values for the read parameters!");
@@ -709,7 +708,7 @@ class RasterLayerRequest {
         //
         // //
         String paramName = name.getCode();
-        if (rasterManager.parentManager.parentReader.isParameterSupported(name)) {
+        if (rasterManager.parentReader.isParameterSupported(name)) {
             final Object value = param.getValue();
             if (value == null){
                 return;

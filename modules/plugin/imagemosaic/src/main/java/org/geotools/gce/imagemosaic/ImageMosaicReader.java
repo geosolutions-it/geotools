@@ -22,7 +22,11 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -50,7 +54,6 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.util.Utilities;
-import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.coverage.grid.Format;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.geometry.BoundingBox;
@@ -92,12 +95,24 @@ import org.opengis.referencing.operation.MathTransform;
 @SuppressWarnings("rawtypes")
 public class ImageMosaicReader extends AbstractGridCoverage2DReader implements GridCoverage2DReader {
 
+    Set<String> names = new HashSet<String>();
+    
+    String defaultName = null;
+    
+    public static final String UNSPECIFIED = "_UN$PECIFIED_";
 
-    @Override
-    public String[] getGridCoverageNames() {
-        return coveragesManager.getCoverageNames();
-    }
+    HashMap<String, RasterManager> rasterManagers = new HashMap<String, RasterManager>();
 
+    public RasterManager getRasterManager(String name) {
+          if(rasterManagers.containsKey(name)){
+              return rasterManagers.get(name);
+          }
+          return null;
+  }
+    
+//    public String[] getGridCoverageNames() {
+//            return (String[]) names.toArray();
+//        }
 
     /** Logger. */
 	private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(ImageMosaicReader.class);
@@ -116,7 +131,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 
 	String locationAttributeName=Utils.DEFAULT_LOCATION_ATTRIBUTE;
 
-	CoveragesManager coveragesManager;
+//	CoveragesManager coveragesManager;
 
         int maxAllowedTiles=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue();
 
@@ -211,9 +226,10 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
         setGridGeometry();
         
         // raster manager
-        coveragesManager = new CoveragesManager(this);
+//        coveragesManager = new CoveragesManager(this);
         String name = configuration.getName();
-        coveragesManager.addRasterManager(name, configuration, catalog);
+        RasterManager rasterManager = new RasterManager(this, configuration);
+        addRasterManager(name, rasterManager);
         
         //TODO: CHECK THAT : Can we have different coverages with different types of data?
 //        mosaicManager.defaultSM = configuration.getSampleModel();
@@ -269,7 +285,6 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
 		// now load the configuration and extract properties from there
 		extractProperties(configuration);
-		GranuleCatalog catalog = null;
 		
 		//location attribute override
 		if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
@@ -282,12 +297,12 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		try {
 			// create the index
-			catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
+			granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
 			// error
-			if(catalog==null){
+			if(granuleCatalog==null){
 			    throw new DataSourceException("Unable to create index for this URL "+sourceURL);
 			}
-                        final SimpleFeatureType type= catalog.getType();
+                        final SimpleFeatureType type= granuleCatalog.getType();
                         if (type==null){
                             throw new IllegalArgumentException("Problems when opening the index, no typenames for the schema are defined");
                         }
@@ -298,7 +313,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 				LOGGER.fine("Connected mosaic reader to its index "
 						+ sourceURL.toString());
 
-			setGridGeometry(configuration.getEnvelope(), catalog);
+			setGridGeometry(configuration.getEnvelope(), granuleCatalog);
 
             //
             // get the crs if able to
@@ -335,14 +350,15 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 			}
 			
 			// creating the raster manager
-			coveragesManager = new CoveragesManager(this);
+//			coveragesManager = new CoveragesManager(this);
 			String name = configuration.getName();
-		        coveragesManager.addRasterManager(name, configuration, catalog);
+			RasterManager rasterManager = new RasterManager(this, configuration);
+		        addRasterManager(name, rasterManager);
 		}
 		catch (Throwable e) {
 			try {
-				if(catalog!=null){
-				    catalog.dispose();
+				if(granuleCatalog!=null){
+				    granuleCatalog.dispose();
 				}
 			} catch (Throwable e1) {
 				if (LOGGER.isLoggable(Level.FINEST)){
@@ -350,21 +366,21 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 				}
 			}
 			finally{
-				catalog=null;
+			    granuleCatalog=null;
 			}
 			
 			// dispose raster manager as well
-			try {
-				if (coveragesManager != null) {
-					coveragesManager.dispose();
-                }
-			} catch (Throwable e1) {
-				if (LOGGER.isLoggable(Level.FINEST))
-					LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
-			}
-			finally{
-				coveragesManager = null;
-			}
+//			try {
+//				if (coveragesManager != null) {
+//					coveragesManager.dispose();
+//                }
+//			} catch (Throwable e1) {
+//				if (LOGGER.isLoggable(Level.FINEST))
+//					LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
+//			}
+//			finally{
+//				coveragesManager = null;
+//			}
 						
 			// rethrow
 			throw new  DataSourceException(e);
@@ -510,7 +526,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 	}
 
     public GridCoverage2D read(GeneralParameterValue[] params) throws IOException {
-	     return read (CoveragesManager.UNSPECIFIED, params); 
+	     return read (UNSPECIFIED, params); 
 	}
 
 	/**
@@ -521,7 +537,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 	public GridCoverage2D read(String coverageName, GeneralParameterValue[] params) throws IOException {
 	   
 	    // check if we were disposed already
-	    if(coveragesManager == null){
+	    if(rasterManagers == null){
 	        throw new IOException("Looks like this reader has been already disposed or it has not been properly initialized.");
 	    }
 		if (LOGGER.isLoggable(Level.FINE)) {
@@ -571,7 +587,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		// Loading tiles trying to optimize as much as possible
 		//
-		final Collection<GridCoverage2D> response = coveragesManager.read(params, coverageName);
+		final Collection<GridCoverage2D> response = read(params, coverageName);
 		if (response.isEmpty()) {
 		    if (LOGGER.isLoggable(Level.FINE)){
 		        LOGGER.fine("The response is empty. ==> returning a null GridCoverage");
@@ -581,6 +597,30 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 			return response.iterator().next();
 		}
 	}
+	
+	  /**
+	     * Look for the parameter containing the coverage name and check its validity.
+	     * Then delegate the proper RasterManager to do the read operation.
+	     * @param params
+	     * @return
+	     * @throws IOException
+	     */
+	    private Collection<GridCoverage2D> read(GeneralParameterValue[] params, String coverageName) throws IOException {
+	        /*String coverageName = UNSPECIFIED;
+	        if (params != null) {
+	            for (GeneralParameterValue gParam : params) {
+	                if(gParam instanceof ParameterValue<?>){                
+	                    final ParameterValue<?> param = (ParameterValue<?>) gParam;
+	                    final ReferenceIdentifier name = param.getDescriptor().getName();
+	                    if (name.equals(ImageMosaicFormat.COVERAGE_NAME.getName())) {
+	                        coverageName = (String) param.getValue();
+	                    }
+	                }
+	            }
+	        }*/
+	        coverageName = checkUnspecifiedCoverage(coverageName);
+	        return getRasterManager(coverageName).read(params);
+	    }
 
 	/**
 	 * Package private accessor for {@link Hints}.
@@ -632,69 +672,192 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 //		return mosaicManager.getName();
 //	}
 
-	/**
-	 * Number of coverages for this reader is 1
-	 * 
-	 * @return the number of coverages for this reader.
-	 */
-	@Override
-	public int getGridCoverageCount() {
-		return coveragesManager.getNumCoverages();
-	}
-
-	/**
-	 * Releases resources held by this reader.
-	 * 
-	 */
-	@Override
-	public synchronized void dispose() {
-		super.dispose();
-		try{
-		    if(coveragesManager != null)
-		        coveragesManager.dispose();
-		} catch (Exception e) {
-                    if(LOGGER.isLoggable(Level.FINE))
-                        LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
-                } finally {
-                    coveragesManager = null;
-                }
-	}
-
+    /**
+     * Number of coverages for this reader is 1
+     * 
+     * @return the number of coverages for this reader.
+     */
     @Override
-    public String[] getMetadataNames() {
-        return getMetadataNames(CoveragesManager.UNSPECIFIED);
+    public int getGridCoverageCount() {
+        return names.size();
+    }
+
+    /**
+     * Releases resources held by this reader.
+     * 
+     */
+    @Override
+    public synchronized void dispose() {
+        super.dispose();
+        synchronized (this) {
+            try {
+                if (granuleCatalog != null)
+                    this.granuleCatalog.dispose();
+
+                if (rasterManagers != null) {
+                    Set<String> keys = rasterManagers.keySet();
+                    for (String key: keys) {
+                        rasterManagers.get(key).dispose();
+                    }
+                    rasterManagers.clear();
+                    rasterManagers = null;
+                }
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE))
+                    LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
+            }
+        }
     }
 
     @Override
+    public String[] getMetadataNames() {
+        return getMetadataNames(UNSPECIFIED);
+    }
+
+    /**
+     * Populate the metadata names array for the specified coverageName
+     * @param coverageName
+     * @return
+     */
+    @Override
     public String[] getMetadataNames(String coverageName) {
-        return coveragesManager.getMetadataNames(coverageName);
+        String name = checkUnspecifiedCoverage(coverageName);
+        final List<String> metadataNames = new ArrayList<String>();
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        RasterManager manager = getRasterManager(name);
+        if (manager.domainsManager != null) {
+            metadataNames.addAll(manager.domainsManager.getMetadataNames());
+        }
+        return metadataNames.toArray(new String[metadataNames.size()]);
     }
 
     @Override
     public String getMetadataValue(final String name) {
-        return getMetadataValue(CoveragesManager.UNSPECIFIED, name);
+        return getMetadataValue(UNSPECIFIED, name);
     }
 
     @Override
-    public String getMetadataValue(final String coverageName, final String name) {
-        return coveragesManager.getMetadataValue(coverageName, name);
+    public String getMetadataValue(String coverageName, final String name) {
+        coverageName = checkUnspecifiedCoverage(coverageName);
+        String value = null;
+        RasterManager manager = getRasterManager(coverageName);
+        final boolean hasTimeDomain = manager.timeDomainManager != null;
+        final boolean hasElevationDomain = manager.elevationDomainManager != null;
+
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
+            return String.valueOf(hasElevationDomain);
+
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
+            return String.valueOf(hasTimeDomain);
+        }
+
+        // NOT supported
+        if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
+            return null;
+        }
+        // NOT supported
+        if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
+            return null;
+        }
+
+        if (hasTimeDomain) {
+            if (name.equalsIgnoreCase("time_domain")) {
+                return manager.timeDomainManager.getMetadataValue(name);
+            }
+            if ((name.equalsIgnoreCase("time_domain_minimum") || name
+                    .equalsIgnoreCase("time_domain_maximum"))) {
+                return manager.timeDomainManager.getMetadataValue(name);
+            }
+        }
+
+        if (hasElevationDomain) {
+            if (name.equalsIgnoreCase("elevation_domain")) {
+                return manager.elevationDomainManager.getMetadataValue(name);
+            }
+
+            if (name.equalsIgnoreCase("elevation_domain_minimum")
+                    || name.equalsIgnoreCase("elevation_domain_maximum")) {
+                return manager.elevationDomainManager.getMetadataValue(name);
+            }
+        }
+
+        // check additional domains
+        if (manager.domainsManager != null) {
+            return manager.domainsManager.getMetadataValue(name);
+        }
+
+        //
+        return value;
     }
 
     @Override
     public Set<ParameterDescriptor<List>> getDynamicParameters() {
-        return getDynamicParameters(CoveragesManager.UNSPECIFIED);
+        return getDynamicParameters(UNSPECIFIED);
     }
     
     @Override
     public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName) {
-        return coveragesManager.getDynamicParameters(coverageName);
+        coverageName = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager =  getRasterManager(coverageName);
+        return (Set<ParameterDescriptor<List>>) (manager.domainsManager != null ? manager.domainsManager
+                .getDynamicParameters() :  Collections.emptySet());
     }
 
     public boolean isParameterSupported(Identifier name) {
-        return isParameterSupported(CoveragesManager.UNSPECIFIED, name);
+        return isParameterSupported(UNSPECIFIED, name);
     }
 
-    public boolean isParameterSupported(String coverageName, Identifier name) {
-        return coveragesManager.isParameterSupported(coverageName, name);
+        /**
+         * Check whether the specified parameter is supported for the specified coverage.
+         * @param coverageName
+         * @param parameterName
+         * @return
+         */
+        public boolean isParameterSupported(String coverageName, Identifier parameterName) {
+            coverageName = checkUnspecifiedCoverage(coverageName);
+            RasterManager manager = getRasterManager(coverageName);
+            return manager.domainsManager != null ? manager.domainsManager.isParameterSupported(parameterName) : false;
     }
+
+    /**
+     * Checker whether the specified coverageName is supported. In case the name is Unspecified and the manager only has 1 coverage, then it returns
+     * the only available coverage name (using default to speed up the response without need to access the set through an iterator). In case of
+     * multiple coverages, throws an Exceptions if the coverage name is unspecified.
+     * 
+     * @param coverageName
+     */
+    private String checkUnspecifiedCoverage(String coverageName) {
+        if (coverageName.equalsIgnoreCase(UNSPECIFIED)) {
+            if (getGridCoverageCount() > 1) {
+                throw new IllegalArgumentException(
+                        "Need to specify the coverageName for a reader related to multiple coverages");
+            } else {
+                return defaultName;
+            }
+        } else {
+            if (!names.contains(coverageName)) {
+                throw new IllegalArgumentException("The specified coverageName is unavailable");
+            } else {
+                return coverageName;
+            }
+        }
+    }
+
+    private void addRasterManager(String name, RasterManager manager) {
+        rasterManagers.put(name, manager);
+        names.add(name);
+        if (defaultName == null) {
+            defaultName = name;
+        }
+    }
+
 }

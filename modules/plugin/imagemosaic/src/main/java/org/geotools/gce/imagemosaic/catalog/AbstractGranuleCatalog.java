@@ -36,6 +36,14 @@ import org.opengis.geometry.BoundingBox;
  */
 public class AbstractGranuleCatalog implements GranuleCatalog {
 
+//    public void addGranule(final String typeName, SimpleFeature granule, Transaction transaction) throws IOException {
+//        throw new UnsupportedOperationException("This Catalog does not support adding granules ");
+//    }
+//
+//    public void addGranules(final String typeName, Collection<SimpleFeature> granules, Transaction transaction) throws IOException {
+//        throw new UnsupportedOperationException("This Catalog does not support adding granules ");
+//    }
+
     public void addGranule(SimpleFeature granule, Transaction transaction) throws IOException {
         throw new UnsupportedOperationException("This Catalog does not support adding granules ");
     }
@@ -43,7 +51,7 @@ public class AbstractGranuleCatalog implements GranuleCatalog {
     public void addGranules(Collection<SimpleFeature> granules, Transaction transaction) throws IOException {
         throw new UnsupportedOperationException("This Catalog does not support adding granules ");
     }
-
+    
     public void computeAggregateFunction(Query q, FeatureCalc function) throws IOException {
         throw new UnsupportedOperationException("This Catalog does not support Aggregate function");
     }
@@ -95,6 +103,10 @@ public class AbstractGranuleCatalog implements GranuleCatalog {
     public SimpleFeatureType getType() throws IOException {
         return null;
     }
+
+//    public SimpleFeatureType getType(final String typeName) throws IOException {
+//        return null;
+//    }
 
     public int removeGranules(Query query) {
         throw new UnsupportedOperationException("This Catalog does not support removing granules");        
