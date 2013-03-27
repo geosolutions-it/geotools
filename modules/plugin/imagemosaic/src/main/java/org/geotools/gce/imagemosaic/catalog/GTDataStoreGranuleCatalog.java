@@ -23,8 +23,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -98,7 +100,9 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	
 	private DataStore tileIndexStore;
 
-	private String typeName;
+//	private String typeName;
+	
+	Set<String> typeNamess = new HashSet<String>();
 
 	private String geometryPropertyName;
 
@@ -164,26 +168,34 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 				}
 			}
 
+			String typeName = null;
+			 if(params.containsKey("TypeName")){
+                             typeName=(String) params.get("TypeName");
+                         }
+			
 			// is this a new store? If so we do not set any properties
 			if(create){
+			   if (typeName != null) {
+			   
+			   }
 			    return;
 			}
 				
 			// if this is not a new store let's extract basic properties from it
-			if(params.containsKey("TypeName")){
-				this.typeName=(String) params.get("TypeName");
 	        	
 	        	// Oracle trick
 	        	if(spi instanceof OracleNGOCIDataStoreFactory||
 	        			spi instanceof OracleNGJNDIDataStoreFactory||
 	        			spi instanceof OracleNGDataStoreFactory){
-	        		this.typeName=typeName.toUpperCase();
+	        		typeName=typeName.toUpperCase();
 	        		if(locationAttribute!=null){
 	        			this.locationAttribute=this.locationAttribute.toUpperCase();
 	        		}
-	        	}				
-			}
-			extractBasicProperties();
+	        	}
+	        	if (typeName != null) {
+	                    addTypeName(typeName, false);
+	                }
+			extractBasicProperties(typeName);
 		}
 		catch (Throwable e) {
 			try {
@@ -214,7 +226,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		}
 	}
 	
-        private void extractBasicProperties() throws IOException{
+        private void extractBasicProperties(String typeName) throws IOException{
 
             if(typeName==null){
                 final String[] typeNames = tileIndexStore.getTypeNames();
@@ -239,19 +251,20 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
                         if (LOGGER.isLoggable(Level.FINE))
                             LOGGER.fine("BBOXFilterExtractor::extractBasicProperties(): SUCCESS -> type \'"
                                     + typeName + "\' is equalsIgnoreCase() to \'" + type + "\'.");
-                        this.typeName = type;
+                        typeName = type;
+                        addTypeName(typeName, false);
                         break;
                     }
                 }
             }
         	
-            final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(this.typeName);
+            final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(typeName);
             if (featureSource != null)
                 bounds = featureSource.getBounds();
             else
                 throw new IOException(
                         "BBOXFilterExtractor::extractBasicProperties(): unable to get a featureSource for the qualified name"
-                                + this.typeName);
+                                + typeName);
 
             final FeatureType schema = featureSource.getSchema();
             if (schema != null) {
@@ -272,7 +285,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	/* (non-Javadoc)
 	 * @see org.geotools.gce.imagemosaic.FeatureIndex#findFeatures(com.vividsolutions.jts.geom.Envelope)
 	 */
-	public List<GranuleDescriptor> getGranules(final BoundingBox envelope) throws IOException {
+	@Override
+	public List<GranuleDescriptor> getGranules(final String typeName, final BoundingBox envelope) throws IOException {
 		Utilities.ensureNonNull("envelope",envelope);
 		final Query q = new Query(typeName);
 		Filter filter = ff.bbox( ff.property( geometryPropertyName ), ReferencedEnvelope.reference(envelope) );
@@ -284,12 +298,13 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	/* (non-Javadoc)
 	 * @see org.geotools.gce.imagemosaic.FeatureIndex#findFeatures(com.vividsolutions.jts.geom.Envelope, com.vividsolutions.jts.index.ItemVisitor)
 	 */
-	public void  getGranules(final BoundingBox envelope, final GranuleCatalogVisitor visitor) throws IOException {
+	@Override
+	public void  getGranules(final String typeName, final BoundingBox envelope, final GranuleCatalogVisitor visitor) throws IOException {
 		Utilities.ensureNonNull("envelope",envelope);
 		final Query q = new Query(typeName);
 		Filter filter = ff.bbox( ff.property( geometryPropertyName ), ReferencedEnvelope.reference(envelope) );
 		q.setFilter(filter);
-	    getGranules(q,visitor);			
+	    getGranules(q, visitor);			
 		
 
 	}
@@ -318,6 +333,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		
 	}
 
+	@Override
 	public int removeGranules(final Query query) {
 		Utilities.ensureNonNull("query",query);
 		final Lock lock=rwLock.writeLock();
@@ -325,7 +341,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			lock.lock();
 			// check if the index has been cleared
 			checkStore();		
-			
+			String typeName = query.getTypeName();
 			SimpleFeatureStore fs=null;
 			try{
 				// create a writer that appends this features
@@ -350,11 +366,13 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		}			
 	}
 
-	public void addGranule(final SimpleFeature granule, final Transaction transaction) throws IOException {
-		addGranules(Collections.singleton(granule),transaction);
+	@Override
+	public void addGranule(final String typeName, final SimpleFeature granule, final Transaction transaction) throws IOException {
+		addGranules(typeName, Collections.singleton(granule),transaction);
 	}
 	
-	public void addGranules(final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException {
+	@Override
+	public void addGranules(final String typeName, final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException {
 		Utilities.ensureNonNull("granuleMetadata",granules);
 		final Lock lock=rwLock.writeLock();
 		try{
@@ -366,7 +384,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			FeatureWriter<SimpleFeatureType, SimpleFeature> fw =null;
 			try{
 				// create a writer that appends this features
-				fw = tileIndexStore.getFeatureWriterAppend(typeName,transaction);
+				fw = tileIndexStore.getFeatureWriterAppend(typeName, transaction);
 
 				//add them all
 				for(SimpleFeature f:granules){
@@ -416,10 +434,11 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		}	
 	}
 
+	@Override
 	public void  getGranules(final Query q, final GranuleCatalogVisitor visitor)
 	throws IOException {
 		Utilities.ensureNonNull("query",q);
-
+		String typeName = q.getTypeName();
 		final Lock lock=rwLock.readLock();
 		try{
 			lock.lock();		
@@ -429,7 +448,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			// Load tiles informations, especially the bounds, which will be
 			// reused
 			//
-			final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(this.typeName);
+			final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(typeName);
 			if (featureSource == null){
 				throw new NullPointerException(
 						"The provided SimpleFeatureSource is null, it's impossible to create an index!");	
@@ -511,6 +530,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		}
 	}
 
+	@Override
 	public List<GranuleDescriptor> getGranules(final Query q) throws IOException {
 	    // create a list to return and reuse the visitor enabled method
 	    final List<GranuleDescriptor> returnValue= new ArrayList<GranuleDescriptor>();
@@ -524,11 +544,13 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	    return returnValue;
 	}
 
-	public Collection<GranuleDescriptor> getGranules()throws IOException {
-		return getGranules(getBounds());
+	@Override
+	public Collection<GranuleDescriptor> getGranules(final String typeName)throws IOException {
+		return getGranules(typeName, getBounds(typeName));
 	}
 
-	public BoundingBox getBounds() {
+	@Override
+	public BoundingBox getBounds(final String typeName) {
 		final Lock lock=rwLock.readLock();
 		try{
 			lock.lock();
@@ -550,22 +572,29 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		Utilities.ensureNonNull("typeName",typeName);
 		Utilities.ensureNonNull("typeSpec",typeSpec);
 		final Lock lock=rwLock.writeLock();
+		String type = null;
 		try{
 			lock.lock();
 			checkStore();
 			
 			final SimpleFeatureType featureType= DataUtilities.createType(namespace, typeName, typeSpec);
 			tileIndexStore.createSchema(featureType);
+//                      this.typeName=featureType.getTypeName();
+                        type = featureType.getTypeName();
         	// Oracle trick
         	if(spi instanceof OracleNGOCIDataStoreFactory||
         			spi instanceof OracleNGJNDIDataStoreFactory||
         			spi instanceof OracleNGDataStoreFactory){
-        		this.typeName=this.typeName.toUpperCase();
+//                      this.typeName=this.typeName.toUpperCase();
+                        type = type.toUpperCase();
         		if(locationAttribute!=null){
         			this.locationAttribute=this.locationAttribute.toUpperCase();
         		}
-        	}				
-			extractBasicProperties();
+        	}
+        	if (typeName != null) {
+                    addTypeName(typeName, true);
+                }
+			extractBasicProperties(type);
 		}finally{
 			lock.unlock();
 		}			
@@ -573,25 +602,47 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		
 	}
 
-	public void createType(SimpleFeatureType featureType) throws IOException {
+	private void addTypeName(String typeName, final boolean check) {
+            if (check && typeNamess.contains(typeName)) {
+                throw new IllegalArgumentException("This typeName already exists: " + typeName);
+            }
+            typeNamess.add(typeName);
+        
+    }
+
+    @Override
+    public String[] getTypeNames() {
+        if (typeNamess != null && !typeNamess.isEmpty()) {
+            return (String[]) typeNamess.toArray(new String[]{});
+        }
+        return null;
+    }
+
+    public void createType(SimpleFeatureType featureType) throws IOException {
 		Utilities.ensureNonNull("featureType",featureType);
 		final Lock lock=rwLock.writeLock();
+		String typeName = null;
 		try{
 			lock.lock();
 			checkStore();
 
 			tileIndexStore.createSchema(featureType);
-			this.typeName=featureType.getTypeName();
+//                      this.typeName=featureType.getTypeName();
+                        typeName = featureType.getTypeName();
         	// Oracle trick
         	if(spi instanceof OracleNGOCIDataStoreFactory||
         			spi instanceof OracleNGJNDIDataStoreFactory||
         			spi instanceof OracleNGDataStoreFactory){
-        		this.typeName=this.typeName.toUpperCase();
+//                  this.typeName=this.typeName.toUpperCase();
+                    typeName = typeName.toUpperCase();
         		if(locationAttribute!=null){
         			this.locationAttribute=this.locationAttribute.toUpperCase();
         		}
-        	}							
-			extractBasicProperties();
+        	}
+        	if (typeName != null) {
+        	    addTypeName(typeName, true);
+        	}
+			extractBasicProperties(typeName);
 		}finally{
 			lock.unlock();
 		}				
@@ -602,34 +653,42 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		Utilities.ensureNonNull("typeSpec",typeSpec);
 		Utilities.ensureNonNull("identification",identification);
 		final Lock lock=rwLock.writeLock();
+		String typeName = null;
 		try{
 			lock.lock();
 			checkStore();
 			final SimpleFeatureType featureType= DataUtilities.createType(identification, typeSpec);
 			tileIndexStore.createSchema(featureType);
-			this.typeName=featureType.getTypeName();
+//                      this.typeName=featureType.getTypeName();
+                        typeName = featureType.getTypeName();
         	// Oracle trick
         	if(spi instanceof OracleNGOCIDataStoreFactory||
         			spi instanceof OracleNGJNDIDataStoreFactory||
         			spi instanceof OracleNGDataStoreFactory){
-        		this.typeName=this.typeName.toUpperCase();
+//                  this.typeName=this.typeName.toUpperCase();
+                    typeName = typeName.toUpperCase();
         		if(locationAttribute!=null){
         			this.locationAttribute=this.locationAttribute.toUpperCase();
         		}
-        	}				
-			extractBasicProperties();
+        	}		
+        	if (typeName != null) {
+                    addTypeName(typeName, true);
+                }
+			extractBasicProperties(typeName);
 		} finally{
 			lock.unlock();
 		}			
 		
 	}
 
-	public SimpleFeatureType getType() throws IOException {
+	@Override
+	public SimpleFeatureType getType(final String typeName) throws IOException {
 		final Lock lock=rwLock.readLock();
 		try{
 			lock.lock();
 			checkStore();
-			if(typeName==null){
+//			if(typeName==null){
+			if (typeNamess.isEmpty()) {
 			    return null;
 			}
 			return tileIndexStore.getSchema(typeName);
@@ -660,7 +719,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		
 	}
 
-	public QueryCapabilities getQueryCapabilities() {
+	@Override
+	public QueryCapabilities getQueryCapabilities(final String typeName) {
 		final Lock lock=rwLock.readLock();
 		try{
 			lock.lock();

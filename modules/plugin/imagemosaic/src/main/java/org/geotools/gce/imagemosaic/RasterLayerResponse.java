@@ -1212,7 +1212,7 @@ class RasterLayerResponse{
             final Utils.BBOXFilterExtractor bboxExtractor = new Utils.BBOXFilterExtractor();
             query.getFilter().accept(bboxExtractor, null);
             query.setFilter(FeatureUtilities.DEFAULT_FILTER_FACTORY.bbox(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType().getGeometryDescriptor().getName()),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType(rasterManager.getTypeName()).getGeometryDescriptor().getName()),
                     bboxExtractor.getBBox()));
             query.setMaxFeatures(1);
             rasterManager.getGranules(query, dryRunVisitor);
@@ -1357,17 +1357,18 @@ class RasterLayerResponse{
     private Query initQuery() throws Exception {
         final GeneralEnvelope levelRasterArea_ = CRS.transform(finalWorldToGridCorner, rasterManager.spatialDomainManager.coverageBBox);
         final GridEnvelope2D levelRasterArea = new GridEnvelope2D(new Envelope2D(levelRasterArea_), PixelInCell.CELL_CORNER);
-        XRectangle2D.intersect(levelRasterArea, rasterBounds, rasterBounds);                    
-        final SimpleFeatureType type = rasterManager.getGranuleCatalog().getType();
+        XRectangle2D.intersect(levelRasterArea, rasterBounds, rasterBounds);
+        final String typeName = rasterManager.getTypeName();
         Filter bbox = null;
-        if (type != null){
-            Query query = new Query(rasterManager.getGranuleCatalog().getType().getTypeName());
+        if (typeName != null){
+//            Query query = new Query(rasterManager.getGranuleCatalog().getType().getTypeName());
+            Query query = new Query(typeName);
             // max number of elements
             if(request.getMaximumNumberOfGranules()>0){
                 query.setMaxFeatures(request.getMaximumNumberOfGranules());
             }            
             bbox = FeatureUtilities.DEFAULT_FILTER_FACTORY.bbox(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType().getGeometryDescriptor().getName()),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.property(rasterManager.getGranuleCatalog().getType(typeName).getGeometryDescriptor().getName()),
                     mosaicBBox);
             query.setFilter( bbox);
             return query;
@@ -1469,7 +1470,7 @@ class RasterLayerResponse{
 
                 // assign to query if sorting is supported!
                 final SortBy[] sb = clauses.toArray(new SortBy[] {});
-                if (rasterManager.getGranuleCatalog().getQueryCapabilities().supportsSorting(sb)) {
+                if (rasterManager.getGranuleCatalog().getQueryCapabilities(rasterManager.getTypeName()).supportsSorting(sb)) {
                     query.setSortBy(sb);
                 }
             } else {

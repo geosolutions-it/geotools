@@ -60,7 +60,7 @@ public abstract class GranuleCatalogFactory {
 		//TODO @todo this is a temporary hack before we have an even stupid SPI mechanism here
 	    final GranuleCatalog catalogue= new GTDataStoreGranuleCatalog(params,create,spi);
 	    if (caching) {
-		    return new STRTreeGranuleCatalog(catalogue);
+		    return new STRTreeGranuleCatalog(catalogue, (String)params.get("TypeName"));
 	    }
 	    return  catalogue;
 	}

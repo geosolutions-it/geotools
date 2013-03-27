@@ -17,9 +17,7 @@
 package org.geotools.gce.imagemosaic.catalog;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.data.Query;
@@ -68,6 +66,7 @@ public class GranuleCatalogStore implements GranuleStore {
     
     @Override
     public SimpleFeatureCollection getGranules(Query q) throws IOException {
+        q.setTypeName(typeName);
         // Filtering by coverageName
 //        Filter filter = q.getFilter();
 //        if (filter != null) {
@@ -79,7 +78,7 @@ public class GranuleCatalogStore implements GranuleStore {
         
         // TODO: Optimize me
         Collection<GranuleDescriptor> granules = catalog.getGranules(q);
-        SimpleFeatureCollection collection = new ListFeatureCollection(catalog.getType(/*typeName*/));
+        SimpleFeatureCollection collection = new ListFeatureCollection(catalog.getType(typeName));
         for (GranuleDescriptor granule: granules) {
             ((ListFeatureCollection)collection).add(granule.getOriginator());
         }
@@ -100,7 +99,7 @@ public class GranuleCatalogStore implements GranuleStore {
 
     @Override
     public SimpleFeatureType getSchema() throws IOException {
-        return catalog.getType(/*typeName*/);
+        return catalog.getType(typeName);
     }
 
     @Override
@@ -122,7 +121,7 @@ public class GranuleCatalogStore implements GranuleStore {
                 checkSchemaCompatibility(feature);
             }
             try {
-                catalog.addGranule(/*typeName*/ feature, transaction);
+                catalog.addGranule(typeName, feature, transaction);
             } catch (IOException e) {
                 throw new RuntimeException("Exception occurred while adding granules to the catalog", e);
             }
@@ -143,7 +142,7 @@ public class GranuleCatalogStore implements GranuleStore {
      */
     private void checkSchemaCompatibility(final SimpleFeature feature) {
         try {
-            if (!feature.getType().equals(catalog.getType(/*typeName*/))) {
+            if (!feature.getType().equals(catalog.getType(typeName))) {
                 throw new IllegalArgumentException("The schema of the provided collection is not the same of the underlying catalog");
             }
         } catch (IOException e) {

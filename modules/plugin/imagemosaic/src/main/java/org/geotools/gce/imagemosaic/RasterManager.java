@@ -86,194 +86,12 @@ import org.opengis.referencing.operation.TransformException;
 /**
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
+ * @author Daniele Romagnoli, GeoSolutions SAS
  *
  */
 @SuppressWarnings({"rawtypes","unchecked"})
 class RasterManager {
 
-//    enum DomainType {
-//        SINGLE_VALUE, TIME_RANGE, NUMBER_RANGE
-//    }
-//    
-//    /** Logger. */
-//    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(CoveragesManager.class);
-//
-//    /** The coverage factory producing a {@link GridCoverage} from an image */
-//    private GridCoverageFactory coverageFactory;
-
-
-//    CoveragesManager (ImageMosaicReader reader) {
-//        this.parentReader = reader;
-//        this.coverageFactory = reader.getGridCoverageFactory();
-//    }
-//    
-//    CoveragesManager(ImageMosaicReader reader, MosaicConfigurationBean configuration) throws IOException {
-//        this.parentReader = reader;
-//        this.coverageFactory = reader.getGridCoverageFactory();
-//    }
-
-//  
-//    /**
-//     * Only used for testing purposes. Move me away
-//     * @param name
-//     * @return
-//     */
-//    RasterManager createRasterManager(String name) {
-//        try {
-//            names.add(name);
-//            return new RasterManager(this, null, parentReader.granuleCatalog);
-//        } catch (IOException e) {
-//            throw new IllegalArgumentException(e);
-//        }
-//    }
-//    
-//    public void addRasterManager(String name, MosaicConfigurationBean configuration, GranuleCatalog catalog) throws IOException {
-//        RasterManager rasterManager = new RasterManager(this, configuration, catalog);
-//        addRasterManager(name, rasterManager);
-//    }
-//    
-//    public void addRasterManager(String name, RasterManager manager) {
-////        synchronized (rasterManagers) {
-////            if (rasterManagers.containsKey(name)){
-////                throw new IllegalArgumentException("Attempting to add an already existing raster manager for: " + name);
-////            } else {
-//                rasterManagers.put(name, manager);
-//                names.add(name);
-//                if (defaultName == null) {
-//                    defaultName = name;
-//                }
-////            }
-////        }
-//    }
-//    
-//    /** 
-//     * Get the number of coverages available through this manager
-//     * @return
-//     */
-//    int getNumCoverages() {
-//        return names.size();
-//    }
-//
-//    /** 
-//     * Return the dynamic parameters available by this coverage
-//     * @param coverageName
-//     * @return
-//     */
-//    public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName) {
-//        coverageName = checkUnspecifiedCoverage(coverageName);
-//        RasterManager manager =  getRasterManager(coverageName);
-//        return (Set<ParameterDescriptor<List>>) (manager.domainsManager != null ? manager.domainsManager
-//                .getDynamicParameters() :  Collections.emptySet());
-//    }
-//    
-//    /**
-//     * Return the metadataValue of the specified coverage
-//     * @param coverageName
-//     * @param name
-//     * @return
-//     */
-//    public String getMetadataValue(String coverageName, final String name) {
-//        coverageName = checkUnspecifiedCoverage(coverageName);
-//        String value = null;
-//        RasterManager manager = getRasterManager(coverageName);
-//        final boolean hasTimeDomain = manager.timeDomainManager != null;
-//        final boolean hasElevationDomain = manager.elevationDomainManager != null;
-//
-//        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
-//            return String.valueOf(hasElevationDomain);
-//
-//        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
-//            return String.valueOf(hasTimeDomain);
-//        }
-//
-//        // NOT supported
-//        if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
-//            return null;
-//        }
-//        // NOT supported
-//        if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
-//            return null;
-//        }
-//
-//        if (hasTimeDomain) {
-//            if (name.equalsIgnoreCase("time_domain")) {
-//                return manager.timeDomainManager.getMetadataValue(name);
-//            }
-//            if ((name.equalsIgnoreCase("time_domain_minimum") || name
-//                    .equalsIgnoreCase("time_domain_maximum"))) {
-//                return manager.timeDomainManager.getMetadataValue(name);
-//            }
-//        }
-//
-//        if (hasElevationDomain) {
-//            if (name.equalsIgnoreCase("elevation_domain")) {
-//                return manager.elevationDomainManager.getMetadataValue(name);
-//            }
-//
-//            if (name.equalsIgnoreCase("elevation_domain_minimum")
-//                    || name.equalsIgnoreCase("elevation_domain_maximum")) {
-//                return manager.elevationDomainManager.getMetadataValue(name);
-//            }
-//        }
-//
-//        // check additional domains
-//        if (manager.domainsManager != null) {
-//            return manager.domainsManager.getMetadataValue(name);
-//        }
-//
-//        //
-//        return value;
-//    }
-//    
-//    /**
-//     * Populate the metadata names array for the specified coverageName
-//     * @param coverageName
-//     * @return
-//     */
-//    public String[] getMetadataNames(final String coverageName) {
-//        String name = checkUnspecifiedCoverage(coverageName);
-//        final List<String> metadataNames = new ArrayList<String>();
-//        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
-//        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
-//        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
-//        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
-//        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
-//        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
-//        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
-//        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
-//        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
-//        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
-//        RasterManager manager = getRasterManager(name);
-//        if (manager.domainsManager != null) {
-//            metadataNames.addAll(manager.domainsManager.getMetadataNames());
-//        }
-//        return metadataNames.toArray(new String[metadataNames.size()]);
-//    }
-//    
-//    /**
-//     * Look for the parameter containing the coverage name and check its validity.
-//     * Then delegate the proper RasterManager to do the read operation.
-//     * @param params
-//     * @return
-//     * @throws IOException
-//     */
-//    public Collection<GridCoverage2D> read(GeneralParameterValue[] params, String coverageName) throws IOException {
-//        /*String coverageName = UNSPECIFIED;
-//        if (params != null) {
-//            for (GeneralParameterValue gParam : params) {
-//                if(gParam instanceof ParameterValue<?>){                
-//                    final ParameterValue<?> param = (ParameterValue<?>) gParam;
-//                    final ReferenceIdentifier name = param.getDescriptor().getName();
-//                    if (name.equals(ImageMosaicFormat.COVERAGE_NAME.getName())) {
-//                        coverageName = (String) param.getValue();
-//                    }
-//                }
-//            }
-//        }*/
-//        coverageName = checkUnspecifiedCoverage(coverageName);
-//        return getRasterManager(coverageName).read(params);
-//    }
-    
     /**
      * This class is responsible for putting together all the 2D spatial information needed for a certain raster.
      * 
@@ -962,12 +780,12 @@ class RasterManager {
     DomainManager elevationDomainManager;
 
     DomainManager timeDomainManager;
-    
+
     ImageMosaicReader parentReader;
-    
+
     GranuleCatalog granuleCatalog;
 
-
+    String typeName;
 
         public RasterManager(final ImageMosaicReader parentReader) throws IOException {
             this(parentReader, null);
@@ -983,9 +801,9 @@ class RasterManager {
             this.expandMe = parentReader.expandMe;
             this.heterogeneousGranules = parentReader.heterogeneousGranules;
 
-            // take ownership of the index
+            // take ownership of the index : TODO: REMOVE THAT ONCE DEALING WITH MORE CATALOGS/RASTERMANAGERS
             granuleCatalog = parentReader.granuleCatalog;
-            parentReader.granuleCatalog = null;
+//            parentReader.granuleCatalog = null;
 
             hints = parentReader.getHints();
             this.coverageFactory = parentReader.getGridCoverageFactory();
@@ -1015,24 +833,30 @@ class RasterManager {
         // load defaultSM and defaultCM by using the sample_image if it was provided
         loadSampleImage();   
         
-        if(configuration!=null){
-            final SimpleFeatureType schema = granuleCatalog.getType();
-            if (configuration.getAdditionalDomainAttributes() != null) {
-                domainsManager = new DomainManager(configuration.getAdditionalDomainAttributes(),schema);
+        if(configuration != null){
+            typeName = configuration.getCatalogConfigurationBean().getTypeName();
+            if (typeName != null) {
+                final SimpleFeatureType schema = granuleCatalog.getType(typeName);
+                if (configuration.getAdditionalDomainAttributes() != null) {
+                    domainsManager = new DomainManager(configuration.getAdditionalDomainAttributes(), schema);
+                }
+                
+                // time attribute
+                if(configuration.getTimeAttribute()!=null){
+                    final HashMap<String, String> init=new HashMap<String, String>();
+                    init.put(DomainDescriptor.TIME_DOMAIN, configuration.getTimeAttribute());
+                    timeDomainManager= new DomainManager(init,schema);
+                }
+                // elevation attribute
+                if(configuration.getElevationAttribute()!=null){
+                    final HashMap<String, String> init=new HashMap<String, String>();
+                    init.put(DomainDescriptor.ELEVATION_DOMAIN, configuration.getElevationAttribute());
+                    elevationDomainManager= new DomainManager(init,schema);
+                } 
+                if (defaultSM == null) {
+                    defaultSM = configuration.getSampleModel();
+                }
             }
-            
-            // time attribute
-            if(configuration.getTimeAttribute()!=null){
-                final HashMap<String, String> init=new HashMap<String, String>();
-                init.put(DomainDescriptor.TIME_DOMAIN, configuration.getTimeAttribute());
-                timeDomainManager= new DomainManager(init,schema);
-            }
-            // elevation attribute
-            if(configuration.getElevationAttribute()!=null){
-                final HashMap<String, String> init=new HashMap<String, String>();
-                init.put(DomainDescriptor.ELEVATION_DOMAIN, configuration.getElevationAttribute());
-                elevationDomainManager= new DomainManager(init,schema);
-            }        
         }
       }
 
@@ -1154,7 +978,7 @@ class RasterManager {
 	 *             In case loading the needed features failes.
 	 */
 	Collection<GranuleDescriptor> getGranules(final BoundingBox envelope)throws IOException {
-		final Collection<GranuleDescriptor> granules = granuleCatalog.getGranules(envelope);
+		final Collection<GranuleDescriptor> granules = granuleCatalog.getGranules(typeName, envelope);
 		if (granules != null)
 			return granules;
 		else
@@ -1162,6 +986,7 @@ class RasterManager {
 	}
 	
 	Collection<GranuleDescriptor> getGranules(final Query q)throws IOException {
+	        q.setTypeName(typeName);
 		final Collection<GranuleDescriptor> granules = granuleCatalog.getGranules(q);
 		if (granules != null)
 			return granules;
@@ -1185,7 +1010,7 @@ class RasterManager {
 	 *             In case loading the needed features fails.
 	 */
 	void getGranules(final BoundingBox envelope,final GranuleCatalogVisitor visitor)throws IOException {
-		granuleCatalog.getGranules(envelope,visitor);
+		granuleCatalog.getGranules(typeName, envelope,visitor);
 	}
 
 	public PathType getPathType() {
@@ -1206,6 +1031,10 @@ class RasterManager {
 		return coverageFactory;
 	}
 
+    public String getTypeName() {
+        return typeName;
+    }
+
     /**
      * @param metadataName
      * @param attributeName 
@@ -1213,7 +1042,7 @@ class RasterManager {
      * @throws IOException
      */
     FeatureCalc createExtremaQuery(String metadataName, String attributeName) throws IOException {
-        final Query query = new Query(granuleCatalog.getType().getTypeName());
+        final Query query = new Query(typeName);
         query.setPropertyNames(Arrays.asList(attributeName));
 
         final FeatureCalc visitor= 
@@ -1234,7 +1063,7 @@ class RasterManager {
          */
         private Set extractDomain(final String attribute)
                 throws IOException {
-            Query query = new Query(granuleCatalog.getType().getTypeName());
+            Query query = new Query(typeName);
             query.setPropertyNames(Arrays.asList(attribute));
             final UniqueVisitor visitor= new UniqueVisitor(attribute);
             granuleCatalog.computeAggregateFunction(query, visitor);
@@ -1253,14 +1082,14 @@ class RasterManager {
          */
         private Set extractDomain(final String attribute, final String secondAttribute, final DomainType domainType)
                 throws IOException {
-            final Query query = new Query(granuleCatalog.getType().getTypeName());
+            final Query query = new Query(typeName);
             
             final PropertyName propertyName = FeatureUtilities.DEFAULT_FILTER_FACTORY.property(attribute);
             query.setPropertyNames(Arrays.asList(attribute, secondAttribute));
             
             final SortByImpl[] sb = new SortByImpl[]{new SortByImpl(propertyName, SortOrder.ASCENDING)};
             // Checking whether it supports sorting capabilities
-            if(granuleCatalog.getQueryCapabilities().supportsSorting(sb)){
+            if(granuleCatalog.getQueryCapabilities(typeName).supportsSorting(sb)){
                 query.setSortBy(sb);
             }
             

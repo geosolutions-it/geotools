@@ -266,11 +266,11 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 		final RasterManager rm = reader1.getRasterManager(reader1.getGridCoverageNames()[0]);
 		
 		// query
-		final SimpleFeatureType type = rm.parentReader.granuleCatalog.getType();
+		final SimpleFeatureType type = rm.granuleCatalog.getType("waterTempPG2");
 		Query query = null;
 		if (type != null){
 			// creating query
-			query= new Query(rm.parentReader.granuleCatalog.getType().getTypeName());
+			query= new Query(rm.granuleCatalog.getType("waterTempPG2").getTypeName());
 			
 			// sorting and limiting
             // max number of elements

@@ -729,7 +729,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     }
 
     @Override
-    public boolean removeType(String coverageName) throws IOException,
+    public boolean removeCoverage(String coverageName) throws IOException,
             UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
     }

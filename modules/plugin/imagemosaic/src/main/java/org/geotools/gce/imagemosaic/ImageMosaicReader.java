@@ -216,14 +216,14 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
             throw new DataSourceException("Unable to create reader for this mosaic since the inner catalog is null.");
         }
 
-        final SimpleFeatureType schema = catalog.getType();
+        final SimpleFeatureType schema = catalog.getType(configuration.getCatalogConfigurationBean().getTypeName());
         if (schema == null) {
             throw new DataSourceException("Unable to create reader for this mosaic since the inner catalog schema is null.");
         }
        
 
         // grid geometry
-        setGridGeometry();
+        setGridGeometry(typeName);
         
         // raster manager
 //        coveragesManager = new CoveragesManager(this);
@@ -297,12 +297,21 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		//
 		try {
 			// create the index
+		    
+		    //TODO: Need to add more schema if any
 			granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
 			// error
+			String typeName = catalogConfigurationBean.getTypeName();
 			if(granuleCatalog==null){
 			    throw new DataSourceException("Unable to create index for this URL "+sourceURL);
 			}
-                        final SimpleFeatureType type= granuleCatalog.getType();
+			if (typeName == null) {
+			    String[] typeNames = granuleCatalog.getTypeNames();
+			    if (typeNames != null && typeNames.length > 0) {
+			        typeName = typeNames[0];
+			    }
+			}
+                        final SimpleFeatureType type= granuleCatalog.getType(typeName);
                         if (type==null){
                             throw new IllegalArgumentException("Problems when opening the index, no typenames for the schema are defined");
                         }
@@ -313,7 +322,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 				LOGGER.fine("Connected mosaic reader to its index "
 						+ sourceURL.toString());
 
-			setGridGeometry(configuration.getEnvelope(), granuleCatalog);
+			setGridGeometry(configuration.getEnvelope(), granuleCatalog, typeName);
 
             //
             // get the crs if able to
@@ -389,12 +398,12 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		
 	}
 
-	private void setGridGeometry(final ReferencedEnvelope envelope, final GranuleCatalog catalog) {
+	private void setGridGeometry(final ReferencedEnvelope envelope, final GranuleCatalog catalog, String typeName) {
 		Utilities.ensureNonNull("index", catalog);
 	    //
         // save the bbox and prepare other info
         //
-        final BoundingBox bounds = catalog.getBounds();
+        final BoundingBox bounds = catalog.getBounds(typeName);
         if(bounds.isEmpty()) {
                 throw new IllegalArgumentException("Cannot create a mosaic out of an empty index");
         }
@@ -426,8 +435,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
 		
 	}
 
-	private void setGridGeometry () {
-	    setGridGeometry(null, granuleCatalog); 
+	private void setGridGeometry (final String typeName) {
+	    setGridGeometry(null, granuleCatalog, typeName); 
     }
 	private void extractProperties(final MosaicConfigurationBean configuration) throws IOException {
 

@@ -510,7 +510,8 @@ public class CatalogBuilder implements Runnable {
 					}
 					
 					// create the schema for the new shape file
-					final SimpleFeatureType type = catalog.getType();
+					String typeName = indexSchema.getTypeName();
+					final SimpleFeatureType type = typeName != null ? catalog.getType(typeName) : null;
                                         if(type==null){
 					    catalog.createType(indexSchema);
 					} else {
@@ -592,7 +593,7 @@ public class CatalogBuilder implements Runnable {
 						pc.reset();
 					}
 
-				catalog.addGranule(/*indexSchema.getTypeName(),*/ feature, transaction);
+				catalog.addGranule(indexSchema.getTypeName(), feature, transaction);
 
 				// fire event
 				fireEvent(Level.FINE,"Done with file "+fileBeingProcessed, (((fileIndex + 1) * 99.0) / numFiles));
