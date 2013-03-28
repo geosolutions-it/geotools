@@ -29,28 +29,20 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Serializable;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EventListener;
 import java.util.EventObject;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
-import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.spi.ImageInputStreamSpi;
 import javax.imageio.spi.ImageReaderSpi;
 import javax.imageio.stream.ImageInputStream;
@@ -70,16 +62,12 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.GranuleSource;
-import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.grid.io.UnknownFormat;
-import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.Query;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.factory.Hints;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.gce.image.WorldImageFormat;
@@ -88,13 +76,11 @@ import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
-import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.image.io.ImageIOExt;
 import org.geotools.referencing.CRS;
 import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.Utilities;
@@ -327,9 +313,7 @@ public class CatalogBuilder implements Runnable {
 			validFileName=FilenameUtils.getName(validFileName);
 			fireEvent(Level.INFO,"Now indexing file "+validFileName, ((fileIndex * 100.0) / numFiles));
 			ImageInputStream inStream=null;
-			ImageReader imageioReader = null;
 			AbstractGridCoverage2DReader coverageReader=null;
-			StructuredGridCoverage2DReader structuredReader = null;
 			try {
 				// STEP 1
 				// Getting a coverage reader for this coverage.
@@ -352,132 +336,26 @@ public class CatalogBuilder implements Runnable {
 				coverageReader = (AbstractGridCoverage2DReader) format.getReader(fileBeingProcessed, runConfiguration.getHints());
 				GeneralEnvelope envelope = (GeneralEnvelope) coverageReader.getOriginalEnvelope();
 				CoordinateReferenceSystem actualCRS = coverageReader.getCoordinateReferenceSystem();
-				boolean isStructured = coverageReader instanceof StructuredGridCoverage2DReader;
-				String coverageName = null;
+				// TODO IMPROVE THE COVERAGE NAME ASSIGNMENT. LOOP OVER THAT
+				String coverageName = coverageReader.getGridCoverageNames()[0];
 				
-		                    SampleModel sm = null;
-		                        ColorModel cm = null;
-				ImageTypeSpecifier its = null;
-				int numberOfLevels = 1;
+                                SampleModel sm = null;
+                                ColorModel cm = null;
+                                int numberOfLevels = 1;
                                 double[][] resolutionLevels = null;
-				//
-                                // STEP 2
-                                // Getting an ImageIO reader for this coverage.
-                                //
-                                if (!isStructured) {
-                                    // try to use cache
-                                    if(cachedStreamSPI!=null ){
-                                        inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
-                                    } 
-                                    if(inStream==null ){
-                                        // failed, look for a new SPI
-                                        cachedStreamSPI= ImageIOExt.getImageInputStreamSPI(fileBeingProcessed);
-                                        if(cachedStreamSPI!=null){
-                                            inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
-                                        }
-                                        
-                                    } 
-                                    if(inStream==null) {
-                                        // failed again
-                                            fireEvent(Level.INFO,fileBeingProcessed+" has been skipped since we could not get a stream for it", ((fileIndex * 100.0) / numFiles));
-                                            return;
-                                    }
-                                    inStream.mark();
-                                    
-                                    
-                                    cachedReaderSPITest: {
-                                            // there is no cached reader spi, let's look for one
-                                            if(cachedReaderSPI==null){
-                                                    final Iterator<ImageReader> it = ImageIO.getImageReaders(inStream);
-                                                    if (it.hasNext()) {
-                                                            imageioReader = it.next();
-                                                            if(imageioReader!=null){
-                                                                    //cache the SPI
-                                                                    cachedReaderSPI=imageioReader.getOriginatingProvider();
-                                                                    imageioReader.setInput(inStream);
-                                                            }
-                                                    } else {
-                                                            imageioReader=null;
-                                                    }
-                                            } else {
-                                                    // we have a cached SPI, let's try to use it
-                                                    if(!cachedReaderSPI.canDecodeInput(inStream)){                          
-                                                            // the SPI is no good for this input
-                                                            cachedReaderSPI=null;
-                                                            //take me to the SPI search
-                                                            break cachedReaderSPITest;
-                                                    }
-                                                    // the spi is good
-                                                    imageioReader=cachedReaderSPI.createReaderInstance();
-                                                    imageioReader.setInput(inStream);
-                                            }
-                                    }
-                                    // did we found a reader
-                                    if (imageioReader == null) {
-                                            // send a message
-                                            fireEvent(Level.INFO,new StringBuilder("Skipped file ").append(fileBeingProcessed).append(":No ImageIO reader   s availaible.").toString(), ((fileIndex * 99.0) / numFiles));
-                                            return;
-                                    }
-                                    its = ((ImageTypeSpecifier) imageioReader.getImageTypes(0).next());
-                                    cm = its.getColorModel();
-                                    sm = its.getSampleModel();
-                                } else {
-                                    structuredReader = (StructuredGridCoverage2DReader) coverageReader;
-                                    coverageName = structuredReader.getGridCoverageNames()[0];// TODO IMPROVE ME
-                                }
                                 
                                 if (numberOfProcessedFiles==0) {
                                     //
-                                    // STEP 3
+                                    // STEP 2
                                     // Get the type specifier for this image and the check that the
                                     // image has the correct sample model and color model.
                                     // If this is the first cycle of the loop we initialize everything.
                                     //
-                                    if (!isStructured) {
-                                       
-					
-					//
-					// getting information about resolution
-					//
-					
-
-
-					// get the dimension of the hr image and build the model
-					// as well as computing the resolution
-					// 
-					// resetting reader and recreating stream, turnaround for a
-					// strange imageio bug that sometimes pops up
-					imageioReader.reset();
-					try {
-						inStream.reset();
-					} catch (IOException e) {
-						//close me and reopen me
-						try {
-							inStream.close();
-						} catch (Throwable e1) {
-							if(LOGGER.isLoggable(Level.FINE))
-								LOGGER.log(Level.FINE,e1.getLocalizedMessage(),e1);
-						}
-						inStream= ImageIO.createImageInputStream(fileBeingProcessed);
-					}
-					
-					//let's check if we got something now
-					if(inStream==null) {
-						//skip file
-						fireEvent(Level.INFO,fileBeingProcessed+" has been skipped since we could not get a stream for it", ((fileIndex * 100.0) / numFiles));
-						return;
-					}
-					imageioReader.setInput(inStream);
-					numberOfLevels = imageioReader.getNumImages(true);
-					resolutionLevels = new double[2][numberOfLevels];
-					setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
-                                    } else {
-                                        ImageLayout layout = structuredReader.getImageLayout(coverageName);
-                                        cm = layout.getColorModel(null);
-                                        sm = layout.getSampleModel(null);
-                                        numberOfLevels = structuredReader.getNumOverviews(coverageName) + 1;
-                                        resolutionLevels = structuredReader.getResolutionLevels(coverageName);
-                                    }
+                                    ImageLayout layout = coverageReader.getImageLayout(coverageName);
+                                    cm = layout.getColorModel(null);
+                                    sm = layout.getSampleModel(null);
+                                    numberOfLevels = coverageReader.getNumOverviews(coverageName) + 1;
+                                    resolutionLevels = coverageReader.getResolutionLevels(coverageName);
                                     
                                     //
                                     // at the first step we initialize everything that we will
@@ -562,30 +440,35 @@ public class CatalogBuilder implements Runnable {
 				        // has been already marked as heterogeneous
 				        //
 				        // //
-				        numberOfLevels = isStructured ? structuredReader.getNumOverviews(coverageName) + 1 : imageioReader.getNumImages(true);
+//				        numberOfLevels = imageioReader.getNumImages(true);
+				        numberOfLevels = coverageReader.getNumOverviews(coverageName) + 1;
                                         if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
                                             catalogConfigurationBean.setHeterogeneous(true);
                                             if (numberOfLevels > mosaicConfiguration.getLevelsNum()){
-                                                if (!isStructured) {
-                                                    resolutionLevels = new double[2][numberOfLevels];
-                                                    setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
-                                                } else {
-                                                    resolutionLevels = structuredReader.getResolutionLevels(coverageName);
-                                                }
+//                                                if (!isStructured) {
+//                                                    resolutionLevels = new double[2][numberOfLevels];
+//                                                    setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
+//                                                } else {
+                                                    resolutionLevels = coverageReader.getResolutionLevels(coverageName);
+//                                                }
                                                 mosaicConfiguration.setLevelsNum(numberOfLevels);
                                                 mosaicConfiguration.setLevels(resolutionLevels);
                                                 
                                             }
                                         } else {
                                             final double[][] mosaicLevels = mosaicConfiguration.getLevels();
-                                            resolutionLevels = new double[2][numberOfLevels];
-                                            final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, mosaicLevels);
+//                                            resolutionLevels = new double[2][numberOfLevels];
+//                                            final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, mosaicLevels);
+                                            resolutionLevels = coverageReader.getResolutionLevels();
+                                            final boolean homogeneousLevels = homogeneousCheck(numberOfLevels, resolutionLevels, mosaicLevels);
                                             if (!homogeneousLevels){
                                                 catalogConfigurationBean.setHeterogeneous(true);
                                             }
                                         }
 				    }
-				    
+				    ImageLayout layout = coverageReader.getImageLayout(coverageName);
+                                    cm = layout.getColorModel(null);
+                                    sm = layout.getSampleModel(null);
 				    
 					// ////////////////////////////////////////////////////////
 					// 
@@ -626,7 +509,7 @@ public class CatalogBuilder implements Runnable {
 				if(propertiesCollectors!=null&&propertiesCollectors.size()>0)
 					for(PropertiesCollector pc: propertiesCollectors)
 					{
-						pc.collect(fileBeingProcessed).collect(coverageReader).collect(imageioReader).setProperties(feature);
+						pc.collect(fileBeingProcessed).collect(coverageReader).setProperties(feature);
 						pc.reset();
 					}
 
@@ -661,15 +544,6 @@ public class CatalogBuilder implements Runnable {
 					if(LOGGER.isLoggable(Level.FINEST))
 						LOGGER.log(Level.FINEST,e.getLocalizedMessage(),e);
 				}
-				try {
-					if(imageioReader!=null)
-						imageioReader.dispose();
-				} catch (Throwable e) {
-					// ignore exception
-					if(LOGGER.isLoggable(Level.FINEST))
-						LOGGER.log(Level.FINEST,e.getLocalizedMessage(),e);					
-				}				
-		
 				
 				try {
 					if(coverageReader!=null)
@@ -955,8 +829,6 @@ public class CatalogBuilder implements Runnable {
 
 	private ImageReaderSpi cachedReaderSPI;
 
-	private ImageInputStreamSpi cachedStreamSPI;
-	
 	private List<PropertiesCollector> propertiesCollectors;
 
 	private SampleModel defaultSM;
@@ -1584,11 +1456,11 @@ public class CatalogBuilder implements Runnable {
         properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
         final String timeAttribute=mosaicConfiguration.getTimeAttribute();
         if (timeAttribute != null) {
-                properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
+            properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
         }
         final String elevationAttribute=mosaicConfiguration.getElevationAttribute();
         if (elevationAttribute != null) {
-                properties.setProperty(Utils.Prop.ELEVATION_ATTRIBUTE, mosaicConfiguration.getElevationAttribute());
+            properties.setProperty(Utils.Prop.ELEVATION_ATTRIBUTE, mosaicConfiguration.getElevationAttribute());
         }
         
         final String additionalDomainAttribute=mosaicConfiguration.getAdditionalDomainAttributes();
@@ -1601,9 +1473,11 @@ public class CatalogBuilder implements Runnable {
         properties.setProperty(Utils.Prop.LEVELS_NUM, Integer.toString(numberOfLevels));
         final StringBuilder levels = new StringBuilder();
         for (int k = 0; k < numberOfLevels; k++) {
-                levels.append(Double.toString(resolutionLevels[0][k])).append(",").append(Double.toString(resolutionLevels[1][k]));
-                if (k < numberOfLevels - 1)
-                        levels.append(" ");
+            levels.append(Double.toString(resolutionLevels[k][0])).append(",")
+                    .append(Double.toString(resolutionLevels[k][1]));
+            if (k < numberOfLevels - 1) {
+                levels.append(" ");
+            }
         }
         properties.setProperty(Utils.Prop.LEVELS, levels.toString());
         properties.setProperty(Utils.Prop.NAME, mosaicConfiguration.getName());
@@ -1612,28 +1486,29 @@ public class CatalogBuilder implements Runnable {
         properties.setProperty(Utils.Prop.HETEROGENEOUS, Boolean.toString(catalogConfigurationBean.isHeterogeneous()));
         
         if (cachedReaderSPI != null){
-                // suggested spi
-                properties.setProperty(Utils.Prop.SUGGESTED_SPI, cachedReaderSPI.getClass().getName());
+            // suggested spi
+            properties.setProperty(Utils.Prop.SUGGESTED_SPI, cachedReaderSPI.getClass().getName());
         }
 
         // write down imposed bbox
         if (imposedBBox != null){
-                properties.setProperty(Utils.Prop.ENVELOPE2D, imposedBBox.getMinX()+","+imposedBBox.getMinY()+" "+imposedBBox.getMaxX()+","+imposedBBox.getMaxY());
+            properties.setProperty(Utils.Prop.ENVELOPE2D,
+                    imposedBBox.getMinX() + "," + imposedBBox.getMinY() + " " + imposedBBox.getMaxX() + "," + imposedBBox.getMaxY());
         }
         properties.setProperty(Utils.Prop.CACHING, Boolean.toString(catalogConfigurationBean.isCaching()));
-        OutputStream outStream=null;
+        OutputStream outStream = null;
         try {
-                outStream = new BufferedOutputStream(new FileOutputStream(runConfiguration.getRootMosaicDirectory() + "/" + runConfiguration.getIndexName() + ".properties"));
-                properties.store(outStream, "-Automagically created from GeoTools-");
+            outStream = new BufferedOutputStream(new FileOutputStream(runConfiguration.getRootMosaicDirectory() + "/"
+                            + runConfiguration.getIndexName() + ".properties"));
+            properties.store(outStream, "-Automagically created from GeoTools-");
         } catch (FileNotFoundException e) {
-                fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
+            fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
         } catch (IOException e) {
-                fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
+            fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
         } finally {
-                        if (outStream != null) {
-                                IOUtils.closeQuietly(outStream);
-                        }
-
+            if (outStream != null) {
+                IOUtils.closeQuietly(outStream);
+            }
         }
     }
 
@@ -1641,44 +1516,15 @@ public class CatalogBuilder implements Runnable {
 		reset();
 	}
 	
-	/**
-	 * 
-	 * @param resolutionLevels
-	 * @param numberOfLevels
-	 * @param coverageReader
-	 * @param imageioReader
-	 * @param compareLevels optional resolutionLevels to be compared.
-	 * @return 
-	 * @throws IndexOutOfBoundsException
-	 * @throws IOException
-	 */
-	private static boolean setupResolutions(
-                final double[][] resolutionLevels, 
-                final int numberOfLevels, 
-                final AbstractGridCoverage2DReader coverageReader, 
-                final ImageReader imageioReader,
-                final double[][] compareLevels
-                ) throws IndexOutOfBoundsException, IOException {
-            double[] res = CoverageUtilities.getResolution((AffineTransform) coverageReader.getOriginalGridToWorld(PixelInCell.CELL_CORNER));
-            resolutionLevels[0][0] = res[0];
-            resolutionLevels[1][0] = res[1];
-            final boolean checkLevels = compareLevels != null;
-
-            // resolutions levels are computed using the raster space scale factors
-            if (numberOfLevels >= 1) {
-                for (int k = 0; k < numberOfLevels; k++) {
-                    resolutionLevels[0][k] = resolutionLevels[0][0]*coverageReader.getOriginalGridRange().getSpan(0)/(1.0*imageioReader.getWidth(k));
-                    resolutionLevels[1][k] = resolutionLevels[1][0]*coverageReader.getOriginalGridRange().getSpan(1)/(1.0*imageioReader.getHeight(k));
-                    if (checkLevels)  {
-                        if (Math.abs(resolutionLevels[0][k] - compareLevels[0][k]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[0][k] ||
-                            Math.abs(resolutionLevels[1][k] - compareLevels[1][k]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[1][k]){
-                            return false;
-                        }
-                    }
-                }
+    private static boolean homogeneousCheck(final int numberOfLevels, double[][] resolutionLevels, double[][] compareLevels) {
+        for (int k = 0; k < numberOfLevels; k++) {
+            if (Math.abs(resolutionLevels[k][0] - compareLevels[k][0]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[k][0] ||
+                Math.abs(resolutionLevels[k][1] - compareLevels[k][1]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[k][1]){
+                return false;
             }
-            return true;
         }
+        return true;
+    }
 
 //    public MosaicConfigurationBean getMosaicConfiguration() {
 //        return new MosaicConfigurationBean(mosaicConfiguration);
