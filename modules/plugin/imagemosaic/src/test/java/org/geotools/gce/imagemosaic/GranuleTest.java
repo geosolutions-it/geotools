@@ -162,7 +162,7 @@ public class GranuleTest extends Assert {
 		final Hints crsHints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, DefaultGeographicCRS.WGS84);	
 		final ImageMosaicReader reader = (ImageMosaicReader) new ImageMosaicFormat().getReader(testMosaic,crsHints);
 		assertNotNull(reader);
-		final RasterManager manager = new RasterManager(reader);
+		final RasterManager manager = new RasterManager(reader, null);
 		
 		// use imageio with defined tiles
 		final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -254,7 +254,7 @@ public class GranuleTest extends Assert {
                 .getReader(testMosaic);
 
         assertNotNull(reader);
-        final RasterManager manager = new RasterManager(reader);
+        final RasterManager manager = new RasterManager(reader, null);
 
         // FIXME: somehow when run under JUnit the bounds end up as (y,x) rather than (x,y). Works
         // fine in GeoServer. Hack it :(

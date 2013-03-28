@@ -276,9 +276,24 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
     }
 
     @SuppressWarnings("unchecked")
-    private static boolean checkForUrl( Object source, Hints hints){
+    private boolean checkForUrl( Object source, Hints hints){
          try {
-            
+            if (hints != null && hints.containsKey(Utils.EXCLUDE_MOSAIC) && ((Boolean)hints.get(Utils.EXCLUDE_MOSAIC) == true)) {
+                return false;
+            }
+
+            // Minimal check. In case we found the indexer we say that we can deal with that mosaic
+            // An additional getReader may confirm or deny that in case.
+            boolean indexerFound = Utils.minimalIndexCheck(source);
+            if (indexerFound) {
+                return true;
+            }
+
+            //
+            // Check source
+            //
+            // if it is a URL or a String let's try to see if we can get a file to
+            // check if we have to build the index
             URL sourceURL = Utils.checkSource(source, hints);
             if(sourceURL == null){
             	return false;
@@ -458,7 +473,7 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
 
     }
 
-	/**
+    /**
      * @see AbstractGridFormat#getReader(Object, Hints)
      */
     @Override

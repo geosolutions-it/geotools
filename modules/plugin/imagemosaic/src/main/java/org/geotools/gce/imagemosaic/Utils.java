@@ -80,6 +80,7 @@ import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.factory.Hints;
+import org.geotools.factory.Hints.Key;
 import org.geotools.filter.visitor.DefaultFilterVisitor;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
@@ -109,6 +110,10 @@ import com.vividsolutions.jts.geom.Geometry;
  * @source $URL$
  */
 public class Utils {
+    
+    public final static Key EXCLUDE_MOSAIC = new Key(Boolean.class);
+    
+    public final static Key MOSAIC_READER = new Key(ImageMosaicReader.class);
     
     public static final String RANGE_SPLITTER_CHAR = ";";
 
@@ -290,10 +295,10 @@ public class Utils {
 			return exception.getMessage();
 	}
 
-	static URL checkSource(Object source) throws MalformedURLException,
-			DataSourceException {
-		return checkSource(source, null);
-	}
+//	static URL checkSource(Object source) throws MalformedURLException,
+//			DataSourceException {
+//		return checkSource(source, null);
+//	}
 
 	
 
@@ -962,7 +967,6 @@ public class Utils {
                         sourceFile = tempFile;
                 }
         }
-
         // //
         //
         // at this point we have tried to convert the thing to a File as hard as
@@ -1410,4 +1414,47 @@ public class Utils {
             return new Range<Double>(Double.class, (Double) firstValue, (Double) secondValue);
         } else return null;
     }
+    
+    /**
+     * Simple minimal check which checks whether and indexer file exists 
+     * @param source
+     * @return
+     */
+    public static boolean minimalIndexCheck(Object source) {
+        File sourceFile = null;
+        URL sourceURL = null; 
+        if (source instanceof File) {
+            sourceFile = (File) source;
+        } else if (source instanceof URL) {
+            sourceURL = (URL) source;
+            if (sourceURL.getProtocol().equals("file")) {
+                sourceFile = DataUtilities.urlToFile(sourceURL);
+            }
+        } else if (source instanceof String) {
+            // is it a File?
+            final String tempSource = (String) source;
+            File tempFile = new File(tempSource);
+            if (!tempFile.exists()) {
+                // is it a URL
+                try {
+                    sourceURL = new URL(tempSource);
+                    source = DataUtilities.urlToFile(sourceURL);
+                } catch (MalformedURLException e) {
+                    sourceURL = null;
+                    source = null;
+                }
+            } else {
+                sourceURL = DataUtilities.fileToURL(tempFile);
+
+                // so that we can do our magic here below
+                sourceFile = tempFile;
+            }
+        }
+        final File indexerProperties = new File(sourceFile, Utils.INDEXER_PROPERTIES);
+        if (Utils.checkFileReadable(indexerProperties)) {
+            return true;
+        }
+        return false;
+    }
+
 }

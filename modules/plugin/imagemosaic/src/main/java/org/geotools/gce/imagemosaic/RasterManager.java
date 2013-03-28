@@ -43,6 +43,7 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.DecimationPolicy;
+import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
@@ -56,6 +57,8 @@ import org.geotools.feature.visitor.UniqueVisitor;
 import org.geotools.filter.SortByImpl;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
+import org.geotools.gce.imagemosaic.catalog.GranuleCatalogSource;
+import org.geotools.gce.imagemosaic.catalog.GranuleCatalogStore;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -786,10 +789,12 @@ class RasterManager {
     GranuleCatalog granuleCatalog;
 
     String typeName;
+    
+    MosaicConfigurationBean configuration;
 
-        public RasterManager(final ImageMosaicReader parentReader) throws IOException {
-            this(parentReader, null);
-        }
+//        public RasterManager(final ImageMosaicReader parentReader) throws IOException {
+//            this(parentReader, null);
+//        }
 
         public RasterManager(final ImageMosaicReader parentReader, MosaicConfigurationBean configuration)
                 throws IOException {
@@ -800,6 +805,7 @@ class RasterManager {
             this.parentReader = parentReader;
             this.expandMe = parentReader.expandMe;
             this.heterogeneousGranules = parentReader.heterogeneousGranules;
+            this.configuration = configuration;
 
             // take ownership of the index : TODO: REMOVE THAT ONCE DEALING WITH MORE CATALOGS/RASTERMANAGERS
             granuleCatalog = parentReader.granuleCatalog;
@@ -1102,6 +1108,10 @@ class RasterManager {
 
         public GranuleCatalog getGranuleCatalog() {
             return granuleCatalog;
+        }
+        
+        public GranuleSource getGranuleSource(final boolean readOnly) {
+            return readOnly ? new GranuleCatalogSource(granuleCatalog, typeName) : new GranuleCatalogStore(granuleCatalog, typeName);
         }
     
     public void dispose() {

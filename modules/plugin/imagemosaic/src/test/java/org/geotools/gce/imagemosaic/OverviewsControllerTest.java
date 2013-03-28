@@ -175,7 +175,7 @@ public class OverviewsControllerTest extends Assert {
 
         final int nOv = reader.getNumberOfOvervies();
         final double[] hRes = reader.getHighestRes();
-        final RasterManager rasterManager = new RasterManager(reader);
+        final RasterManager rasterManager = new RasterManager(reader, null);
 
         // //
         //

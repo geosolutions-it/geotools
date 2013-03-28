@@ -54,6 +54,7 @@ import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.spi.ImageInputStreamSpi;
 import javax.imageio.spi.ImageReaderSpi;
 import javax.imageio.stream.ImageInputStream;
+import javax.media.jai.ImageLayout;
 import javax.swing.SwingUtilities;
 
 import org.apache.commons.io.DirectoryWalker;
@@ -69,13 +70,17 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GranuleSource;
+import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.GridFormatFinder;
+import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.grid.io.UnknownFormat;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.Query;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
+import org.geotools.factory.Hints;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.gce.image.WorldImageFormat;
 import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
@@ -84,7 +89,6 @@ import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
-import org.geotools.gce.imagemosaic.catalog.GranuleCatalogStore;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
@@ -325,73 +329,14 @@ public class CatalogBuilder implements Runnable {
 			ImageInputStream inStream=null;
 			ImageReader imageioReader = null;
 			AbstractGridCoverage2DReader coverageReader=null;
+			StructuredGridCoverage2DReader structuredReader = null;
 			try {
-				//
 				// STEP 1
-				// Getting an ImageIO reader for this coverage.
-				//
-			        // try to use cache
-			        if(cachedStreamSPI!=null ){
-			            inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
-			        } 
-			        if(inStream==null ){
-			            // failed, look for a new SPI
-			            cachedStreamSPI= ImageIOExt.getImageInputStreamSPI(fileBeingProcessed);
-			            if(cachedStreamSPI!=null){
-			                inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
-			            }
-			            
-			        } 
-    				if(inStream==null) {
-    				    // failed again
-    					fireEvent(Level.INFO,fileBeingProcessed+" has been skipped since we could not get a stream for it", ((fileIndex * 100.0) / numFiles));
-    					return;
-    				}
-				inStream.mark();
-				
-				
-				cachedReaderSPITest: {
-					// there is no cached reader spi, let's look for one
-					if(cachedReaderSPI==null){
-						final Iterator<ImageReader> it = ImageIO.getImageReaders(inStream);
-						if (it.hasNext()) {
-							imageioReader = it.next();
-							if(imageioReader!=null){
-								//cache the SPI
-								cachedReaderSPI=imageioReader.getOriginatingProvider();
-								imageioReader.setInput(inStream);
-							}
-						} else {
-							imageioReader=null;
-						}
-					} else {
-						// we have a cached SPI, let's try to use it
-						if(!cachedReaderSPI.canDecodeInput(inStream)){				
-							// the SPI is no good for this input
-							cachedReaderSPI=null;
-							//take me to the SPI search
-							break cachedReaderSPITest;
-						}
-						// the spi is good
-						imageioReader=cachedReaderSPI.createReaderInstance();
-						imageioReader.setInput(inStream);
-					}
-				}
-				// did we found a reader
-				if (imageioReader == null) {
-					// send a message
-					fireEvent(Level.INFO,new StringBuilder("Skipped file ").append(fileBeingProcessed).append(":No ImageIO reader	s availaible.").toString(), ((fileIndex * 99.0) / numFiles));
-					return;
-				}
-
-
-				//Append
-				// STEP 2
 				// Getting a coverage reader for this coverage.
 				//
 				final AbstractGridFormat format;
 				if(cachedFormat == null) {
-					format= (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed);
+					format= (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed, excludeMosaicHints);
 				} else {
 					if(cachedFormat.accepts(fileBeingProcessed)) {
 						format=cachedFormat;
@@ -407,37 +352,89 @@ public class CatalogBuilder implements Runnable {
 				coverageReader = (AbstractGridCoverage2DReader) format.getReader(fileBeingProcessed, runConfiguration.getHints());
 				GeneralEnvelope envelope = (GeneralEnvelope) coverageReader.getOriginalEnvelope();
 				CoordinateReferenceSystem actualCRS = coverageReader.getCoordinateReferenceSystem();
-
+				boolean isStructured = coverageReader instanceof StructuredGridCoverage2DReader;
+				String coverageName = null;
+				
+		                    SampleModel sm = null;
+		                        ColorModel cm = null;
+				ImageTypeSpecifier its = null;
+				int numberOfLevels = 1;
+                                double[][] resolutionLevels = null;
 				//
-				// STEP 3
-				// Get the type specifier for this image and the check that the
-				// image has the correct sample model and color model.
-				// If this is the first cycle of the loop we initialize everything.
-				//
-				final ImageTypeSpecifier its = ((ImageTypeSpecifier) imageioReader.getImageTypes(0).next());
-				if (numberOfProcessedFiles==0) {
-					
-					//
-					// at the first step we initialize everything that we will
-					// reuse afterwards starting with color models, sample
-					// models, crs, etc....
-					//
-					
-					defaultCM = its.getColorModel();
-					defaultSM = its.getSampleModel();
-					if (defaultCM instanceof IndexColorModel) {
-						IndexColorModel icm = (IndexColorModel) defaultCM;
-						int numBands = defaultCM.getNumColorComponents();
-						defaultPalette = new byte[3][icm.getMapSize()];
-						icm.getReds(defaultPalette[0]);
-						icm.getGreens(defaultPalette[0]);
-						icm.getBlues(defaultPalette[0]);
-						if (numBands == 4)
-							icm.getAlphas(defaultPalette[0]);
-
-					}
-					defaultCRS = actualCRS;
-
+                                // STEP 2
+                                // Getting an ImageIO reader for this coverage.
+                                //
+                                if (!isStructured) {
+                                    // try to use cache
+                                    if(cachedStreamSPI!=null ){
+                                        inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
+                                    } 
+                                    if(inStream==null ){
+                                        // failed, look for a new SPI
+                                        cachedStreamSPI= ImageIOExt.getImageInputStreamSPI(fileBeingProcessed);
+                                        if(cachedStreamSPI!=null){
+                                            inStream=cachedStreamSPI.createInputStreamInstance(fileBeingProcessed);
+                                        }
+                                        
+                                    } 
+                                    if(inStream==null) {
+                                        // failed again
+                                            fireEvent(Level.INFO,fileBeingProcessed+" has been skipped since we could not get a stream for it", ((fileIndex * 100.0) / numFiles));
+                                            return;
+                                    }
+                                    inStream.mark();
+                                    
+                                    
+                                    cachedReaderSPITest: {
+                                            // there is no cached reader spi, let's look for one
+                                            if(cachedReaderSPI==null){
+                                                    final Iterator<ImageReader> it = ImageIO.getImageReaders(inStream);
+                                                    if (it.hasNext()) {
+                                                            imageioReader = it.next();
+                                                            if(imageioReader!=null){
+                                                                    //cache the SPI
+                                                                    cachedReaderSPI=imageioReader.getOriginatingProvider();
+                                                                    imageioReader.setInput(inStream);
+                                                            }
+                                                    } else {
+                                                            imageioReader=null;
+                                                    }
+                                            } else {
+                                                    // we have a cached SPI, let's try to use it
+                                                    if(!cachedReaderSPI.canDecodeInput(inStream)){                          
+                                                            // the SPI is no good for this input
+                                                            cachedReaderSPI=null;
+                                                            //take me to the SPI search
+                                                            break cachedReaderSPITest;
+                                                    }
+                                                    // the spi is good
+                                                    imageioReader=cachedReaderSPI.createReaderInstance();
+                                                    imageioReader.setInput(inStream);
+                                            }
+                                    }
+                                    // did we found a reader
+                                    if (imageioReader == null) {
+                                            // send a message
+                                            fireEvent(Level.INFO,new StringBuilder("Skipped file ").append(fileBeingProcessed).append(":No ImageIO reader   s availaible.").toString(), ((fileIndex * 99.0) / numFiles));
+                                            return;
+                                    }
+                                    its = ((ImageTypeSpecifier) imageioReader.getImageTypes(0).next());
+                                    cm = its.getColorModel();
+                                    sm = its.getSampleModel();
+                                } else {
+                                    structuredReader = (StructuredGridCoverage2DReader) coverageReader;
+                                    coverageName = structuredReader.getGridCoverageNames()[0];// TODO IMPROVE ME
+                                }
+                                
+                                if (numberOfProcessedFiles==0) {
+                                    //
+                                    // STEP 3
+                                    // Get the type specifier for this image and the check that the
+                                    // image has the correct sample model and color model.
+                                    // If this is the first cycle of the loop we initialize everything.
+                                    //
+                                    if (!isStructured) {
+                                       
 					
 					//
 					// getting information about resolution
@@ -471,13 +468,40 @@ public class CatalogBuilder implements Runnable {
 						return;
 					}
 					imageioReader.setInput(inStream);
-					int numberOfLevels = imageioReader.getNumImages(true);
-					double[][] resolutionLevels = new double[2][numberOfLevels];
+					numberOfLevels = imageioReader.getNumImages(true);
+					resolutionLevels = new double[2][numberOfLevels];
 					setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
-					mosaicConfiguration.setLevelsNum(numberOfLevels);
-					mosaicConfiguration.setLevels(resolutionLevels);
+                                    } else {
+                                        ImageLayout layout = structuredReader.getImageLayout(coverageName);
+                                        cm = layout.getColorModel(null);
+                                        sm = layout.getSampleModel(null);
+                                        numberOfLevels = structuredReader.getNumOverviews(coverageName) + 1;
+                                        resolutionLevels = structuredReader.getResolutionLevels(coverageName);
+                                    }
+                                    
+                                    //
+                                    // at the first step we initialize everything that we will
+                                    // reuse afterwards starting with color models, sample
+                                    // models, crs, etc....
+                                    //
+                                    
+                                    defaultCM = cm;
+                                    defaultSM = sm;
+                                    if (defaultCM instanceof IndexColorModel) {
+                                            IndexColorModel icm = (IndexColorModel) defaultCM;
+                                            int numBands = defaultCM.getNumColorComponents();
+                                            defaultPalette = new byte[3][icm.getMapSize()];
+                                            icm.getReds(defaultPalette[0]);
+                                            icm.getGreens(defaultPalette[0]);
+                                            icm.getBlues(defaultPalette[0]);
+                                            if (numBands == 4)
+                                                    icm.getAlphas(defaultPalette[0]);
 
-					
+                                    }
+                                    defaultCRS = actualCRS;
+                                    mosaicConfiguration.setLevelsNum(numberOfLevels);
+                                    mosaicConfiguration.setLevels(resolutionLevels);
+                                    
 					//
 					// creating the schema
 					//
@@ -511,6 +535,14 @@ public class CatalogBuilder implements Runnable {
 					
 					// create the schema for the new shape file
 					String typeName = indexSchema.getTypeName();
+//					GranuleSource source = null;
+//					if (typeName != null && parentReader != null) {
+//					    source = parentReader.getGranules(typeName, false);
+//					}
+//					if (source == null) {
+//					    parentReader.createCoverage(typeName, indexSchema);
+//					    source = parentReader.getGranules(typeName, false);
+//					}
 					final SimpleFeatureType type = typeName != null ? catalog.getType(typeName) : null;
                                         if(type==null){
 					    catalog.createType(indexSchema);
@@ -530,18 +562,23 @@ public class CatalogBuilder implements Runnable {
 				        // has been already marked as heterogeneous
 				        //
 				        // //
-				        int numberOfLevels = imageioReader.getNumImages(true);
+				        numberOfLevels = isStructured ? structuredReader.getNumOverviews(coverageName) + 1 : imageioReader.getNumImages(true);
                                         if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
                                             catalogConfigurationBean.setHeterogeneous(true);
                                             if (numberOfLevels > mosaicConfiguration.getLevelsNum()){
-                                                final double[][] resolutionLevels = new double[2][numberOfLevels];
-                                                setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
+                                                if (!isStructured) {
+                                                    resolutionLevels = new double[2][numberOfLevels];
+                                                    setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
+                                                } else {
+                                                    resolutionLevels = structuredReader.getResolutionLevels(coverageName);
+                                                }
                                                 mosaicConfiguration.setLevelsNum(numberOfLevels);
                                                 mosaicConfiguration.setLevels(resolutionLevels);
+                                                
                                             }
                                         } else {
                                             final double[][] mosaicLevels = mosaicConfiguration.getLevels();
-                                            final double[][] resolutionLevels = new double[2][numberOfLevels];
+                                            resolutionLevels = new double[2][numberOfLevels];
                                             final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, mosaicLevels);
                                             if (!homogeneousLevels){
                                                 catalogConfigurationBean.setHeterogeneous(true);
@@ -556,7 +593,7 @@ public class CatalogBuilder implements Runnable {
 					// comparing SampeModel
 					// comparing CRSs
 					// ////////////////////////////////////////////////////////
-					ColorModel actualCM = its.getColorModel();
+					ColorModel actualCM = cm;
 					if((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(defaultCRS, actualCRS)) : false)){
 						fireEvent(
 								Level.INFO,
@@ -679,75 +716,75 @@ public class CatalogBuilder implements Runnable {
 			
 		}
 
-		private boolean checkStop() {
+        private boolean checkStop() {
+            if (getStop()) {
+                fireEvent(Level.INFO, "Stopping requested at file  " + fileIndex + " of "
+                        + numFiles + " files", ((fileIndex * 100.0) / numFiles));
+                return false;
+            }
+            return true;
+        }
 
-			if (getStop()) {
-				
-				fireEvent(Level.INFO,"Stopping requested at file  "+fileIndex+" of "+numFiles+" files", ((fileIndex * 100.0) / numFiles));
-				return false;
-			}
-			return true;
-		}
+        private boolean checkFile(final File fileBeingProcessed) {
+            if (!fileBeingProcessed.exists() || !fileBeingProcessed.canRead()
+                    || !fileBeingProcessed.isFile()) {
+                // send a message
+                fireEvent(Level.INFO, "Skipped file " + fileBeingProcessed
+                        + " snce it seems invalid", ((fileIndex * 99.0) / numFiles));
+                return false;
+            }
+            return true;
+        }
 
-		private boolean checkFile(final File fileBeingProcessed) {
-			if(!fileBeingProcessed.exists()||!fileBeingProcessed.canRead()||!fileBeingProcessed.isFile())
-			{
-				// send a message
-				fireEvent(Level.INFO,"Skipped file "+fileBeingProcessed+" snce it seems invalid", ((fileIndex * 99.0) / numFiles));
-				return false;
-			}
-			return true;
-		}
+        public CatalogBuilderDirectoryWalker(final List<String> indexingDirectories,
+                final FileFilter filter) throws IOException {
+            super(filter, Integer.MAX_VALUE);// runConfiguration.isRecursive()?Integer.MAX_VALUE:0);
 
-		public CatalogBuilderDirectoryWalker(final List<String> indexingDirectories,final FileFilter filter) throws IOException {
-			super(filter,Integer.MAX_VALUE);//runConfiguration.isRecursive()?Integer.MAX_VALUE:0);
-			
-			this.transaction= new DefaultTransaction("MosaicCreationTransaction"+System.nanoTime());
-                        indexingPreamble();
+            this.transaction = new DefaultTransaction("MosaicCreationTransaction"
+                    + System.nanoTime());
+            indexingPreamble();
 
-                        try {
-                            // start walking directories
-                            for(String indexingDirectory:indexingDirectories){
-                                walk(new File(indexingDirectory), null);
-                                
-                                // did we cancel?
-                                if(canceled)
-                                    break;
-                            }
-                         // did we cancel?
-                            if(canceled)
-                                transaction.rollback();
-                            else
-                                transaction.commit();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.WARNING, "Failure occurred while collecting the granules", e);
-                            transaction.rollback();
-                        } finally {
-                            try {
-                                transaction.close();
-                            } catch (Exception e) {
-                                final String message = "Unable to close indexing" + e.getLocalizedMessage();
-                                if (LOGGER.isLoggable(Level.WARNING)) {
-                                    LOGGER.log(Level.WARNING, message, e);
-                                }
-                                // notify listeners
-                                fireException(e);
-                            }
-                    
-                            try {
-                                indexingPostamble(!canceled);
-                            } catch (Exception e) {
-                                final String message = "Unable to close indexing" + e.getLocalizedMessage();
-                                if (LOGGER.isLoggable(Level.WARNING)) {
-                                    LOGGER.log(Level.WARNING, message, e);
-                                }
-                                // notify listeners
-                                fireException(e);
-                            }
-                        }
-                        
-			
-		}
+            try {
+                // start walking directories
+                for (String indexingDirectory : indexingDirectories) {
+                    walk(new File(indexingDirectory), null);
+
+                    // did we cancel?
+                    if (canceled)
+                        break;
+                }
+                // did we cancel?
+                if (canceled)
+                    transaction.rollback();
+                else
+                    transaction.commit();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failure occurred while collecting the granules", e);
+                transaction.rollback();
+            } finally {
+                try {
+                    transaction.close();
+                } catch (Exception e) {
+                    final String message = "Unable to close indexing" + e.getLocalizedMessage();
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING, message, e);
+                    }
+                    // notify listeners
+                    fireException(e);
+                }
+
+                try {
+                    indexingPostamble(!canceled);
+                } catch (Exception e) {
+                    final String message = "Unable to close indexing" + e.getLocalizedMessage();
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING, message, e);
+                    }
+                    // notify listeners
+                    fireException(e);
+                }
+            }
+        }
 
 		public int getNumberOfProcessedFiles() {
 			return numberOfProcessedFiles;
@@ -862,27 +899,7 @@ public class CatalogBuilder implements Runnable {
 			return true;
 		}
 
-//		@Override
-//		protected void handleEnd(Collection results) throws IOException {
-//			try{
-//				transaction.commit();
-//			}
-//			finally{
-//				transaction.close();
-//			}		
-//			indexingPostamble();
-//			super.handleEnd(results);
-//		}
 
-//		@Override
-//		protected void handleStart(File startDirectory, Collection results)
-//				throws IOException {
-//			indexingPreamble();
-//			super.handleStart(startDirectory, results);
-//			
-//			
-//		}
-		
 		
 	}
 
@@ -951,6 +968,10 @@ public class CatalogBuilder implements Runnable {
     private AbstractGridFormat cachedFormat;
 
     private CatalogConfigurationBean catalogConfigurationBean;
+    
+    private StructuredGridCoverage2DReader parentReader;
+    
+    private Hints excludeMosaicHints = new Hints(Utils.EXCLUDE_MOSAIC, true);
 
 	/* (non-Javadoc)
 	 * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#run()
@@ -1139,6 +1160,13 @@ public class CatalogBuilder implements Runnable {
                                 configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
                 }
 
+		Hints hints = configuration.getHints();
+		if (hints != null && hints.containsKey(Utils.MOSAIC_READER)) {
+		    Object reader = hints.get(Utils.MOSAIC_READER);
+		    if (reader instanceof StructuredGridCoverage2DReader) {
+		        parentReader = (StructuredGridCoverage2DReader) reader;
+		    }
+		}
 		
 		//check config
 		configuration.check();
@@ -1314,52 +1342,12 @@ public class CatalogBuilder implements Runnable {
 		final PrecisionModel precMod = new PrecisionModel(PrecisionModel.FLOATING);
 		geomFactory = new GeometryFactory(precMod);
 		
-		//
-		// create the index
-		//
-		// do we have a datastore.properties file?
-		final File parent=new File(runConfiguration.getRootMosaicDirectory());
-		final File datastoreProperties= new File(parent,"datastore.properties");
-		if(Utils.checkFileReadable(datastoreProperties)){
-			// read the properties file
-			Properties properties = Utils.loadPropertiesFromURL(DataUtilities.fileToURL(datastoreProperties));
-			if (properties == null)
-				throw new IOException("Unable to load properties from:"+datastoreProperties.getAbsolutePath());
-
-			// SPI
-			final String SPIClass = properties.getProperty("SPI");
-			try {
-				// create a datastore as instructed
-				final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
-				final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(properties,spi);
-
-				// set ParentLocation parameter since for embedded database like H2 we must change the database
-				// to incorporate the path where to write the db 
-				params.put("ParentLocation", DataUtilities.fileToURL(parent).toExternalForm());
-				catalog = GranuleCatalogFactory.createGranuleCatalog(params, false, true, spi);
-			} catch (ClassNotFoundException e) {
-				final IOException ioe = new IOException();
-				throw (IOException) ioe.initCause(e);
-			} catch (InstantiationException e) {
-				final IOException ioe = new IOException();
-				throw (IOException) ioe.initCause(e);
-			} catch (IllegalAccessException e) {
-				final IOException ioe = new IOException();
-				throw (IOException) ioe.initCause(e);
-			}			
-		} else {
-			
-			// we do not have a datastore properties file therefore we continue with a shapefile datastore
-			final URL file= new File(parent ,runConfiguration.getIndexName() + ".shp").toURI().toURL();
-			final Map<String, Serializable> params = new HashMap<String, Serializable>();			 
-			params.put(ShapefileDataStoreFactory.URLP.key,file);
-			if(file.getProtocol().equalsIgnoreCase("file"))
-				params.put(ShapefileDataStoreFactory.CREATE_SPATIAL_INDEX.key, Boolean.TRUE);
-			params.put(ShapefileDataStoreFactory.MEMORY_MAPPED.key, Boolean.TRUE);
-			params.put(ShapefileDataStoreFactory.DBFTIMEZONE.key, TimeZone.getTimeZone("UTC"));
-			catalog= GranuleCatalogFactory.createGranuleCatalog(params,false,true, Utils.SHAPE_SPI);
-		}
-	
+//		//
+//		// create the index
+//		//
+		catalog = CatalogManager.createCatalog(runConfiguration);
+		
+		
 		//
 		// creating a mosaic runConfiguration bean to store the properties file elements			
 		//
@@ -1529,7 +1517,9 @@ public class CatalogBuilder implements Runnable {
         			if (additionalDomainAttribute != null) {
         			    mosaicConfiguration.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
         			}
-        			createPropertiesFiles();
+        			
+        			fireEvent(Level.INFO,"Creating final properties file ", 99.9);
+        			createPropertiesFiles(mosaicConfiguration);
         			
         			// processing information
         			fireEvent(Level.FINE, "Done!!!", 100);				
@@ -1575,77 +1565,77 @@ public class CatalogBuilder implements Runnable {
 		catalog=null;
 	}
 
-	/**
-	 * Creates the final properties file.
-	 */
-	private void createPropertiesFiles() {
-		
-		//
-		// FINAL STEP
-		//
-		// CREATING GENERAL INFO FILE
-		//
-		
-		fireEvent(Level.INFO,"Creating final properties file ", 99.9);
-	
-		// envelope
-		final Properties properties = new Properties();
-		properties.setProperty(Utils.Prop.ABSOLUTE_PATH, Boolean.toString(catalogConfigurationBean.isAbsolutePath()));
-		properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
-		final String timeAttribute=mosaicConfiguration.getTimeAttribute();
-		if (timeAttribute != null) {
-			properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
-		}
-		final String elevationAttribute=mosaicConfiguration.getElevationAttribute();
-		if (elevationAttribute != null) {
-			properties.setProperty(Utils.Prop.ELEVATION_ATTRIBUTE, mosaicConfiguration.getElevationAttribute());
-		}
-		
-		final String additionalDomainAttribute=mosaicConfiguration.getAdditionalDomainAttributes();
-		if (additionalDomainAttribute!= null) {
-		    properties.setProperty(Utils.Prop.ADDITIONAL_DOMAIN_ATTRIBUTES, mosaicConfiguration.getAdditionalDomainAttributes());
-		}
-		
-		final int numberOfLevels=mosaicConfiguration.getLevelsNum();
-		final double[][] resolutionLevels=mosaicConfiguration.getLevels();
-		properties.setProperty(Utils.Prop.LEVELS_NUM, Integer.toString(numberOfLevels));
-		final StringBuilder levels = new StringBuilder();
-		for (int k = 0; k < numberOfLevels; k++) {
-			levels.append(Double.toString(resolutionLevels[0][k])).append(",").append(Double.toString(resolutionLevels[1][k]));
-			if (k < numberOfLevels - 1)
-				levels.append(" ");
-		}
-		properties.setProperty(Utils.Prop.LEVELS, levels.toString());
-		properties.setProperty(Utils.Prop.NAME, mosaicConfiguration.getName());
-		properties.setProperty(Utils.Prop.TYPENAME, mosaicConfiguration.getName());
-		properties.setProperty(Utils.Prop.EXP_RGB, Boolean.toString(mustConvertToRGB));
-		properties.setProperty(Utils.Prop.HETEROGENEOUS, Boolean.toString(catalogConfigurationBean.isHeterogeneous()));
-		
-		if (cachedReaderSPI != null){
-			// suggested spi
-			properties.setProperty(Utils.Prop.SUGGESTED_SPI, cachedReaderSPI.getClass().getName());
-		}
+/**
+     * Creates the final properties file.
+     */
+    private void createPropertiesFiles(MosaicConfigurationBean mosaicConfiguration) {
+        
+        //
+        // FINAL STEP
+        //
+        // CREATING GENERAL INFO FILE
+        //
+        
 
-		// write down imposed bbox
-		if (imposedBBox != null){
-			properties.setProperty(Utils.Prop.ENVELOPE2D, imposedBBox.getMinX()+","+imposedBBox.getMinY()+" "+imposedBBox.getMaxX()+","+imposedBBox.getMaxY());
-		}
-		properties.setProperty(Utils.Prop.CACHING, Boolean.toString(catalogConfigurationBean.isCaching()));
-		OutputStream outStream=null;
-		try {
-			outStream = new BufferedOutputStream(new FileOutputStream(runConfiguration.getRootMosaicDirectory() + "/" + runConfiguration.getIndexName() + ".properties"));
-			properties.store(outStream, "-Automagically created from GeoTools-");
-		} catch (FileNotFoundException e) {
-			fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
-		} catch (IOException e) {
-			fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
-		} finally {
-				if (outStream != null) {
-					IOUtils.closeQuietly(outStream);
-				}
+        CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration.getCatalogConfigurationBean();
+        // envelope
+        final Properties properties = new Properties();
+        properties.setProperty(Utils.Prop.ABSOLUTE_PATH, Boolean.toString(catalogConfigurationBean.isAbsolutePath()));
+        properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
+        final String timeAttribute=mosaicConfiguration.getTimeAttribute();
+        if (timeAttribute != null) {
+                properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
+        }
+        final String elevationAttribute=mosaicConfiguration.getElevationAttribute();
+        if (elevationAttribute != null) {
+                properties.setProperty(Utils.Prop.ELEVATION_ATTRIBUTE, mosaicConfiguration.getElevationAttribute());
+        }
+        
+        final String additionalDomainAttribute=mosaicConfiguration.getAdditionalDomainAttributes();
+        if (additionalDomainAttribute!= null) {
+            properties.setProperty(Utils.Prop.ADDITIONAL_DOMAIN_ATTRIBUTES, mosaicConfiguration.getAdditionalDomainAttributes());
+        }
+        
+        final int numberOfLevels=mosaicConfiguration.getLevelsNum();
+        final double[][] resolutionLevels=mosaicConfiguration.getLevels();
+        properties.setProperty(Utils.Prop.LEVELS_NUM, Integer.toString(numberOfLevels));
+        final StringBuilder levels = new StringBuilder();
+        for (int k = 0; k < numberOfLevels; k++) {
+                levels.append(Double.toString(resolutionLevels[0][k])).append(",").append(Double.toString(resolutionLevels[1][k]));
+                if (k < numberOfLevels - 1)
+                        levels.append(" ");
+        }
+        properties.setProperty(Utils.Prop.LEVELS, levels.toString());
+        properties.setProperty(Utils.Prop.NAME, mosaicConfiguration.getName());
+        properties.setProperty(Utils.Prop.TYPENAME, mosaicConfiguration.getName());
+        properties.setProperty(Utils.Prop.EXP_RGB, Boolean.toString(mustConvertToRGB));
+        properties.setProperty(Utils.Prop.HETEROGENEOUS, Boolean.toString(catalogConfigurationBean.isHeterogeneous()));
+        
+        if (cachedReaderSPI != null){
+                // suggested spi
+                properties.setProperty(Utils.Prop.SUGGESTED_SPI, cachedReaderSPI.getClass().getName());
+        }
 
-		}
-	}
+        // write down imposed bbox
+        if (imposedBBox != null){
+                properties.setProperty(Utils.Prop.ENVELOPE2D, imposedBBox.getMinX()+","+imposedBBox.getMinY()+" "+imposedBBox.getMaxX()+","+imposedBBox.getMaxY());
+        }
+        properties.setProperty(Utils.Prop.CACHING, Boolean.toString(catalogConfigurationBean.isCaching()));
+        OutputStream outStream=null;
+        try {
+                outStream = new BufferedOutputStream(new FileOutputStream(runConfiguration.getRootMosaicDirectory() + "/" + runConfiguration.getIndexName() + ".properties"));
+                properties.store(outStream, "-Automagically created from GeoTools-");
+        } catch (FileNotFoundException e) {
+                fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
+        } catch (IOException e) {
+                fireEvent(Level.SEVERE,e.getLocalizedMessage(), 0);
+        } finally {
+                        if (outStream != null) {
+                                IOUtils.closeQuietly(outStream);
+                        }
+
+        }
+    }
 
 	public void dispose() {
 		reset();
@@ -1690,8 +1680,8 @@ public class CatalogBuilder implements Runnable {
             return true;
         }
 
-    public MosaicConfigurationBean getMosaicConfiguration() {
-        return new MosaicConfigurationBean(mosaicConfiguration);
-    }
+//    public MosaicConfigurationBean getMosaicConfiguration() {
+//        return new MosaicConfigurationBean(mosaicConfiguration);
+//    }
 
 }

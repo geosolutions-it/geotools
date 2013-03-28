@@ -43,7 +43,10 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
+import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
+import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
@@ -93,7 +96,7 @@ import org.opengis.referencing.operation.MathTransform;
  * @source $URL$
  */
 @SuppressWarnings("rawtypes")
-public class ImageMosaicReader extends AbstractGridCoverage2DReader implements GridCoverage2DReader {
+public class ImageMosaicReader extends AbstractGridCoverage2DReader implements StructuredGridCoverage2DReader {
 
     Set<String> names = new HashSet<String>();
     
@@ -191,6 +194,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
                 initReaderFromDescriptor((ImageMosaicDescriptor) source, uHints);
             } else {
                 try {
+                    if (uHints != null) {
+                        uHints.add(new Hints(Utils.MOSAIC_READER, this));
+                    } else {
+                        uHints = new Hints(Utils.MOSAIC_READER, this);
+                    }
                     initReaderFromURL(source, uHints);
                 } catch (Exception e) {
                     throw new DataSourceException(e);
@@ -243,7 +251,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
      * @throws DataSourceException
      */
     private void initReaderFromURL(final Object source, final Hints hints) throws Exception {
-		this.sourceURL=Utils.checkSource(source,hints);
+                final boolean hasIndex = Utils.minimalIndexCheck(source);
+                this.sourceURL = Utils.checkSource(source, hints);
 		if(this.sourceURL==null)
 			throw new DataSourceException("This plugin accepts File, URL or String. The string may describe a File or an URL");
 		
@@ -867,6 +876,35 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements G
         if (defaultName == null) {
             defaultName = name;
         }
+    }
+
+    @Override
+    public GranuleSource getGranules(final String coverageName, final boolean readOnly) throws IOException,
+            UnsupportedOperationException {
+        RasterManager manager = getRasterManager(coverageName);
+        if (manager == null) {
+            // Consider creating a new GranuleStore
+        } else {
+            return manager.getGranuleSource(readOnly);  
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return false;
+    }
+
+    @Override
+    public void createCoverage(String coverageName, SimpleFeatureType schema) throws IOException, UnsupportedOperationException {
+        throw new UnsupportedOperationException("Operation currently not implement: only adding granules to a GranuleStore is currently supported");
+    }
+
+    @Override
+    public boolean removeCoverage(String coverageName) throws IOException,
+            UnsupportedOperationException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
 }

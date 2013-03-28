@@ -710,11 +710,11 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         return new CoverageSlicesCatalogSource(catalog, coverageName);
     }
 
-    @Override
-    public Set<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
-        // TODO Need to implement that
-        return null;
-    }
+//    @Override
+//    public Set<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
+//        // TODO Need to implement that
+//        return null;
+//    }
 
     @Override
     public boolean isReadOnly() {
@@ -722,8 +722,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     }
 
     @Override
-    public void createCoverage(String coverageName, SimpleFeatureType schema,
-            Set<DimensionDescriptor> dimensions) throws IOException, UnsupportedOperationException {
+    public void createCoverage(String coverageName, SimpleFeatureType schema/*,
+            Set<DimensionDescriptor> dimensions*/) throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
         
     }
