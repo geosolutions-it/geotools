@@ -134,7 +134,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             tileWidth = width;
             name = variable.getFullName();
             final int bufferType = UnidataUtilities.getRawDataType(variable);
-            sampleModel=new BandedSampleModel(bufferType, getWidth(), getHeight(), 1);        
+            sampleModel = new BandedSampleModel(bufferType, getWidth(), getHeight(), 1);
         }
 
         public int getHeight() {
@@ -209,7 +209,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         public DatastoreProperties(String database) {
             super();
             setProperty("user", USER);
-            setProperty("password", PASSWORD);
+            setProperty("passwd", PASSWORD);
             setProperty("driver", DRIVER);
             setProperty("type", TYPE);
             setProperty("urlPrefix", URL_PREFIX + database);

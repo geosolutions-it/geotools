@@ -49,6 +49,7 @@ import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
+import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
@@ -59,6 +60,7 @@ import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.util.Utilities;
 import org.opengis.coverage.grid.Format;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.filter.Filter;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.metadata.Identifier;
 import org.opengis.parameter.GeneralParameterValue;
@@ -113,9 +115,10 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
           return null;
   }
     
-//    public String[] getGridCoverageNames() {
-//            return (String[]) names.toArray();
-//        }
+    @Override
+    public String[] getGridCoverageNames() {
+        return (String[]) names.toArray(new String[]{});
+    }
 
     /** Logger. */
 	private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(ImageMosaicReader.class);
@@ -234,10 +237,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         setGridGeometry(typeName);
         
         // raster manager
-//        coveragesManager = new CoveragesManager(this);
-        String name = configuration.getName();
-        RasterManager rasterManager = new RasterManager(this, configuration);
-        addRasterManager(name, rasterManager);
+        createRasterManager(configuration);
         
         //TODO: CHECK THAT : Can we have different coverages with different types of data?
 //        mosaicManager.defaultSM = configuration.getSampleModel();
@@ -308,7 +308,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 			// create the index
 		    
 		    //TODO: Need to add more schema if any
+		    if (granuleCatalog == null) {
 			granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
+		    }
 			// error
 			String typeName = catalogConfigurationBean.getTypeName();
 			if(granuleCatalog==null){
@@ -331,6 +333,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 				LOGGER.fine("Connected mosaic reader to its index "
 						+ sourceURL.toString());
 
+			// TODO: Delay that on RasterManager config
 			setGridGeometry(configuration.getEnvelope(), granuleCatalog, typeName);
 
             //
@@ -368,10 +371,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 			}
 			
 			// creating the raster manager
-//			coveragesManager = new CoveragesManager(this);
-			String name = configuration.getName();
-			RasterManager rasterManager = new RasterManager(this, configuration);
-		        addRasterManager(name, rasterManager);
+		        RasterManager manager = createRasterManager(configuration);
+		        manager.initialize();
+		        
 		}
 		catch (Throwable e) {
 			try {
@@ -870,12 +872,16 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         }
     }
 
-    private void addRasterManager(String name, RasterManager manager) {
-        rasterManagers.put(name, manager);
+    protected RasterManager createRasterManager(MosaicConfigurationBean configuration) throws IOException {
+        Utilities.ensureNonNull("MosaicConfigurationBean", configuration);
+        String name = configuration.getName();
+        RasterManager rasterManager = new RasterManager(this, configuration);
+        rasterManagers.put(name, rasterManager);
         names.add(name);
         if (defaultName == null) {
             defaultName = name;
         }
+        return rasterManager;
     }
 
     @Override
@@ -896,15 +902,21 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     }
 
     @Override
-    public void createCoverage(String coverageName, SimpleFeatureType schema) throws IOException, UnsupportedOperationException {
-        throw new UnsupportedOperationException("Operation currently not implement: only adding granules to a GranuleStore is currently supported");
+    public void createCoverage(String coverageName, SimpleFeatureType indexSchema) throws IOException, UnsupportedOperationException {
+//        throw new UnsupportedOperationException("Operation currently not implement: only adding granules to a GranuleStore is currently supported");
+     // create the schema for the new shape file
+        RasterManager manager = getRasterManager(coverageName);
+        if (manager != null) {
+            manager.createStore(coverageName, indexSchema);
+        } else {
+            throw new IOException("The following coverageName has already been created: " + coverageName);
+        }
     }
 
     @Override
     public boolean removeCoverage(String coverageName) throws IOException,
             UnsupportedOperationException {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException("Operation currently not implement");
     }
 
 }

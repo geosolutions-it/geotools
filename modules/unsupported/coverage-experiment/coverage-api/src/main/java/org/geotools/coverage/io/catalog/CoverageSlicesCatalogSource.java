@@ -43,6 +43,9 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
         //TODO: optimize this. It's currently "putting" all the features. No iterator is used. 
         
         // Filtering by coverageName
+        if (q == null) {
+            q = new Query();
+        }
         Filter filter = q.getFilter();
         if (filter != null) {
             filter = FF.and(filter, filterName);

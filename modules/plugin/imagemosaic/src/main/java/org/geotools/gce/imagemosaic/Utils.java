@@ -75,17 +75,15 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.geotools.data.DataAccessFactory.Param;
-import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.factory.Hints;
 import org.geotools.factory.Hints.Key;
 import org.geotools.filter.visitor.DefaultFilterVisitor;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ExceptionEvent;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ProcessingEvent;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
@@ -110,21 +108,23 @@ import com.vividsolutions.jts.geom.Geometry;
  * @source $URL$
  */
 public class Utils {
-    
+
+    final private static double RESOLUTION_TOLERANCE_FACTOR = 1E-2;
+
     public final static Key EXCLUDE_MOSAIC = new Key(Boolean.class);
-    
+
     public final static Key MOSAIC_READER = new Key(ImageMosaicReader.class);
-    
+
     public static final String RANGE_SPLITTER_CHAR = ";";
 
     public final static String INDEXER_PROPERTIES = "indexer.properties";
-    
+
     /** EHCache instance to cache histograms */ 
     private static Cache ehcache;    
-    
+
     /** RGB to GRAY coefficients (for Luminance computation) */
     public final static double RGB_TO_GRAY_MATRIX [][]= {{ 0.114, 0.587, 0.299, 0 }};
-    
+
     /** 
      * Flag indicating whether to compute optimized crop ops (instead of standard
      * mosaicking op) when possible (As an instance when mosaicking a single granule) 
@@ -249,12 +249,14 @@ public class Utils {
 		configuration.setIndexName(indexName);
 
 		// create the builder
-		final CatalogBuilder catalogBuilder = new CatalogBuilder(configuration);
+		final ImageMosaicWalker catalogBuilder = new ImageMosaicWalker(configuration);
+//		final CatalogBuilder catalogBuilder = new CatalogBuilder(configuration);
+		
 		// this is going to help us with catching exceptions and logging them
 		final Queue<Throwable> exceptions = new LinkedList<Throwable>();
 		try {
 
-			final CatalogBuilder.ProcessingEventListener listener = new CatalogBuilder.ProcessingEventListener() {
+			final ImageMosaicWalker.ProcessingEventListener listener = new ImageMosaicWalker.ProcessingEventListener() {
 
 				@Override
 				public void exceptionOccurred(ExceptionEvent event) {
@@ -1014,7 +1016,7 @@ public class Utils {
                                 for (File propFile : properties)
                                         if (Utils.checkFileReadable(propFile)) {
                                                 // load it
-                                                if (null != Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile),"location")) {
+                                                if (null != Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile),Utils.DEFAULT_LOCATION_ATTRIBUTE)) {
                                                         found = true;
                                                         break;
                                                 }
@@ -1456,5 +1458,26 @@ public class Utils {
         }
         return false;
     }
+
+    /**
+     * Check whether 2 resolution levels sets are homogeneous (within a tolerance)
+     * @param numberOfLevels
+     * @param resolutionLevels
+     * @param compareLevels
+     * @return
+     */
+    public static boolean homogeneousCheck(final int numberOfLevels, double[][] resolutionLevels,
+            double[][] compareLevels) {
+        for (int k = 0; k < numberOfLevels; k++) {
+            if (Math.abs(resolutionLevels[k][0] - compareLevels[k][0]) > RESOLUTION_TOLERANCE_FACTOR
+                    * compareLevels[k][0]
+                    || Math.abs(resolutionLevels[k][1] - compareLevels[k][1]) > RESOLUTION_TOLERANCE_FACTOR
+                            * compareLevels[k][1]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
 }

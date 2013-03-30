@@ -26,7 +26,7 @@ public class RasterLayerRequestTest {
         // build the objects we need to get to build a raster layer request
         final ImageMosaicReader reader = (ImageMosaicReader) new ImageMosaicFormat().getReader(
                 testMosaic, null);
-        final RasterManager manager = new RasterManager(reader, null);
+        final RasterManager manager = reader.getRasterManager(reader.getGridCoverageNames()[0]);
 
         GeneralEnvelope oe = reader.getOriginalEnvelope();
         System.out.println(oe);

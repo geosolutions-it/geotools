@@ -71,6 +71,7 @@ import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.gce.image.WorldImageFormat;
+import org.geotools.gce.imagemosaic.CatalogManager;
 import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
 import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.Utils.Prop;
@@ -107,7 +108,6 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 @SuppressWarnings("rawtypes")
 public class CatalogBuilder implements Runnable {
 
-    final private static double RESOLUTION_TOLERANCE_FACTOR = 1E-2;
 
 	/** Default Logger * */
 	final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(CatalogBuilder.class);
@@ -312,7 +312,6 @@ public class CatalogBuilder implements Runnable {
 			}
 			validFileName=FilenameUtils.getName(validFileName);
 			fireEvent(Level.INFO,"Now indexing file "+validFileName, ((fileIndex * 100.0) / numFiles));
-			ImageInputStream inStream=null;
 			AbstractGridCoverage2DReader coverageReader=null;
 			try {
 				// STEP 1
@@ -431,7 +430,7 @@ public class CatalogBuilder implements Runnable {
 					    catalog.removeGranules(query);
 					}
 					
-				} else {
+				} else { //NEED TO CHECK WHETHER WE ARE DEALING WITH A DIFFERENT COVERAGE NAME
 				    CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration.getCatalogConfigurationBean();
 				    if (!catalogConfigurationBean.isHeterogeneous()){
 				        // //
@@ -460,7 +459,7 @@ public class CatalogBuilder implements Runnable {
 //                                            resolutionLevels = new double[2][numberOfLevels];
 //                                            final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, mosaicLevels);
                                             resolutionLevels = coverageReader.getResolutionLevels();
-                                            final boolean homogeneousLevels = homogeneousCheck(numberOfLevels, resolutionLevels, mosaicLevels);
+                                            final boolean homogeneousLevels = Utils.homogeneousCheck(numberOfLevels, resolutionLevels, mosaicLevels);
                                             if (!homogeneousLevels){
                                                 catalogConfigurationBean.setHeterogeneous(true);
                                             }
@@ -536,15 +535,6 @@ public class CatalogBuilder implements Runnable {
 				// release resources
 				//
 				// ////////////////////////////////////////////////////////
-				try {
-					if(inStream!=null)
-						inStream.close();
-				} catch (Throwable e) {
-					// ignore exception
-					if(LOGGER.isLoggable(Level.FINEST))
-						LOGGER.log(Level.FINEST,e.getLocalizedMessage(),e);
-				}
-				
 				try {
 					if(coverageReader!=null)
 						// release resources
@@ -1516,16 +1506,6 @@ public class CatalogBuilder implements Runnable {
 		reset();
 	}
 	
-    private static boolean homogeneousCheck(final int numberOfLevels, double[][] resolutionLevels, double[][] compareLevels) {
-        for (int k = 0; k < numberOfLevels; k++) {
-            if (Math.abs(resolutionLevels[k][0] - compareLevels[k][0]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[k][0] ||
-                Math.abs(resolutionLevels[k][1] - compareLevels[k][1]) > RESOLUTION_TOLERANCE_FACTOR * compareLevels[k][1]){
-                return false;
-            }
-        }
-        return true;
-    }
-
 //    public MosaicConfigurationBean getMosaicConfiguration() {
 //        return new MosaicConfigurationBean(mosaicConfiguration);
 //    }

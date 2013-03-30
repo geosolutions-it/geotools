@@ -44,8 +44,8 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.DecimationPolicy;
 import org.geotools.coverage.grid.io.GranuleSource;
+import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.OverviewPolicy;
-import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
@@ -56,6 +56,7 @@ import org.geotools.feature.visitor.MinVisitor;
 import org.geotools.feature.visitor.UniqueVisitor;
 import org.geotools.filter.SortByImpl;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogSource;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogStore;
@@ -64,6 +65,7 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.parameter.DefaultParameterDescriptor;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.resources.image.ImageUtilities;
 import org.geotools.util.Range;
@@ -93,7 +95,7 @@ import org.opengis.referencing.operation.TransformException;
  *
  */
 @SuppressWarnings({"rawtypes","unchecked"})
-class RasterManager {
+public class RasterManager {
 
     /**
      * This class is responsible for putting together all the 2D spatial information needed for a certain raster.
@@ -787,6 +789,10 @@ class RasterManager {
     ImageMosaicReader parentReader;
 
     GranuleCatalog granuleCatalog;
+    
+    GranuleStore granuleStore;
+    
+    GranuleSource granuleSource;
 
     String typeName;
     
@@ -819,52 +825,78 @@ class RasterManager {
             // resolution values
 
             // instantiating controller for subsampling and overviews
-            overviewsController = new OverviewsController(parentReader.getHighestRes(),
-                    parentReader.getNumberOfOvervies(), parentReader.getOverviewsResolution());
-        try {
-			spatialDomainManager= new SpatialDomainManager(
-			        parentReader.getOriginalEnvelope(),
-					(GridEnvelope2D)parentReader.getOriginalGridRange(),
-					parentReader.getCoordinateReferenceSystem(),
-					parentReader.getOriginalGridToWorld(PixelInCell.CELL_CENTER),
-					overviewsController);
-		} catch (TransformException e) {
-			throw new DataSourceException(e);
-		} catch (FactoryException e) {
-			throw new DataSourceException(e);
-		}
+            //TODO: DR rasterManager don't need to ask info from the reader. It should only deal with the config.
+            // is the reader which ask info from the rasterManager
+            
+//            overviewsController = new OverviewsController(parentReader.getHighestRes(),
+//                    parentReader.getNumberOfOvervies(), parentReader.getOverviewsResolution());
+//        try {
+//			spatialDomainManager= new SpatialDomainManager(
+//			        parentReader.getOriginalEnvelope(),
+//					(GridEnvelope2D)parentReader.getOriginalGridRange(),
+//					parentReader.getCoordinateReferenceSystem(),
+//					parentReader.getOriginalGridToWorld(PixelInCell.CELL_CENTER),
+//					overviewsController);
+//		} catch (TransformException e) {
+//			throw new DataSourceException(e);
+//		} catch (FactoryException e) {
+//			throw new DataSourceException(e);
+//		}
         extractOverviewPolicy();
         extractDecimationPolicy();
         
         // load defaultSM and defaultCM by using the sample_image if it was provided
         loadSampleImage();   
         
-        if(configuration != null){
-            typeName = configuration.getCatalogConfigurationBean().getTypeName();
+        if (configuration != null) {
+            CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
+            typeName = catalogBean != null ? catalogBean.getTypeName() : null;
             if (typeName != null) {
                 final SimpleFeatureType schema = granuleCatalog.getType(typeName);
                 if (configuration.getAdditionalDomainAttributes() != null) {
-                    domainsManager = new DomainManager(configuration.getAdditionalDomainAttributes(), schema);
+                    domainsManager = new DomainManager(
+                            configuration.getAdditionalDomainAttributes(), schema);
                 }
-                
+
                 // time attribute
-                if(configuration.getTimeAttribute()!=null){
-                    final HashMap<String, String> init=new HashMap<String, String>();
+                if (configuration.getTimeAttribute() != null) {
+                    final HashMap<String, String> init = new HashMap<String, String>();
                     init.put(DomainDescriptor.TIME_DOMAIN, configuration.getTimeAttribute());
-                    timeDomainManager= new DomainManager(init,schema);
+                    timeDomainManager = new DomainManager(init, schema);
                 }
                 // elevation attribute
-                if(configuration.getElevationAttribute()!=null){
-                    final HashMap<String, String> init=new HashMap<String, String>();
-                    init.put(DomainDescriptor.ELEVATION_DOMAIN, configuration.getElevationAttribute());
-                    elevationDomainManager= new DomainManager(init,schema);
-                } 
-                if (defaultSM == null) {
-                    defaultSM = configuration.getSampleModel();
+                if (configuration.getElevationAttribute() != null) {
+                    final HashMap<String, String> init = new HashMap<String, String>();
+                    init.put(DomainDescriptor.ELEVATION_DOMAIN,
+                            configuration.getElevationAttribute());
+                    elevationDomainManager = new DomainManager(init, schema);
                 }
             }
+            if (defaultSM == null) {
+                defaultSM = configuration.getSampleModel();
+            }
+
+            if (defaultCM == null) {
+                defaultCM = configuration.getColorModel();
+            }
+            
+            final double[][] levels = configuration.getLevels();
+            final double[] highRes = levels[0];
+            final int numOverviews = configuration.getLevelsNum() - 1;
+            double[][] overviews = null;
+            if (numOverviews > 0) {
+                overviews = new double[numOverviews][2];
+                for (int i = 0; i < numOverviews; i++) {
+                    overviews[i][0] = levels[i+1][0];
+                    overviews[i][1] = levels[i+1][1];
+                }
+            }
+            overviewsController = new OverviewsController(highRes,
+                  numOverviews, overviews);
+            
+            //TODO: DR Parse more stuff from the configuration
         }
-      }
+    }
 
  	/**
 	 * This code tries to load the sample image from which we can extract SM and CM to use when answering to requests
@@ -1106,14 +1138,48 @@ class RasterManager {
         }
 
 
-        public GranuleCatalog getGranuleCatalog() {
-            return granuleCatalog;
-        }
-        
-        public GranuleSource getGranuleSource(final boolean readOnly) {
-            return readOnly ? new GranuleCatalogSource(granuleCatalog, typeName) : new GranuleCatalogStore(granuleCatalog, typeName);
-        }
+    public GranuleCatalog getGranuleCatalog() {
+        return granuleCatalog;
+    }
     
+    public void createStore (String coverageName, SimpleFeatureType indexSchema) throws IOException {
+        String typeName = indexSchema.getTypeName();
+        final SimpleFeatureType type = typeName != null ? granuleCatalog.getType(typeName) : null;
+        if (type == null) {
+            granuleCatalog.createType(indexSchema);
+            this.typeName = typeName;
+        } else {
+            // remove them all, assuming the schema has not changed
+            final Query query = new Query(type.getTypeName());
+            query.setFilter(Filter.INCLUDE);
+            granuleCatalog.removeGranules(query);
+        }
+    }
+    
+    public GranuleSource getGranuleSource(final boolean readOnly) {
+        synchronized (this) {
+            if (readOnly) {
+                if (granuleSource == null) {
+                    granuleSource = new GranuleCatalogSource(granuleCatalog, typeName);
+                }
+                return granuleSource;
+            } else {
+                if (granuleStore == null) {
+                    granuleStore = new GranuleCatalogStore(granuleCatalog, typeName);
+                }
+                return granuleStore;
+            }
+        }
+    }
+
+    public MosaicConfigurationBean getConfiguration() {
+            return configuration;
+        }
+
+        public void setConfiguration(MosaicConfigurationBean configuration) {
+            this.configuration = configuration;
+        }
+
     public void dispose() {
         synchronized (this) {
             try {
@@ -1125,4 +1191,46 @@ class RasterManager {
             }                
         }
     }
+
+    void initialize() throws IOException {
+        final BoundingBox bounds = granuleCatalog.getBounds(typeName);
+
+        if (bounds.isEmpty()) {
+            throw new IllegalArgumentException("Cannot create a mosaic out of an empty index");
+        }
+
+        // we might have an imposed bbox
+        CoordinateReferenceSystem crs = bounds.getCoordinateReferenceSystem();
+        GeneralEnvelope originalEnvelope = null;
+
+        // TODO: DR: Check imposed envelope
+        // if(envelope==null)
+        originalEnvelope = new GeneralEnvelope(bounds);
+        // else{
+        // this.originalEnvelope=new GeneralEnvelope(envelope);
+        // this.originalEnvelope.setCoordinateReferenceSystem(crs);
+        // }
+
+        // original gridrange (estimated). I am using the floor here in order to make sure
+        // we always stays inside the real area that we have for the granule
+        OverviewLevel highResOvLevel = overviewsController.resolutionsLevels.get(0);
+        final double highestRes[] = new double[] { highResOvLevel.resolutionX, highResOvLevel.resolutionY };
+        GridEnvelope2D originalGridRange = new GridEnvelope2D(new Rectangle(
+                (int) (originalEnvelope.getSpan(0) / highestRes[0]),
+                (int) (originalEnvelope.getSpan(1) / highestRes[1])));
+        AffineTransform2D raster2Model = new AffineTransform2D(highestRes[0], 0, 0, -highestRes[1],
+                originalEnvelope.getLowerCorner().getOrdinate(0) + 0.5 * highestRes[0],
+                originalEnvelope.getUpperCorner().getOrdinate(1) - 0.5 * highestRes[1]);
+
+        try {
+            spatialDomainManager = new SpatialDomainManager(originalEnvelope,
+                    (GridEnvelope2D) originalGridRange, crs, raster2Model, overviewsController);
+        } catch (TransformException e) {
+            throw new IOException("Exception occurred while initializing the SpatialDomainManager", e);
+        } catch (FactoryException e) {
+            throw new IOException("Exception occurred while initializing the SpatialDomainManager", e);
+        }
+
+    }
+
 }

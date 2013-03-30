@@ -16,9 +16,15 @@
  */
 package org.geotools.coverage.io.netcdf;
 
+import it.geosolutions.imageio.utilities.ImageIOUtilities;
 import it.geosolutions.imageio.utilities.SoftValueHashMap;
 
+import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BandedSampleModel;
+import java.awt.image.ColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.SampleModel;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -36,13 +42,16 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageTypeSpecifier;
+import javax.media.jai.ImageLayout;
+
 import org.geotools.coverage.grid.GeneralGridGeometry;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.InvalidGridGeometryException;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
@@ -57,6 +66,7 @@ import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.Driver.DriverCapabilities;
 import org.geotools.coverage.io.FileDriver;
 import org.geotools.coverage.io.GridCoverageResponse;
+import org.geotools.coverage.io.RasterLayout;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalogSource;
 import org.geotools.coverage.io.util.DateRangeComparator;
@@ -656,11 +666,35 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
 
     @Override
     public double[][] getResolutionLevels(String coverageName) throws IOException {
-        double[][] res = new double[2][1];
+        double[][] res = new double[1][2];
         double[] readRes = getReadingResolutions(coverageName, null, null);
         res[0][0] = readRes[0];
-        res[1][0] = readRes[1];
+        res[0][1] = readRes[1];
         return res;
+    }
+
+
+    @Override
+    public ImageLayout getImageLayout(String coverageName) throws IOException {
+        try {
+            final CoverageSource source = getGridCoverageSource(coverageName);
+            UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (UnidataSpatialDomain) source.getSpatialDomain();
+            GridEnvelope2D gridRange = spatialDomain.getGridGeometry().getGridRange2D();
+            RasterLayout rasterElement = spatialDomain.getRasterElements(false, null).iterator().next();
+            SampleModel sampleModel = new BandedSampleModel(DataBuffer.TYPE_DOUBLE, (int)gridRange.getWidth(), (int)gridRange.getHeight(), 1);
+            ColorModel colorModel = ImageIOUtilities.createColorModel(sampleModel);
+            Rectangle rect = rasterElement.toRectangle();
+            ImageLayout layout = new ImageLayout(rect.x, rect.y, rect.width, rect.height);
+            layout.setSampleModel(sampleModel);
+            layout.setColorModel(colorModel);
+            return layout;
+            
+            //TODO: DR: need to define a real ImageLayout. We may consider adding ImageLayout to RasterLayout
+            
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
     }
 
     @Override

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Collection;
 
 import org.geotools.coverage.grid.io.GranuleSource;
-import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.data.Query;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -61,7 +60,7 @@ public class GranuleCatalogSource implements GranuleSource {
     
     @Override
     public SimpleFeatureCollection getGranules(Query q) throws IOException {
-        Query updatedQuery = updateQuery(q);
+        Query updatedQuery = setupBaseQuery(q);
         // Filtering by coverageName
 //        Filter filter = q.getFilter();
 //        if (filter != null) {
@@ -80,7 +79,7 @@ public class GranuleCatalogSource implements GranuleSource {
         return collection;
     }
 
-    private Query updateQuery(Query q) {
+    private Query setupBaseQuery(Query q) {
         if (q == null) {
             q = new Query(typeName);
         } else  {
@@ -91,7 +90,7 @@ public class GranuleCatalogSource implements GranuleSource {
 
     @Override
     public int getCount(Query q) throws IOException {
-        q = updateQuery(q);
+        q = setupBaseQuery(q);
         //TODO Optimize this call
         Collection<GranuleDescriptor> granules = catalog.getGranules(q);
         return granules.size();

@@ -259,9 +259,9 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
             }
         	
             final SimpleFeatureSource featureSource = tileIndexStore.getFeatureSource(typeName);
-            if (featureSource != null)
-                bounds = featureSource.getBounds();
-            else
+            if (featureSource != null) {
+//                bounds = featureSource.getBounds();
+            } else
                 throw new IOException(
                         "BBOXFilterExtractor::extractBasicProperties(): unable to get a featureSource for the qualified name"
                                 + typeName);
@@ -688,7 +688,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			lock.lock();
 			checkStore();
 //			if(typeName==null){
-			if (typeNamess.isEmpty()) {
+			if (typeNamess.isEmpty() || !typeNamess.contains(typeName)) {
 			    return null;
 			}
 			return tileIndexStore.getSchema(typeName);

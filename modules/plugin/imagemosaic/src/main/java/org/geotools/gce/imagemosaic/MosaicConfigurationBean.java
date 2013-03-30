@@ -16,6 +16,7 @@
  */
 package org.geotools.gce.imagemosaic;
 
+import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.SampleModel;
 import java.lang.reflect.InvocationTargetException;
@@ -25,6 +26,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.Utilities;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Very simple bean to hold the configuration of the mosaic.
@@ -79,11 +81,17 @@ public class MosaicConfigurationBean {
         /** additional domain attributes names. <code>null</code> if absent.*/
         private String additionalDomainAttributes;
 
+        private CoordinateReferenceSystem crs;
+        
 		/** 
          * mosaic's dummy sample model useful to store dataType and number of bands. All the other fields
          * shouldn't be queried since they are meaningless for the whole mosaic (width, height, ...)
          */
         private SampleModel sampleModel;
+        
+        private ColorModel colorModel;
+        
+        private byte [][] palette;
 	
 	/** Imposed envelope for this mosaic. If not present we need to compute from catalogue.*/
 	private ReferencedEnvelope envelope;
@@ -106,7 +114,23 @@ public class MosaicConfigurationBean {
         this.sampleModel = sampleModel;
     }
 
-	public String getElevationAttribute() {
+	public ColorModel getColorModel() {
+        return colorModel;
+    }
+
+    public void setColorModel(ColorModel colorModel) {
+        this.colorModel = colorModel;
+    }
+
+    public byte[][] getPalette() {
+        return palette;
+    }
+
+    public void setPalette(byte[][] palette) {
+        this.palette = palette;
+    }
+
+    public String getElevationAttribute() {
 		return elevationAttribute;
 	}
 	public void setElevationAttribute(final String elevationAttribute) {
@@ -155,6 +179,14 @@ public class MosaicConfigurationBean {
 	public void setLevels(final double[][] levels) {
 		this.levels = levels.clone();
 	}
+
+    public CoordinateReferenceSystem getCrs() {
+        return crs;
+    }
+
+    public void setCrs(CoordinateReferenceSystem crs) {
+        this.crs = crs;
+    }
 
     public void setFootprintManagement(final boolean footprintManagement) {
             this.footprintManagement = footprintManagement;

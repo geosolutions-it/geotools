@@ -294,6 +294,13 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
             //
             // if it is a URL or a String let's try to see if we can get a file to
             // check if we have to build the index
+            ImageMosaicReader reader = getReader(source, hints);
+            if (reader != null) {
+                // TODO: DR: Is inefficient
+                reader.dispose();
+                return true;
+            }
+            
             URL sourceURL = Utils.checkSource(source, hints);
             if(sourceURL == null){
             	return false;
