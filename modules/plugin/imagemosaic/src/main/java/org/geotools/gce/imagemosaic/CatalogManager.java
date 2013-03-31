@@ -141,7 +141,7 @@ public class CatalogManager {
     }
     
     /**
-     * Create a {@link SimpleFeatureType} from the specified schema String.
+     * Create a {@link SimpleFeatureType} from the specified configuration.
      * @param configurationBean
      * @param actualCRS
      * @return
@@ -182,9 +182,11 @@ public class CatalogManager {
     
     /**
      * Add splitted attributes to the featureBuilder
+     *
      * @param attribute
      * @param featureBuilder
      * @param classType
+     * TODO: Remove that once reworking on the dimension stuff
      */
     private static void addAttributes(String attribute, SimpleFeatureTypeBuilder featureBuilder,
             Class classType) {
@@ -206,54 +208,88 @@ public class CatalogManager {
 
     }
 
+    /**
+     * Get a {@link GranuleSource} related to a specific coverageName from an inputReader
+     * and put the related granules into a {@link GranuleStore} related to the same coverageName
+     * of the mosaicReader.
+     * 
+     * @param coverageName the name of the coverage to be managed
+     * @param fileBeingProcessed the reference input file
+     * @param inputReader the reader source of granules
+     * @param mosaicReader the reader where to store source granules
+     * @param configuration the configuration
+     * @param envelope
+     * @param transaction
+     * @param propertiesCollectors
+     * @throws IOException
+     */
     static void updateCatalog(
             final String coverageName,
             final File fileBeingProcessed,
             final AbstractGridCoverage2DReader inputReader,
             final ImageMosaicReader mosaicReader,
-            final CatalogBuilderConfiguration runConfiguration, 
+            final CatalogBuilderConfiguration configuration, 
             final GeneralEnvelope envelope,
             final DefaultTransaction transaction, 
             final List<PropertiesCollector> propertiesCollectors) throws IOException {
         
-        GranuleStore store = (GranuleStore) mosaicReader.getGranules(coverageName, false);
+        // Retrieving the store and the destination schema
+        final GranuleStore store = (GranuleStore) mosaicReader.getGranules(coverageName, false);
+        if (store == null) {
+            throw new IllegalArgumentException("No valid granule store has been found for: " + coverageName);
+        }
         final SimpleFeatureType indexSchema = store.getSchema();
+        final SimpleFeature feature = DataUtilities.template(indexSchema);
         store.setTransaction(transaction);
+        
+        final ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
+        final String fileLocation = prepareLocation(configuration, fileBeingProcessed);
+
+        // getting input granules
         if (inputReader instanceof StructuredGridCoverage2DReader) {
-            GranuleSource source = ((StructuredGridCoverage2DReader) inputReader).getGranules(coverageName, true);
-            SimpleFeatureCollection originCollection = source.getGranules(null);
-            final DefaultProgressListener listener= new DefaultProgressListener();
-            final ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
-            final SimpleFeature sampleFeature = DataUtilities.template(indexSchema);
-            final String location = prepareLocation(runConfiguration, fileBeingProcessed);
-            Collection<Property> destProps = sampleFeature.getProperties();
+            
+            //
+            // Case A: input reader is a StructuredGridCoverage2DReader. We can get granules from a source 
+            // 
+            // Getting granule source and its input granules
+            final GranuleSource source = ((StructuredGridCoverage2DReader) inputReader).getGranules(coverageName, true);
+            final SimpleFeatureCollection originCollection = source.getGranules(null);
+            final DefaultProgressListener listener = new DefaultProgressListener();
+            
+            // Getting attributes structure to be filled
+            final Collection<Property> destProps = feature.getProperties();
             final Set<Name> destAttributes = new HashSet<Name>();
             for (Property prop: destProps) {
                 destAttributes.add(prop.getName());
             }
+            
+            // Collecting granules
             originCollection.accepts( new AbstractFeatureVisitor(){
                 public void visit( Feature feature ) {
                     if(feature instanceof SimpleFeature)
                     {
                             // get the feature
-                            final SimpleFeature sf = (SimpleFeature) feature;
+                            final SimpleFeature sourceFeature = (SimpleFeature) feature;
                             final SimpleFeature destFeature = DataUtilities.template(indexSchema);
-                            Collection<Property> props = sf.getProperties();
+                            Collection<Property> props = sourceFeature.getProperties();
+                            Name propName = null;
+                            Object propValue = null;
                             
+                            // Assigning value to dest feature for matching attributes 
                             for (Property prop: props) {
-                                Name name = prop.getName();
-                                Object value = prop.getValue();
+                                propName = prop.getName();
+                                propValue = prop.getValue();
                                 
-                                // TODO DR: Improve that search
-                                if (destAttributes.contains(name)) {
-                                    destFeature.setAttribute(name, value);
+                                if (destAttributes.contains(propName)) {
+                                    destFeature.setAttribute(propName, propValue);
                                 }
                             }
                             
                             //TODO DR: Need to put here the NetCDF Properties collector
                             
                             destFeature.setAttribute("runtime", fileBeingProcessed.lastModified());
-                            destFeature.setAttribute(runConfiguration.getLocationAttribute(), location);
+                            destFeature.setAttribute(configuration.getLocationAttribute(), fileLocation);
+                            updateAttributesFromCollectors(destFeature, fileBeingProcessed, inputReader, propertiesCollectors);
                             collection.add(destFeature);
                             
                             // check if something bad occurred
@@ -267,34 +303,42 @@ public class CatalogManager {
                 }            
             }, listener);
             
-            //TODO: need to add RUNTIME
-            store.addGranules(collection);
-            
         } else {
             
-            
-            //Old Be
-            final SimpleFeature feature = DataUtilities.template(indexSchema);
+            //
+            // Case B: old style reader, proceed with classic way, using properties collectors 
+            // 
             feature.setAttribute(indexSchema.getGeometryDescriptor().getLocalName(),
                     GEOM_FACTORY.toGeometry(new ReferencedEnvelope((Envelope) envelope)));
-            feature.setAttribute(runConfiguration.getLocationAttribute(),
-                    prepareLocation(runConfiguration, fileBeingProcessed));
-
-            // collect and dump properties
-            if (propertiesCollectors != null && propertiesCollectors.size() > 0)
-                for (PropertiesCollector pc : propertiesCollectors) {
-                    pc.collect(fileBeingProcessed).collect(inputReader)
-                            .setProperties(feature);
-                    pc.reset();
-                }
-            ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
+            feature.setAttribute(configuration.getLocationAttribute(), fileLocation);
+            
+            updateAttributesFromCollectors(feature, fileBeingProcessed, inputReader, propertiesCollectors);
             collection.add(feature);
-            store.addGranules(collection);
         }
-        
-       
+        store.addGranules(collection);
     }
 
+    /**
+     * Update feature attributes through properties collector
+     * @param feature
+     * @param fileBeingProcessed
+     * @param inputReader
+     * @param propertiesCollectors
+     */
+    private static void updateAttributesFromCollectors(
+            final SimpleFeature feature,
+            final File fileBeingProcessed, 
+            final AbstractGridCoverage2DReader inputReader,
+            final List<PropertiesCollector> propertiesCollectors) {
+        // collect and dump properties
+        if (propertiesCollectors != null && propertiesCollectors.size() > 0)
+            for (PropertiesCollector pc : propertiesCollectors) {
+                pc.collect(fileBeingProcessed).collect(inputReader)
+                        .setProperties(feature);
+                pc.reset();
+            }
+        
+    }
 
     /**
      * Prepare the location on top of the configuration and file to be processed.

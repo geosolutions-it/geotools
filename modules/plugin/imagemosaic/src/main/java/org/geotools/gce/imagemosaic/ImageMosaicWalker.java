@@ -1342,9 +1342,14 @@ public class ImageMosaicWalker implements Runnable {
                     fireEvent(Level.INFO, "Creating final properties file ", 99.9);
                     createPropertiesFiles(mosaicConfiguration);
                 }
-//                final String base = FilenameUtils.getName(parent.getAbsolutePath());
-//                final File mosaicFile = new File(indexerProperties.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
-//                FileUtils.copyFile(indexerProperties, mosaicFile);
+                if (keys.size() > 1) {
+                    
+                    final String source = 
+                            runConfiguration.getRootMosaicDirectory() + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
+                    final String base = FilenameUtils.getName(parent.getAbsolutePath());
+                    final File mosaicFile = new File(indexerProperties.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
+                    FileUtils.copyFile(new File(source) , mosaicFile);
+                }
 
                 // processing information
                 fireEvent(Level.FINE, "Done!!!", 100);
