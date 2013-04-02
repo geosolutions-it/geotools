@@ -1172,7 +1172,9 @@ public class ImageMosaicReaderTest extends Assert{
 		AbstractGridCoverage2DReader reader=null;
 		try {
 		    LOGGER.info("Testing Invalid location attribute. (A DataSourceException should be catched) ");
-			reader=(AbstractGridCoverage2DReader) ((AbstractGridFormat) GridFormatFinder.findFormat(rgbURL,hints))
+//			reader=(AbstractGridCoverage2DReader) new ImageMosaicReader(rgbURL, new Hints(Hints.MOSAIC_LOCATION_ATTRIBUTE, "aaaa")); 
+			        
+			reader =         ((AbstractGridFormat) GridFormatFinder.findFormat(rgbURL,hints))
 					.getReader(rgbURL, new Hints(Hints.MOSAIC_LOCATION_ATTRIBUTE, "aaaa"));
 			Assert.assertNull(reader);
 		} catch (Throwable e) {
@@ -1321,7 +1323,7 @@ public class ImageMosaicReaderTest extends Assert{
 						+ oldEnvelope.getSpan(1) / 2 }, new double[] {
 				oldEnvelope.getUpperCorner().getOrdinate(0),
 				oldEnvelope.getUpperCorner().getOrdinate(1) });
-		cropEnvelope.setCoordinateReferenceSystem(reader.getCrs());
+		cropEnvelope.setCoordinateReferenceSystem(reader.getCoordinateReferenceSystem());
 		gg.setValue(new GridGeometry2D(PixelInCell.CELL_CENTER,reader.getOriginalGridToWorld(PixelInCell.CELL_CENTER),cropEnvelope,null));
 		final ParameterValue<Color> outTransp =  ImageMosaicFormat.OUTPUT_TRANSPARENT_COLOR.createValue();
 		outTransp.setValue(Color.black);
@@ -1342,7 +1344,7 @@ public class ImageMosaicReaderTest extends Assert{
 
         // ask to extract an area that is inside the coverage bbox, but in a hole (no data)
         final ParameterValue<GridGeometry2D> ggp =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
-        Envelope2D env = new Envelope2D(reader.getCrs(), 500000, 3200000, 1000, 1000);
+        Envelope2D env = new Envelope2D(reader.getCoordinateReferenceSystem(), 500000, 3200000, 1000, 1000);
         GridGeometry2D gg = new GridGeometry2D(new GridEnvelope2D(0, 0, 100, 100), (Envelope) env);
         ggp.setValue(gg);
 
@@ -1377,7 +1379,7 @@ public class ImageMosaicReaderTest extends Assert{
         // ask to extract an area that is inside the coverage bbox, so that the area is partly
         // inside the raster, and partly outside
         final ParameterValue<GridGeometry2D> ggp =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
-        Envelope2D env = new Envelope2D(reader.getCrs(), 64887, 2499342, 646897 - 64887 , 3155705 - 2499342);
+        Envelope2D env = new Envelope2D(reader.getCoordinateReferenceSystem(), 64887, 2499342, 646897 - 64887 , 3155705 - 2499342);
         GridGeometry2D gg = new GridGeometry2D(new GridEnvelope2D(0, 0, 100, 100), (Envelope) env);
         ggp.setValue(gg);
 

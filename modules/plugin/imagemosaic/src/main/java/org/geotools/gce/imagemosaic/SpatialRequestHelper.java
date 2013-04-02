@@ -203,7 +203,10 @@ public class SpatialRequestHelper {
             //
             // In case we have nothing to look at we should get the whole coverage
             //
-            requestedBBox = coverageProperties.bbox;
+            requestedBBox = new ReferencedEnvelope(coverageProperties.crs2D);
+            
+            ((ReferencedEnvelope) requestedBBox).setBounds(coverageProperties.bbox);
+//            referencedEnvelope.
             cropBBox = coverageProperties.bbox;
             requestedRasterArea = (Rectangle) coverageProperties.rasterArea.clone();
             destinationRasterArea = (Rectangle) coverageProperties.rasterArea.clone();

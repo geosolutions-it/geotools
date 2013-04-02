@@ -44,6 +44,7 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.test.TestData;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
@@ -119,6 +120,7 @@ public class CatalogBuilderTest extends Assert {
 	}
 	
     @Test
+    @Ignore
     public void buildCatalog() throws FileNotFoundException, IOException{
         if (hostnameDefined){
             CatalogBuilder builder = null;
@@ -253,6 +255,7 @@ public class CatalogBuilderTest extends Assert {
 	
 	
 	@Test
+	@Ignore
 	public void buildCachingIndex() throws FileNotFoundException, IOException {
 	    if (hostnameDefined){
 		CatalogBuilder builder = null;

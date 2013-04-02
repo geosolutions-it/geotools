@@ -315,218 +315,180 @@ public class ImageMosaicWalker implements Runnable {
                 coverageReader = (AbstractGridCoverage2DReader) format.getReader(
                         fileBeingProcessed, runConfiguration.getHints());
                 
+                // Getting available coverageNames
                 String [] coverageNames = coverageReader.getGridCoverageNames();
                 for (String cvName : coverageNames) {
-                GeneralEnvelope envelope = (GeneralEnvelope) coverageReader.getOriginalEnvelope(cvName);
-                CoordinateReferenceSystem actualCRS = coverageReader.getCoordinateReferenceSystem(cvName);
-                
-                // TODO IMPROVE THE COVERAGE NAME ASSIGNMENT. LOOP OVER THAT
-                String inputCoverageName = cvName;
-                String coverageName = coverageReader instanceof StructuredGridCoverage2DReader ? inputCoverageName : runConfiguration.getIndexName();
-                
-                final boolean coverageExists = coverageExists(coverageName);
-                MosaicConfigurationBean mosaicConfiguration = null;
-                MosaicConfigurationBean currentConfigurationBean = null;
-                RasterManager rasterManager = null;
-                if (coverageExists) {
-                    rasterManager = parentReader.getRasterManager(coverageName);
-                    mosaicConfiguration = rasterManager.getConfiguration();
-                } else {
-                    
-                }
-                MosaicBeanBuilder builder = new MosaicBeanBuilder();
-                
-                SampleModel sm = null;
-                ColorModel cm = null;
-                int numberOfLevels = 1;
-                double[][] resolutionLevels = null;
+                    GeneralEnvelope envelope = (GeneralEnvelope) coverageReader
+                            .getOriginalEnvelope(cvName);
+                    CoordinateReferenceSystem actualCRS = coverageReader
+                            .getCoordinateReferenceSystem(cvName);
 
-                if (/*numberOfProcessedFiles == 0*/ mosaicConfiguration == null) {
-                    //
-                    // STEP 2
-                    // Get the type specifier for this image and the check that the
-                    // image has the correct sample model and color model.
-                    // If this is the first cycle of the loop we initialize everything.
-                    //
-                    ImageLayout layout = coverageReader.getImageLayout(inputCoverageName);
-                    cm = layout.getColorModel(null);
-                    sm = layout.getSampleModel(null);
-                    numberOfLevels = coverageReader.getNumOverviews(inputCoverageName) + 1;
-                    resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
+                    String inputCoverageName = cvName;
+                    String coverageName = coverageReader instanceof StructuredGridCoverage2DReader ? inputCoverageName
+                            : runConfiguration.getIndexName();
 
-                    //
-                    // at the first step we initialize everything that we will
-                    // reuse afterwards starting with color models, sample
-                    // models, crs, etc....
-                    //
-                    
-//                    defaultCM = cm;
-//                    defaultSM = sm;
-                    
-                    builder.setSampleModel(sm);
-                    builder.setColorModel(cm);
-                    ColorModel defaultCM = cm; 
-                    
-                    
-                    if (defaultCM instanceof IndexColorModel) {
-                        IndexColorModel icm = (IndexColorModel) defaultCM;
-                        int numBands = defaultCM.getNumColorComponents();
-                        byte[][] defaultPalette = new byte[3][icm.getMapSize()];
-                        icm.getReds(defaultPalette[0]);
-                        icm.getGreens(defaultPalette[0]);
-                        icm.getBlues(defaultPalette[0]);
-                        if (numBands == 4) {
-                            icm.getAlphas(defaultPalette[0]);
-                        }
-                        builder.setPalette(defaultPalette);
+                    final boolean coverageExists = coverageExists(coverageName);
+                    MosaicConfigurationBean mosaicConfiguration = null;
+                    MosaicConfigurationBean currentConfigurationBean = null;
+                    RasterManager rasterManager = null;
+                    if (coverageExists) {
+                        rasterManager = parentReader.getRasterManager(coverageName);
+                        mosaicConfiguration = rasterManager.getConfiguration();
+                    } else {
 
                     }
-                    
-//                    defaultCRS = actualCRS;
-                    builder.setCrs(actualCRS);
-                    builder.setLevels(resolutionLevels);
-                    builder.setLevelsNum(numberOfLevels);
-                    builder.setName(coverageName);
-                    builder.setTimeAttribute(runConfiguration.getTimeAttribute());
-                    builder.setElevationAttribute(runConfiguration.getElevationAttribute());
-                    builder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
-                    
-//                    mosaicConfiguration.setLevelsNum(numberOfLevels);
-//                    mosaicConfiguration.setLevels(resolutionLevels);
+                    MosaicBeanBuilder configBuilder = new MosaicBeanBuilder();
 
-                    final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
-                    catalogConfigurationBean.setCaching(runConfiguration.isCaching());
-                    catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
-                    catalogConfigurationBean.setLocationAttribute(runConfiguration.getLocationAttribute());
-                    builder.setCatalogConfigurationBean(catalogConfigurationBean);
-                    
-                    
-                    currentConfigurationBean = builder.getMosaicConfigurationBean();
-                    
-                    //
-                    // creating the schema
-                    //
-                    indexSchema = CatalogManager.createSchema(runConfiguration, currentConfigurationBean.getName(), actualCRS);
-                    
-                    // Creating a rasterManager
-                    rasterManager = parentReader.createRasterManager(currentConfigurationBean);
-                    
-                    // Creating a granuleStore
-                    parentReader.createCoverage(coverageName, indexSchema);
-                    
-                    configurations.put(currentConfigurationBean.getName(), currentConfigurationBean);
-                    
-                    
-                    
-                    
-                    //DR This has been moved into createCoverage from the structured reader 
+                    SampleModel sm = null;
+                    ColorModel cm = null;
+                    int numberOfLevels = 1;
+                    double[][] resolutionLevels = null;
 
-//                    // create the schema for the new shape file
-//                    String typeName = indexSchema.getTypeName();
-//                    
-//                    final SimpleFeatureType type = typeName != null ? catalog.getType(typeName)
-//                            : null;
-//                    if (type == null) {
-//                        catalog.createType(indexSchema);
-//                    } else {
-//                        // remove them all, assuming the schema has not changed
-//                        final Query query = new Query(type.getTypeName());
-//                        query.setFilter(Filter.INCLUDE);
-//                        catalog.removeGranules(query);
-//                    }
-                    
-                    
-
-                } else { // NEED TO CHECK WHETHER WE ARE DEALING WITH A DIFFERENT COVERAGE NAME
-                    CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration
-                            .getCatalogConfigurationBean();
-                    if (!catalogConfigurationBean.isHeterogeneous()) {
-                        // //
+                    if (/* numberOfProcessedFiles == 0 */mosaicConfiguration == null) {
                         //
-                        // There is no need to check resolutions if the mosaic
-                        // has been already marked as heterogeneous
+                        // STEP 2
+                        // Get the type specifier for this image and the check that the
+                        // image has the correct sample model and color model.
+                        // If this is the first cycle of the loop we initialize everything.
                         //
-                        // //
-                        // numberOfLevels = imageioReader.getNumImages(true);
+                        ImageLayout layout = coverageReader.getImageLayout(inputCoverageName);
+                        cm = layout.getColorModel(null);
+                        sm = layout.getSampleModel(null);
                         numberOfLevels = coverageReader.getNumOverviews(inputCoverageName) + 1;
-                        boolean needUpdate = false;
-                        if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
-                            catalogConfigurationBean.setHeterogeneous(true);
-                            if (numberOfLevels > mosaicConfiguration.getLevelsNum()) {
-                                // if (!isStructured) {
-                                // resolutionLevels = new double[2][numberOfLevels];
-                                // setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader, null);
-                                // } else {
-                                resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
-                                // }
-                                mosaicConfiguration.setLevels(resolutionLevels);
-                                mosaicConfiguration.setLevelsNum(numberOfLevels);
-                                needUpdate = true;
-//                                mosaicConfiguration.setLevelsNum(numberOfLevels);
-//                                mosaicConfiguration.setLevels(resolutionLevels);
+                        resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
 
+                        //
+                        // at the first step we initialize everything that we will
+                        // reuse afterwards starting with color models, sample
+                        // models, crs, etc....
+                        //
+
+                        configBuilder.setSampleModel(sm);
+                        configBuilder.setColorModel(cm);
+                        ColorModel defaultCM = cm;
+
+                        // Checking palette
+                        if (defaultCM instanceof IndexColorModel) {
+                            IndexColorModel icm = (IndexColorModel) defaultCM;
+                            int numBands = defaultCM.getNumColorComponents();
+                            byte[][] defaultPalette = new byte[3][icm.getMapSize()];
+                            icm.getReds(defaultPalette[0]);
+                            icm.getGreens(defaultPalette[0]);
+                            icm.getBlues(defaultPalette[0]);
+                            if (numBands == 4) {
+                                icm.getAlphas(defaultPalette[0]);
                             }
-                        } else {
-                            final double[][] mosaicLevels = mosaicConfiguration.getLevels();
-                            // resolutionLevels = new double[2][numberOfLevels];
-                            // final boolean homogeneousLevels = setupResolutions(resolutionLevels, numberOfLevels, coverageReader, imageioReader,
-                            // mosaicLevels);
-                            resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
-                            final boolean homogeneousLevels = Utils.homogeneousCheck(
-                                    numberOfLevels, resolutionLevels, mosaicLevels);
-                            if (!homogeneousLevels) {
+                            configBuilder.setPalette(defaultPalette);
+                        }
+
+                        // Preparing configuration
+                        configBuilder.setCrs(actualCRS);
+                        configBuilder.setLevels(resolutionLevels);
+                        configBuilder.setLevelsNum(numberOfLevels);
+                        configBuilder.setName(coverageName);
+                        configBuilder.setTimeAttribute(runConfiguration.getTimeAttribute());
+                        configBuilder.setElevationAttribute(runConfiguration.getElevationAttribute());
+                        configBuilder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
+
+                        final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
+                        catalogConfigurationBean.setCaching(runConfiguration.isCaching());
+                        catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
+                        catalogConfigurationBean.setLocationAttribute(runConfiguration.getLocationAttribute());
+                        configBuilder.setCatalogConfigurationBean(catalogConfigurationBean);
+
+                        currentConfigurationBean = configBuilder.getMosaicConfigurationBean();
+
+                        // creating the schema
+                        indexSchema = CatalogManager.createSchema(runConfiguration, currentConfigurationBean.getName(), actualCRS);
+
+                        // Creating a rasterManager which will be initialized after populating the catalog
+                        rasterManager = parentReader.addRasterManager(currentConfigurationBean, false);
+
+                        // Creating a granuleStore
+                        parentReader.createCoverage(coverageName, indexSchema);
+                        configurations.put(currentConfigurationBean.getName(), currentConfigurationBean);
+
+                    } else {
+                        CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration
+                                .getCatalogConfigurationBean();
+                        if (!catalogConfigurationBean.isHeterogeneous()) {
+                            // //
+                            //
+                            // There is no need to check resolutions if the mosaic
+                            // has been already marked as heterogeneous
+                            //
+                            // //
+                            // numberOfLevels = imageioReader.getNumImages(true);
+                            numberOfLevels = coverageReader.getNumOverviews(inputCoverageName) + 1;
+                            boolean needUpdate = false;
+                            if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
                                 catalogConfigurationBean.setHeterogeneous(true);
-                                needUpdate = true;
+                                if (numberOfLevels > mosaicConfiguration.getLevelsNum()) {
+                                    resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
+                                    mosaicConfiguration.setLevels(resolutionLevels);
+                                    mosaicConfiguration.setLevelsNum(numberOfLevels);
+                                    needUpdate = true;
+                                }
+                            } else {
+                                final double[][] mosaicLevels = mosaicConfiguration.getLevels();
+                                resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
+                                final boolean homogeneousLevels = Utils.homogeneousCheck(numberOfLevels, resolutionLevels, mosaicLevels);
+                                if (!homogeneousLevels) {
+                                    catalogConfigurationBean.setHeterogeneous(true);
+                                    needUpdate = true;
+                                }
+                            }
+                            if (needUpdate) {
+                                configurations.put(mosaicConfiguration.getName(), mosaicConfiguration);
                             }
                         }
-                        if (needUpdate) {
-                            configurations.put(mosaicConfiguration.getName(), mosaicConfiguration);
+                        ImageLayout layout = coverageReader.getImageLayout(inputCoverageName);
+                        cm = layout.getColorModel(null);
+                        sm = layout.getSampleModel(null);
+
+                        // ////////////////////////////////////////////////////////
+                        //
+                        // comparing ColorModel
+                        // comparing SampeModel
+                        // comparing CRSs
+                        // ////////////////////////////////////////////////////////
+                        ColorModel actualCM = cm;
+                        if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(
+                                mosaicConfiguration.getCrs(), actualCRS)) : false)) {
+                            // if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(defaultCRS, actualCRS)) : false)) {
+                            fireEvent(Level.INFO,
+                                    new StringBuilder("Skipping image ").append(fileBeingProcessed)
+                                            .append(" because CRSs do not match.").toString(),
+                                    (((fileIndex + 1) * 99.0) / numFiles));
+                            return;
+                        }
+
+                        if (checkColorModels(mosaicConfiguration, actualCM)) {
+                            // if (checkColorModels(defaultCM, defaultPalette, actualCM)) {
+                            fireEvent(Level.INFO,
+                                    new StringBuilder("Skipping image ").append(fileBeingProcessed)
+                                            .append(" because color models do not match.")
+                                            .toString(), (((fileIndex + 1) * 99.0) / numFiles));
+                            return;
                         }
                     }
-                    ImageLayout layout = coverageReader.getImageLayout(inputCoverageName);
-                    cm = layout.getColorModel(null);
-                    sm = layout.getSampleModel(null);
 
                     // ////////////////////////////////////////////////////////
                     //
-                    // comparing ColorModel
-                    // comparing SampeModel
-                    // comparing CRSs
+                    // STEP 4
+                    //
+                    // create and store features
+                    //
                     // ////////////////////////////////////////////////////////
-                    ColorModel actualCM = cm;
-                    if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(mosaicConfiguration.getCrs(), actualCRS)) : false)) {
-//                        if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(defaultCRS, actualCRS)) : false)) {
-                        fireEvent(Level.INFO,
-                                new StringBuilder("Skipping image ").append(fileBeingProcessed)
-                                        .append(" because CRSs do not match.").toString(),
-                                (((fileIndex + 1) * 99.0) / numFiles));
-                        return;
-                    }
+                    CatalogManager.updateCatalog(coverageName, fileBeingProcessed, coverageReader,
+                            parentReader, runConfiguration, envelope, transaction,
+                            propertiesCollectors);
+                    // fire event
+                    fireEvent(Level.FINE, "Done with file " + fileBeingProcessed,
+                            (((fileIndex + 1) * 99.0) / numFiles));
 
-                    if (checkColorModels(mosaicConfiguration, actualCM)) {
-//                        if (checkColorModels(defaultCM, defaultPalette, actualCM)) {
-                        fireEvent(Level.INFO,
-                                new StringBuilder("Skipping image ").append(fileBeingProcessed)
-                                        .append(" because color models do not match.").toString(),
-                                (((fileIndex + 1) * 99.0) / numFiles));
-                        return;
-                    }
-                }
-
-                // ////////////////////////////////////////////////////////
-                //
-                // STEP 4
-                //
-                // create and store features
-                //
-                // ////////////////////////////////////////////////////////
-                CatalogManager.updateCatalog(coverageName, fileBeingProcessed, coverageReader, parentReader, runConfiguration, envelope, transaction, propertiesCollectors);
-                // fire event
-                fireEvent(Level.FINE, "Done with file " + fileBeingProcessed,
-                        (((fileIndex + 1) * 99.0) / numFiles));
-
-                // advance files
-                numberOfProcessedFiles++;
+                    // advance files
+                    numberOfProcessedFiles++;
                 }
             } catch (IOException e) {
                 fireException(e);

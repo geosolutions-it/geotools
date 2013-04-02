@@ -1142,6 +1142,8 @@ public class Utils {
 	static final String DESCENDING_ORDER_IDENTIFIER = " D"; //SortOrder.DESCENDING.identifier();
 
 	static final String ASCENDING_ORDER_IDENTIFIER = " A"; //SortOrder.ASCENDING.identifier();
+
+    public static final String SCAN_FOR_TYPENAMES = "ScanTypeNames";
     
     /**
      * Private constructor to initialize the ehCache instance.

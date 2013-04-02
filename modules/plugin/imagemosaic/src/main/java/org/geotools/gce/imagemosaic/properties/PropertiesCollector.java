@@ -23,7 +23,7 @@ import java.util.List;
 
 import javax.imageio.ImageReader;
 
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.opengis.feature.simple.SimpleFeature;
 
 
@@ -61,7 +61,7 @@ public abstract class PropertiesCollector  {
 		return this;
 	}
 	
-	public PropertiesCollector collect(final AbstractGridCoverage2DReader  abstractGridCoverageReader){
+	public PropertiesCollector collect(final GridCoverage2DReader  gridCoverageReader){
 		return this;
 	}		
 	

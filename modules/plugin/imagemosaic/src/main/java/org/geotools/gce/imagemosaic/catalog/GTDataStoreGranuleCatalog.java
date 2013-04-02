@@ -23,6 +23,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,7 @@ import org.geotools.feature.visitor.FeatureCalc;
 import org.geotools.gce.imagemosaic.GranuleDescriptor;
 import org.geotools.gce.imagemosaic.ImageMosaicReader;
 import org.geotools.gce.imagemosaic.PathType;
+import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.DefaultProgressListener;
 import org.geotools.util.SoftValueHashMap;
@@ -106,8 +108,10 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 
 	private String geometryPropertyName;
 
-	private ReferencedEnvelope bounds;
+	private Map<String, ReferencedEnvelope> bounds = new HashMap<String, ReferencedEnvelope>();
 
+//	private ReferencedEnvelope bounds;
+	
 	private DataStoreFactorySpi spi;
 
 	private PathType pathType;
@@ -168,18 +172,21 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 				}
 			}
 
-			String typeName = null;
-			 if(params.containsKey("TypeName")){
-                             typeName=(String) params.get("TypeName");
-                         }
-			
 			// is this a new store? If so we do not set any properties
 			if(create){
-			   if (typeName != null) {
-			   
-			   }
 			    return;
 			}
+			
+			String typeName = null;
+			boolean scanForTypeNames = false;
+			
+                        // Handle multiple typeNames
+                        if(params.containsKey("TypeName")){
+                            typeName=(String) params.get("TypeName");
+                        }  
+                        if (params.containsKey(Utils.SCAN_FOR_TYPENAMES)) {
+                            scanForTypeNames = (Boolean) params.get(Utils.SCAN_FOR_TYPENAMES);
+                        }
 				
 			// if this is not a new store let's extract basic properties from it
 	        	
@@ -192,8 +199,15 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	        			this.locationAttribute=this.locationAttribute.toUpperCase();
 	        		}
 	        	}
-	        	if (typeName != null) {
-	                    addTypeName(typeName, false);
+	                if (scanForTypeNames) {
+	                    String[] typeNames = tileIndexStore.getTypeNames();
+	                    if (typeNames != null) {
+	                        for (String tn : typeNames) {
+	                            typeNamess.add(tn);
+	                        }
+	                    }
+	                } else if (typeName != null) {
+                            addTypeName(typeName, false);
 	                }
 			extractBasicProperties(typeName);
 		}
@@ -227,7 +241,12 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	}
 	
         private void extractBasicProperties(String typeName) throws IOException{
-
+            if (typeName != null && typeName.contains(",")) {
+                String [] typeNames = typeName.split(",");
+                for (String tn: typeNames) {
+                    extractBasicProperties(tn);
+                }
+            } else {
             if(typeName==null){
                 final String[] typeNames = tileIndexStore.getTypeNames();
                 if (typeNames==null||typeNames.length <= 0)
@@ -237,6 +256,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
         
                 if (typeName == null) {
                     typeName = typeNames[0];
+                    addTypeName(typeName, false);
                     if (LOGGER.isLoggable(Level.WARNING))
                         LOGGER.warning("BBOXFilterExtractor::extractBasicProperties(): passed typename is null, using: "
                                 + typeName);
@@ -277,7 +297,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
                 throw new IOException(
                         "BBOXFilterExtractor::extractBasicProperties(): unable to get a schema from the featureSource");
             }
-    
+            }
         }
 		
 	private final ReadWriteLock rwLock= new ReentrantReadWriteLock(true);
@@ -350,7 +370,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 				fs.removeFeatures(query.getFilter());
 				
 				//update bounds
-				bounds=tileIndexStore.getFeatureSource(typeName).getBounds();
+				bounds.put(typeName, tileIndexStore.getFeatureSource(typeName).getBounds());
+//				bounds=tileIndexStore.getFeatureSource(typeName).getBounds();
 				
 				return retVal;
 				
@@ -427,7 +448,11 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			// do your thing
 			
 			//update bounds
-			bounds=null;
+			if (bounds.containsKey(typeName)) {
+			    bounds.remove(typeName);
+			}
+//			bounds=null; //TODO: DR: comment out
+			
 //			bounds=tileIndexStore.getFeatureSource(typeName).getBounds(Query.ALL);
 		}finally{
 			lock.unlock();
@@ -552,20 +577,28 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	@Override
 	public BoundingBox getBounds(final String typeName) {
 		final Lock lock=rwLock.readLock();
+		ReferencedEnvelope bound = null;
 		try{
 			lock.lock();
 			checkStore();
-			if(bounds==null){
-			    bounds=this.tileIndexStore.getFeatureSource(typeName).getBounds();
+//			if (bounds == null)
+//			    bounds=this.tileIndexStore.getFeatureSource(typeName).getBounds();
+			if(bounds.containsKey(typeName)){
+			    bound = bounds.get(typeName);
+			} else {
+			    bound = this.tileIndexStore.getFeatureSource(typeName).getBounds();
+			    bounds.put(typeName, bound);
 			}
 		} catch (IOException e) {
                     LOGGER.log(Level.FINER, e.getMessage(), e);
-                    bounds=null;
+//                    bounds=null;
+                    bounds.remove(typeName);
                 }finally{
         			lock.unlock();
         		}
 
-                return bounds;
+//                return bounds;
+		return bound;
         	}
 
 	public void createType(String namespace, String typeName, String typeSpec) throws IOException, SchemaException {
@@ -602,12 +635,21 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		
 	}
 
-	private void addTypeName(String typeName, final boolean check) {
+    private void addTypeName(String typeName, final boolean check) {
+        
+        //TODO DR: Consider extracting typeNames from tileIndexStore instead of parsing multiple typeNames
+        if (typeName.contains(",")) {
+            String [] typeNames = typeName.split(",");
+            for (String tn: typeNames) {
+                addTypeName(tn, check);
+            }
+        } else {
             if (check && typeNamess.contains(typeName)) {
                 throw new IllegalArgumentException("This typeName already exists: " + typeName);
             }
-            typeNamess.add(typeName);
-        
+            typeNamess.add(typeName);    
+        }
+
     }
 
     @Override

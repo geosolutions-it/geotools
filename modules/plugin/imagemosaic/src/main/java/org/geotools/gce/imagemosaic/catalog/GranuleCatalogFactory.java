@@ -66,7 +66,8 @@ public abstract class GranuleCatalogFactory {
 
 	public static GranuleCatalog createGranuleCatalog(
 			final URL sourceURL,
-			final CatalogConfigurationBean catalogConfigurationBean){
+			final CatalogConfigurationBean catalogConfigurationBean,
+			final Map<String, Serializable> overrideParams){
 		final File sourceFile=DataUtilities.urlToFile(sourceURL);
 		final String extension= FilenameUtils.getExtension(sourceFile.getAbsolutePath());	
 		
@@ -135,6 +136,9 @@ public abstract class GranuleCatalogFactory {
 			}
 		}		
 		// istantiate
+		if (overrideParams != null && !overrideParams.isEmpty()) {
+		    params.putAll(overrideParams);
+		}
 		return catalogConfigurationBean.isCaching()?new STRTreeGranuleCatalog(params,spi):new GTDataStoreGranuleCatalog(params,false,spi);
 	}
 

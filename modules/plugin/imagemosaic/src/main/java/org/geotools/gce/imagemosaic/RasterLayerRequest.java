@@ -708,7 +708,7 @@ class RasterLayerRequest {
         //
         // //
         String paramName = name.getCode();
-        if (rasterManager.parentReader.isParameterSupported(name)) {
+        if (rasterManager.domainsManager.isParameterSupported(name)) {
             final Object value = param.getValue();
             if (value == null){
                 return;

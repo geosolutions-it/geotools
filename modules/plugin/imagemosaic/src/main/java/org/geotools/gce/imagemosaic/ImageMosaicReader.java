@@ -20,6 +20,7 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,6 +29,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -42,14 +45,12 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
-import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
+import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
-import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
@@ -59,14 +60,15 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.util.Utilities;
 import org.opengis.coverage.grid.Format;
+import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.filter.Filter;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.metadata.Identifier;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterDescriptor;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 /**
  * This reader is responsible for providing access to mosaic of georeferenced
@@ -237,10 +239,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         setGridGeometry(typeName);
         
         // raster manager
-        createRasterManager(configuration);
+        addRasterManager(configuration, false);
         
-        //TODO: CHECK THAT : Can we have different coverages with different types of data?
-//        mosaicManager.defaultSM = configuration.getSampleModel();
     }
 
     /**
@@ -259,9 +259,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 		//
 		// Load properties file with information about levels and envelope
 		//
-		// TODO: Need to define different mosaicConfigurations when dealing with multiple coverages.
 		// Edit coveragesManager accordingly
 		MosaicConfigurationBean configuration = Utils.loadMosaicProperties(sourceURL,this.locationAttributeName);
+		try {
 		if(configuration==null){
 			//
 			// do we have a datastore properties file? It will preempt on the shapefile
@@ -281,99 +281,58 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 			));
 			
 			// do we have a valid datastore + mosaic properties pair?
-			for(File propFile:properties)
+			
+			    final File datastoreProperties = new File(parent, "datastore.properties");			    
+			    
+			    List<MosaicConfigurationBean> beans = new ArrayList<MosaicConfigurationBean>();
+			for(File propFile:properties) {
 				if(Utils.checkFileReadable(propFile)&&
 						Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile), "")!=null){
 					configuration = Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile),this.locationAttributeName);
+					if (configuration != null) {
+					    beans.add(configuration);
+					}
 				}               	
+			}
+		        GranuleCatalog catalog = null;
+		        Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
+		        // SPI
+		        final String SPIClass = props.getProperty("SPI");
+		            // create a datastore as instructed
+		            final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
+		            final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(props, spi);
+
+//		            params.put("TypeName", sb.toString());
+		            params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
+		            catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL,  beans.get(0).getCatalogConfigurationBean(), params);
+		            if (granuleCatalog == null) {
+		                granuleCatalog = catalog;
+		            }
 			
-		}
-		if(configuration==null)
-			throw new DataSourceException("Unable to create reader for this mosaic since we could not parse the configuration.");
-		
-		CatalogConfigurationBean catalogConfigurationBean = configuration.getCatalogConfigurationBean();
-		// now load the configuration and extract properties from there
-		extractProperties(configuration);
-		
-		//location attribute override
-		if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
-		    this.locationAttributeName=((String)this.hints.get(Hints.MOSAIC_LOCATION_ATTRIBUTE));	
-		}
-		
-		//
-		// Load tiles informations, especially the bounds, which will be
-		// reused
-		//
-		try {
-			// create the index
-		    
-		    //TODO: Need to add more schema if any
-		    if (granuleCatalog == null) {
-			granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogConfigurationBean);
-		    }
-			// error
-			String typeName = catalogConfigurationBean.getTypeName();
-			if(granuleCatalog==null){
-			    throw new DataSourceException("Unable to create index for this URL "+sourceURL);
-			}
-			if (typeName == null) {
-			    String[] typeNames = granuleCatalog.getTypeNames();
-			    if (typeNames != null && typeNames.length > 0) {
-			        typeName = typeNames[0];
-			    }
-			}
-                        final SimpleFeatureType type= granuleCatalog.getType(typeName);
-                        if (type==null){
-                            throw new IllegalArgumentException("Problems when opening the index, no typenames for the schema are defined");
-                        }
-                        
-		
-			// everything is fine
-			if (LOGGER.isLoggable(Level.FINE))
-				LOGGER.fine("Connected mosaic reader to its index "
-						+ sourceURL.toString());
-
-			// TODO: Delay that on RasterManager config
-			setGridGeometry(configuration.getEnvelope(), granuleCatalog, typeName);
-
-            //
-            // get the crs if able to
-            //
-            final Object tempCRS = this.hints.get(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM);
-            if (tempCRS != null) {
-                this.crs = (CoordinateReferenceSystem) tempCRS;
-                LOGGER.log(Level.WARNING, "Using forced coordinate reference system ");
-            } else {
-                final CoordinateReferenceSystem tempcrs = type.getGeometryDescriptor().getCoordinateReferenceSystem();
-                if (tempcrs == null) {
-                    // use the default crs
-                    crs = AbstractGridFormat.getDefaultCRS();
-                    LOGGER.log(Level.WARNING, "Unable to find a CRS for this coverage, using a default one" );
-                } else
-                    crs = tempcrs;
-            }
-						
-			//
-			// perform checks on location attribute name
-			//
-			if(this.locationAttributeName==null) {
-			    throw new DataSourceException("The provided name for the location attribute is invalid.");
+                // Creating a RasterManager for each mosaic configuration found on disk
+                for (MosaicConfigurationBean bean : beans) {
+                    if (granuleCatalog == null) {
+                        throw new DataSourceException("Unable to create index for this URL "
+                                + sourceURL);
+                    }
+                    addRasterManager(bean, true);
+                }
 			} else {
-			    if(type.getDescriptor(this.locationAttributeName)==null){
-			        // ORACLE fix
-			        this.locationAttributeName=this.locationAttributeName.toUpperCase();
-			        
-			        // try again with uppercase
-			        if(type.getDescriptor(this.locationAttributeName)==null){
-			            throw new DataSourceException("The provided name for the location attribute is invalid.");
-			        }
+			    CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
+			    if (catalogBean.getTypeName() == null) {
+			        catalogBean.setTypeName("mosaic");
 			    }
+			    if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
+			        final String hintLocation = (String)this.hints.get(Hints.MOSAIC_LOCATION_ATTRIBUTE);
+			        if (!catalogBean.getLocationAttribute().equalsIgnoreCase(hintLocation)) {
+			            throw new DataSourceException("wrong location attribute");
+			        }
+			        
+		            }
+			    
+			    granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogBean, null);
+			    addRasterManager(configuration, true);
 			}
-			
-			// creating the raster manager
-		        RasterManager manager = createRasterManager(configuration);
-		        manager.initialize();
-		        
 		}
 		catch (Throwable e) {
 			try {
@@ -389,23 +348,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 			    granuleCatalog=null;
 			}
 			
-			// dispose raster manager as well
-//			try {
-//				if (coveragesManager != null) {
-//					coveragesManager.dispose();
-//                }
-//			} catch (Throwable e1) {
-//				if (LOGGER.isLoggable(Level.FINEST))
-//					LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
-//			}
-//			finally{
-//				coveragesManager = null;
-//			}
+			// dispose raster managers as well
 						
 			// rethrow
 			throw new  DataSourceException(e);
 		}
-
 		
 	}
 
@@ -618,29 +565,18 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 		}
 	}
 	
-	  /**
-	     * Look for the parameter containing the coverage name and check its validity.
-	     * Then delegate the proper RasterManager to do the read operation.
-	     * @param params
-	     * @return
-	     * @throws IOException
-	     */
-	    private Collection<GridCoverage2D> read(GeneralParameterValue[] params, String coverageName) throws IOException {
-	        /*String coverageName = UNSPECIFIED;
-	        if (params != null) {
-	            for (GeneralParameterValue gParam : params) {
-	                if(gParam instanceof ParameterValue<?>){                
-	                    final ParameterValue<?> param = (ParameterValue<?>) gParam;
-	                    final ReferenceIdentifier name = param.getDescriptor().getName();
-	                    if (name.equals(ImageMosaicFormat.COVERAGE_NAME.getName())) {
-	                        coverageName = (String) param.getValue();
-	                    }
-	                }
-	            }
-	        }*/
-	        coverageName = checkUnspecifiedCoverage(coverageName);
-	        return getRasterManager(coverageName).read(params);
-	    }
+    /**
+     * Look for the parameter containing the coverage name and check its validity. Then delegate the proper RasterManager to do the read operation.
+     * 
+     * @param params
+     * @return
+     * @throws IOException
+     */
+    private Collection<GridCoverage2D> read(GeneralParameterValue[] params, String coverageName)
+            throws IOException {
+        coverageName = checkUnspecifiedCoverage(coverageName);
+        return getRasterManager(coverageName).read(params);
+    }
 
 	/**
 	 * Package private accessor for {@link Hints}.
@@ -872,7 +808,13 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         }
     }
 
-    protected RasterManager createRasterManager(MosaicConfigurationBean configuration) throws IOException {
+    /**
+     * Create a RasterManager on top of this {@link MosaicConfigurationBean}
+     * @param configuration the {@link MosaicConfigurationBean} to be used to create the {@link RasterManager}
+     * @return
+     * @throws IOException
+     */
+    protected RasterManager addRasterManager(final MosaicConfigurationBean configuration, final boolean init) throws IOException {
         Utilities.ensureNonNull("MosaicConfigurationBean", configuration);
         String name = configuration.getName();
         RasterManager rasterManager = new RasterManager(this, configuration);
@@ -880,6 +822,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         names.add(name);
         if (defaultName == null) {
             defaultName = name;
+        }
+        if (init) {
+            rasterManager.initialize();
         }
         return rasterManager;
     }
@@ -917,6 +862,53 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     public boolean removeCoverage(String coverageName) throws IOException,
             UnsupportedOperationException {
         throw new UnsupportedOperationException("Operation currently not implement");
+    }
+    
+    @Override
+    public GeneralEnvelope getOriginalEnvelope() {
+        return getOriginalEnvelope(UNSPECIFIED);
+    }
+
+    @Override
+    public GeneralEnvelope getOriginalEnvelope(String coverageName) {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.spatialDomainManager.coverageEnvelope;
+    }
+
+    @Override
+    public GridEnvelope getOriginalGridRange() {
+        return getOriginalGridRange(UNSPECIFIED);
+    }
+    
+    @Override
+    public GridEnvelope getOriginalGridRange(String coverageName) {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.spatialDomainManager.gridEnvelope;
+    }
+
+    @Override
+    public MathTransform getOriginalGridToWorld(PixelInCell pixInCell) {
+        return getOriginalGridToWorld(UNSPECIFIED, pixInCell);
+    }
+    
+    @Override
+    public MathTransform getOriginalGridToWorld(String coverageName, PixelInCell pixInCell) {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.spatialDomainManager.getOriginalGridToWorld(pixInCell);
+    }
+
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+        return getCoordinateReferenceSystem(UNSPECIFIED);
+    }
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem(String coverageName) {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.spatialDomainManager.coverageCRS;
     }
 
 }

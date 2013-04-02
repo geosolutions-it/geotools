@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
@@ -58,6 +59,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.parameter.GeneralParameterValue;
+import org.opengis.parameter.ParameterDescriptor;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
@@ -110,7 +112,7 @@ public class NetCDFMosaicReaderTest extends Assert {
             LOGGER.info("Coverage: " + name);
             final String[] metadataNames = reader.getMetadataNames(name);
             assertNotNull(metadataNames);
-            assertEquals(metadataNames.length, 10);
+            assertEquals(metadataNames.length, 12);
             assertEquals("true", reader.getMetadataValue(name, "HAS_TIME_DOMAIN"));
             assertEquals(
                     "2012-04-01T00:00:00.000Z,2012-04-01T01:00:00.000Z,2012-04-01T02:00:00.000Z,2012-04-01T03:00:00.000Z,2012-04-01T04:00:00.000Z,2012-04-01T05:00:00.000Z,2012-04-01T06:00:00.000Z,2012-04-01T07:00:00.000Z,2012-04-01T08:00:00.000Z,2012-04-01T09:00:00.000Z,2012-04-01T10:00:00.000Z,2012-04-01T11:00:00.000Z,2012-04-01T12:00:00.000Z,2012-04-01T13:00:00.000Z,2012-04-01T14:00:00.000Z,2012-04-01T15:00:00.000Z,2012-04-01T16:00:00.000Z,2012-04-01T17:00:00.000Z,2012-04-01T18:00:00.000Z,2012-04-01T19:00:00.000Z,2012-04-01T20:00:00.000Z,2012-04-01T21:00:00.000Z,2012-04-01T22:00:00.000Z,2012-04-01T23:00:00.000Z",
@@ -122,6 +124,11 @@ public class NetCDFMosaicReaderTest extends Assert {
             assertEquals("10.0,35.0,75.0,125.0,175.0,250.0,350.0,450.0,550.0,700.0,900.0,1250.0,1750.0,2500.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN"));
             assertEquals("10.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN_MINIMUM"));
             assertEquals("2500.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN_MAXIMUM"));
+            
+            assertEquals("true", reader.getMetadataValue(name, "HAS_RUNTIME_DOMAIN"));
+            assertEquals("2012-05-09T12:29:30.000Z,2013-03-30T16:15:58.648Z", reader.getMetadataValue(name, "RUNTIME_DOMAIN"));
+            assertEquals("2012-05-09T12:29:30.000Z", reader.getMetadataValue(name, "RUNTIME_DOMAIN_MINIMUM"));
+            assertEquals("2013-03-30T16:15:58.648Z", reader.getMetadataValue(name, "RUNTIME_DOMAIN_MAXIMUM"));
         
             // use imageio with defined tiles
             final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -143,8 +150,23 @@ public class NetCDFMosaicReaderTest extends Assert {
                 }
             });
         
+            Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(name);
+            ParameterValue<List<String>> runtime = null;
+            final String selectedWaveLength = "2013-03-30T16:15:58.648Z";
+            for (ParameterDescriptor param : params) {
+                if (param.getName().getCode().equalsIgnoreCase("RUNTIME")) {
+                    runtime = param.createValue();
+                    runtime.setValue(new ArrayList<String>() {
+                        {
+                            add(selectedWaveLength);
+                        }
+                    });
+                }
+            }
+            assertNotNull(runtime);
+            
             // Test the output coverage
-            GeneralParameterValue[] values = new GeneralParameterValue[] { useJai, time, elevation };
+            GeneralParameterValue[] values = new GeneralParameterValue[] { useJai, time, elevation, runtime};
             final GridCoverage2D coverage = (GridCoverage2D) reader.read(name, values);
             Assert.assertNotNull(coverage);
             final String fileSource = (String) coverage
@@ -153,7 +175,6 @@ public class NetCDFMosaicReaderTest extends Assert {
             // Check the proper granule has been read
             final String baseName = FilenameUtils.getBaseName(fileSource);
             assertEquals(baseName, "20130102polyphemus");
-            testCoverage(reader, values, "domain test", coverage, null);
         }
     }
 
@@ -247,37 +268,4 @@ public class NetCDFMosaicReaderTest extends Assert {
         return reader;
     }
 
-    @SuppressWarnings("unchecked")
-    static void testCoverage(final ImageMosaicReader reader, GeneralParameterValue[] values,
-            String title, final GridCoverage2D coverage, final Rectangle rect) {
-        final RenderedImage image = coverage.getRenderedImage();
-        if (INTERACTIVE)
-            show(image, title);
-        else
-            PlanarImage.wrapRenderedImage(image).getTiles();
-
-        if (values != null)
-            for (GeneralParameterValue pv : values) {
-                if (pv.getDescriptor().getName()
-                        .equals(AbstractGridFormat.READ_GRIDGEOMETRY2D.getName())) {
-
-                    Parameter<GridGeometry2D> param = (Parameter<GridGeometry2D>) pv;
-                    // check envelope if it has been requested
-                    assertTrue(CRS.equalsIgnoreMetadata(param.getValue().getEnvelope()
-                            .getCoordinateReferenceSystem(),
-                            coverage.getCoordinateReferenceSystem()));
-
-                }
-            }
-        if (rect != null) {
-            assertEquals(image.getWidth(), rect.width);
-            assertEquals(image.getHeight(), rect.height);
-        }
-
-        if (!INTERACTIVE) {
-            // dispose stuff
-            coverage.dispose(true);
-            reader.dispose();
-        }
-    }
 }

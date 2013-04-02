@@ -17,6 +17,7 @@
 package org.geotools.gce.imagemosaic;
 
 import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
 import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -65,18 +66,23 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.parameter.DefaultParameterDescriptor;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
+import org.geotools.referencing.operation.transform.IdentityTransform;
+import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.resources.image.ImageUtilities;
 import org.geotools.util.Range;
 import org.geotools.util.Utilities;
 import org.opengis.coverage.grid.GridCoverage;
+import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.sort.SortOrder;
 import org.opengis.geometry.BoundingBox;
+import org.opengis.geometry.Envelope;
 import org.opengis.metadata.Identifier;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterDescriptor;
@@ -136,7 +142,8 @@ public class RasterManager {
        
        /** The base grid range for the coverage */
        Rectangle coverageRasterArea;
-        
+       
+       GridEnvelope gridEnvelope;
 
        public SpatialDomainManager(final GeneralEnvelope envelope,
                        final GridEnvelope2D coverageGridrange,
@@ -144,7 +151,8 @@ public class RasterManager {
                        final MathTransform coverageGridToWorld2D,
                        final OverviewsController overviewsController) throws TransformException, FactoryException {
            this.coverageEnvelope = envelope.clone();
-           this.coverageRasterArea =coverageGridrange.clone();
+           this.gridEnvelope = coverageGridrange.clone();
+           this.coverageRasterArea = (Rectangle) gridEnvelope;
            this.coverageCRS = crs;
            this.coverageGridToWorld2D = (MathTransform2D) coverageGridToWorld2D;
            this.coverageFullResolution = new double[2];
@@ -188,13 +196,38 @@ public class RasterManager {
                 coverageBBox = new ReferencedEnvelope(coverageEnvelope);
             }
         }
-    }
-    
-//    public class RasterManager {
-//        CoveragesManager parentManager;
-
         
-        /** Logger. */
+        public MathTransform getOriginalGridToWorld(final PixelInCell pixInCell) {
+            synchronized (this) {
+                if (coverageGridToWorld2D == null) {
+                    final GridToEnvelopeMapper geMapper = new GridToEnvelopeMapper(gridEnvelope,
+                            coverageEnvelope);
+                    geMapper.setPixelAnchor(PixelInCell.CELL_CENTER);
+                    coverageGridToWorld2D = (MathTransform2D) geMapper.createTransform();
+                }
+            }
+
+            // we do not have to change the pixel datum
+            if (pixInCell == PixelInCell.CELL_CENTER)
+                return coverageGridToWorld2D;
+
+            // we do have to change the pixel datum
+            if (coverageGridToWorld2D instanceof AffineTransform) {
+                final AffineTransform tr = new AffineTransform(
+                        (AffineTransform) coverageGridToWorld2D);
+                tr.concatenate(AffineTransform.getTranslateInstance(-0.5, -0.5));
+                return ProjectiveTransform.create(tr);
+            }
+            if (coverageGridToWorld2D instanceof IdentityTransform) {
+                final AffineTransform tr = new AffineTransform(1, 0, 0, 1, 0, 0);
+                tr.concatenate(AffineTransform.getTranslateInstance(-0.5, -0.5));
+                return ProjectiveTransform.create(tr);
+            }
+            throw new IllegalStateException("This reader's grid to world transform is invalud!");
+        }
+    }
+
+    /** Logger. */
         private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(RasterManager.class);
 
         /** The coverage factory producing a {@link GridCoverage} from an image */
@@ -796,6 +829,8 @@ public class RasterManager {
 
     String typeName;
     
+    Envelope imposedEnvelope;
+    
     MosaicConfigurationBean configuration;
 
 //        public RasterManager(final ImageMosaicReader parentReader) throws IOException {
@@ -893,6 +928,7 @@ public class RasterManager {
             }
             overviewsController = new OverviewsController(highRes,
                   numOverviews, overviews);
+            imposedEnvelope = configuration.getEnvelope();
             
             //TODO: DR Parse more stuff from the configuration
         }
@@ -1203,13 +1239,12 @@ public class RasterManager {
         CoordinateReferenceSystem crs = bounds.getCoordinateReferenceSystem();
         GeneralEnvelope originalEnvelope = null;
 
-        // TODO: DR: Check imposed envelope
-        // if(envelope==null)
-        originalEnvelope = new GeneralEnvelope(bounds);
-        // else{
-        // this.originalEnvelope=new GeneralEnvelope(envelope);
-        // this.originalEnvelope.setCoordinateReferenceSystem(crs);
-        // }
+        if (imposedEnvelope == null) {
+            originalEnvelope = new GeneralEnvelope(bounds);
+        } else {
+            originalEnvelope = new GeneralEnvelope(imposedEnvelope);
+            originalEnvelope.setCoordinateReferenceSystem(crs);
+        }
 
         // original gridrange (estimated). I am using the floor here in order to make sure
         // we always stays inside the real area that we have for the granule
@@ -1230,7 +1265,6 @@ public class RasterManager {
         } catch (FactoryException e) {
             throw new IOException("Exception occurred while initializing the SpatialDomainManager", e);
         }
-
     }
 
 }

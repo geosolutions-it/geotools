@@ -32,9 +32,9 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
@@ -51,6 +51,7 @@ import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.DefaultProgressListener;
+import org.geotools.util.Utilities;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -96,32 +97,7 @@ public class CatalogManager {
         // GranuleCatalog catalog = null;
         if (Utils.checkFileReadable(datastoreProperties)) {
             // read the properties file
-            Properties properties = Utils.loadPropertiesFromURL(DataUtilities.fileToURL(datastoreProperties));
-            if (properties == null) {
-                throw new IOException("Unable to load properties from:" + datastoreProperties.getAbsolutePath());
-            }
-            // SPI
-            final String SPIClass = properties.getProperty("SPI");
-            try {
-                // create a datastore as instructed
-                final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
-                final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(properties, spi);
-
-                // set ParentLocation parameter since for embedded database like H2 we must change the database
-                // to incorporate the path where to write the db
-                params.put("ParentLocation", DataUtilities.fileToURL(parent).toExternalForm());
-
-                catalog = GranuleCatalogFactory.createGranuleCatalog(params, false, true, spi);
-            } catch (ClassNotFoundException e) {
-                final IOException ioe = new IOException();
-                throw (IOException) ioe.initCause(e);
-            } catch (InstantiationException e) {
-                final IOException ioe = new IOException();
-                throw (IOException) ioe.initCause(e);
-            } catch (IllegalAccessException e) {
-                final IOException ioe = new IOException();
-                throw (IOException) ioe.initCause(e);
-            }
+            catalog = createGranuleCatalogFromDatastore(parent, datastoreProperties, true);
         } else {
 
             // we do not have a datastore properties file therefore we continue with a shapefile datastore
@@ -140,6 +116,51 @@ public class CatalogManager {
         return catalog;
     }
     
+    public static Properties createGranuleCatalogProperties(File datastoreProperties) throws IOException {
+        Properties properties = Utils.loadPropertiesFromURL(DataUtilities.fileToURL(datastoreProperties));
+        if (properties == null) {
+            throw new IOException("Unable to load properties from:" + datastoreProperties.getAbsolutePath());
+        }
+        return properties;
+    }
+    
+    /**
+     * Create a granule catalog from a datastore properties file
+     * @param parent
+     * @param datastoreProperties
+     * @param create
+     * @return
+     * @throws IOException
+     */
+    public static GranuleCatalog createGranuleCatalogFromDatastore(File parent, File datastoreProperties, boolean create) throws IOException {
+        GranuleCatalog catalog = null;
+        Utilities.ensureNonNull("datastoreProperties", datastoreProperties);
+        Properties properties = createGranuleCatalogProperties(datastoreProperties);
+        // SPI
+        final String SPIClass = properties.getProperty("SPI");
+        try {
+            // create a datastore as instructed
+            final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
+            final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(properties, spi);
+
+            // set ParentLocation parameter since for embedded database like H2 we must change the database
+            // to incorporate the path where to write the db
+            params.put("ParentLocation", DataUtilities.fileToURL(parent).toExternalForm());
+
+            catalog = GranuleCatalogFactory.createGranuleCatalog(params, false, create, spi);
+        } catch (ClassNotFoundException e) {
+            final IOException ioe = new IOException();
+            throw (IOException) ioe.initCause(e);
+        } catch (InstantiationException e) {
+            final IOException ioe = new IOException();
+            throw (IOException) ioe.initCause(e);
+        } catch (IllegalAccessException e) {
+            final IOException ioe = new IOException();
+            throw (IOException) ioe.initCause(e);
+        }
+        return catalog;
+    }
+
     /**
      * Create a {@link SimpleFeatureType} from the specified configuration.
      * @param configurationBean
@@ -226,7 +247,7 @@ public class CatalogManager {
     static void updateCatalog(
             final String coverageName,
             final File fileBeingProcessed,
-            final AbstractGridCoverage2DReader inputReader,
+            final GridCoverage2DReader inputReader,
             final ImageMosaicReader mosaicReader,
             final CatalogBuilderConfiguration configuration, 
             final GeneralEnvelope envelope,
@@ -285,9 +306,6 @@ public class CatalogManager {
                                 }
                             }
                             
-                            //TODO DR: Need to put here the NetCDF Properties collector
-                            
-                            destFeature.setAttribute("runtime", fileBeingProcessed.lastModified());
                             destFeature.setAttribute(configuration.getLocationAttribute(), fileLocation);
                             updateAttributesFromCollectors(destFeature, fileBeingProcessed, inputReader, propertiesCollectors);
                             collection.add(destFeature);
@@ -328,7 +346,7 @@ public class CatalogManager {
     private static void updateAttributesFromCollectors(
             final SimpleFeature feature,
             final File fileBeingProcessed, 
-            final AbstractGridCoverage2DReader inputReader,
+            final GridCoverage2DReader inputReader,
             final List<PropertiesCollector> propertiesCollectors) {
         // collect and dump properties
         if (propertiesCollectors != null && propertiesCollectors.size() > 0)
