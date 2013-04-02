@@ -173,9 +173,10 @@ public class OverviewsControllerTest extends Assert {
         final ImageMosaicReader reader = (ImageMosaicReader) format.getReader(heterogeneousGranulesURL, hints);
         Assert.assertNotNull(reader);
 
-        final int nOv = reader.getNumberOfOvervies();
-        final double[] hRes = reader.getHighestRes();
-        final RasterManager rasterManager = reader.getRasterManager(reader.getGridCoverageNames()[0]);
+        final String name = reader.getGridCoverageNames()[0];
+        final int nOv = reader.getNumOverviews();
+        final double[][] hRes = reader.getResolutionLevels();
+        final RasterManager rasterManager = reader.getRasterManager(name);
 
         // //
         //
@@ -212,9 +213,9 @@ public class OverviewsControllerTest extends Assert {
         final double requestedResolution[] = new double[]{XAffineTransform.getScaleX0(gridToWorld), XAffineTransform.getScaleY0(gridToWorld)}; 
 
         TestSet at = null;
-        if (nOv == 4 && Math.abs(hRes[0] - 0.833333333333) <= THRESHOLD) {
+        if (nOv == 4 && Math.abs(hRes[0][0] - 0.833333333333) <= THRESHOLD) {
             at = at1;
-        } else if (nOv == 2 && Math.abs(hRes[0] - 1.40625) <= THRESHOLD) {
+        } else if (nOv == 2 && Math.abs(hRes[0][1] - 1.40625) <= THRESHOLD) {
             at = at2;
         } else {
             return;

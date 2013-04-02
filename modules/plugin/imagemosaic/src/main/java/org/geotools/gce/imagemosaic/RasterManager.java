@@ -808,6 +808,8 @@ public class RasterManager {
 	private PathType pathType;
 	boolean expandMe;
 	boolean heterogeneousGranules;
+	
+	double[][] levels;
 	SpatialDomainManager spatialDomainManager;
 
 	ImageLayout defaultImageLayout;
@@ -915,7 +917,11 @@ public class RasterManager {
                 defaultCM = configuration.getColorModel();
             }
             
-            final double[][] levels = configuration.getLevels();
+            if (defaultSM != null && defaultCM != null && defaultImageLayout == null) {
+                defaultImageLayout= new ImageLayout().setColorModel(defaultCM).setSampleModel(defaultSM);
+            }
+            
+            levels = configuration.getLevels();
             final double[] highRes = levels[0];
             final int numOverviews = configuration.getLevelsNum() - 1;
             double[][] overviews = null;

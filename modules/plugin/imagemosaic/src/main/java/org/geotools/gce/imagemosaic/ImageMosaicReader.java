@@ -39,6 +39,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.spi.ImageReaderSpi;
+import javax.media.jai.ImageLayout;
 
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -624,10 +625,6 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     	return coverageFactory;
     }
 
-//	String getName() {
-//		return mosaicManager.getName();
-//	}
-
     /**
      * Number of coverages for this reader is 1
      * 
@@ -911,4 +908,27 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         return manager.spatialDomainManager.coverageCRS;
     }
 
+    @Override
+    public ImageLayout getImageLayout() throws IOException {
+        return getImageLayout(UNSPECIFIED);
+    }
+
+    @Override
+    public ImageLayout getImageLayout(String coverageName) throws IOException {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.defaultImageLayout;
+    }
+    
+    @Override
+    public double[][] getResolutionLevels() throws IOException {
+        return getResolutionLevels(UNSPECIFIED);
+    }
+
+    @Override
+    public double[][] getResolutionLevels(String coverageName) throws IOException {
+        String name = checkUnspecifiedCoverage(coverageName);
+        RasterManager manager = getRasterManager(name);
+        return manager.levels;
+    }
 }
