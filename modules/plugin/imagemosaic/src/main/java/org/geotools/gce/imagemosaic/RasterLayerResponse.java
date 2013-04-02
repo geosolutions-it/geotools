@@ -348,6 +348,10 @@ class RasterLayerResponse{
             Utilities.ensureNonNull("granuleDescriptor", granuleDescriptor);
             
             if (granuleFilter.evaluate(granuleDescriptor.originator)) {
+                Object imageIndex = granuleDescriptor.originator.getAttribute("index");
+                if(imageIndex != null && imageIndex instanceof Integer) {
+                    imageChoice = ((Integer) imageIndex).intValue();
+                }
                 final GranuleLoader loader = new GranuleLoader(baseReadParameters, imageChoice, mosaicBBox, finalWorldToGridCorner, granuleDescriptor, request, hints);
                 if (!dryRun) {
                     if (multithreadingAllowed && rasterManager.parentReader.multiThreadedLoader != null) {
@@ -1336,7 +1340,6 @@ class RasterLayerResponse{
         } else {
             imageChoice = 0;
         }
-        
         assert imageChoice>=0;
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine(new StringBuilder("Loading level ").append(imageChoice)

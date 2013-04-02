@@ -97,7 +97,7 @@ public class NetCDFMosaicReaderTest extends Assert {
     @Ignore
     @SuppressWarnings("rawtypes")
     public void timeAdditionalDimRanges() throws Exception {
-        final String dlrFolder = "C:\\data\\dlr\\samplesForMosaic\\";
+        final String dlrFolder = "C:\\data\\dlr\\samplesDLR\\";
         final File file = new File(dlrFolder);
         final URL url = DataUtilities.fileToURL(file);
         final Hints hints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode(
