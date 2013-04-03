@@ -26,7 +26,9 @@ import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
- * Very simple bean to hold the configuration of the mosaic.
+ * Simple builder which builds the configuration bean of a mosaic configuration.
+ * 
+ * @author Daniele Romagnoli, GeoSolutions SAS
  * 
  */
 public class MosaicBeanBuilder {
@@ -124,9 +126,6 @@ public class MosaicBeanBuilder {
         bean = null;
     }
 
-    /** <code>true</code> if we need to manage footprint if available. */
-    private boolean footprintManagement;
-
     public String getTimeAttribute() {
         return timeAttribute;
     }
@@ -190,15 +189,6 @@ public class MosaicBeanBuilder {
         bean = null;
     }
 
-    public void setFootprintManagement(final boolean footprintManagement) {
-        this.footprintManagement = footprintManagement;
-        bean = null;
-    }
-
-    public boolean isFootprintManagement() {
-        return footprintManagement;
-    }
-
     public CatalogConfigurationBean getCatalogConfigurationBean() {
         return catalogConfigurationBean;
     }
@@ -213,26 +203,24 @@ public class MosaicBeanBuilder {
         return "MosaicConfigurationBean [expandToRGB=" + expandToRGB + ", levels="
                 + Arrays.toString(levels) + ", name=" + name + ", levelsNum=" + levelsNum
                 + ", timeAttribute=" + timeAttribute + ", elevationAttribute=" + elevationAttribute
-                + ",sampleModel=" + sampleModel 
-                + ", footprintManagement=" + footprintManagement + "]";
+                + ",sampleModel=" + sampleModel + "]";
     }
     
     public MosaicConfigurationBean getMosaicConfigurationBean() {
         if (bean == null) {
             bean = new MosaicConfigurationBean();
             bean.setSampleModel(sampleModel);
+            bean.setColorModel(colorModel);
+            bean.setPalette(palette);
             bean.setCrs(crs);
             bean.setCatalogConfigurationBean(catalogConfigurationBean);
-            bean.setColorModel(colorModel);
-            bean.setAdditionalDomainAttributes(additionalDomainAttributes);
+            bean.setTimeAttribute(timeAttribute);
             bean.setElevationAttribute(elevationAttribute);
+            bean.setAdditionalDomainAttributes(additionalDomainAttributes);
             bean.setExpandToRGB(expandToRGB);
             bean.setLevels(levels);
             bean.setLevelsNum(levelsNum);
             bean.setName(name);
-            bean.setPalette(palette);
-            bean.setSampleModel(sampleModel);
-            bean.setTimeAttribute(timeAttribute);
         }
         return bean;
     }

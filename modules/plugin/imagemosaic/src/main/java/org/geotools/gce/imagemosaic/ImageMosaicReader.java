@@ -26,12 +26,12 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +47,6 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.GranuleSource;
-import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
@@ -109,7 +108,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     
     public static final String UNSPECIFIED = "_UN$PECIFIED_";
 
-    HashMap<String, RasterManager> rasterManagers = new HashMap<String, RasterManager>();
+    Map<String, RasterManager> rasterManagers = new ConcurrentHashMap<String, RasterManager>();
 
     public RasterManager getRasterManager(String name) {
           if(rasterManagers.containsKey(name)){
@@ -140,14 +139,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 
 	String locationAttributeName=Utils.DEFAULT_LOCATION_ATTRIBUTE;
 
-//	CoveragesManager coveragesManager;
-
         int maxAllowedTiles=ImageMosaicFormat.MAX_ALLOWED_TILES.getDefaultValue();
 
 	/** The suggested SPI to avoid SPI lookup*/
 	ImageReaderSpi suggestedSPI;
 	
-	// TODO: Move it out to RasterManagers
 	GranuleCatalog granuleCatalog;
 
 	boolean cachingIndex;
@@ -158,66 +154,67 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 
 	String typeName;
 
-        /**
-	 * Constructor.
-	 * 
-	 * @param source
-	 *            The source object.
-	 * @throws IOException
-	 * @throws UnsupportedEncodingException
-	 * 
-	 */
-	public ImageMosaicReader(Object source, Hints uHints) throws IOException {
-	    super(source,uHints);
-	    
-	    //
-	    // try to extract a multithreaded loader if available
-	    //
-	    if (this.hints.containsKey(Hints.EXECUTOR_SERVICE)) {
-	      final Object executor = uHints.get(Hints.EXECUTOR_SERVICE);
-	      if (executor != null && executor instanceof ExecutorService){
-	          multiThreadedLoader = (ExecutorService) executor;
-	          if (LOGGER.isLoggable(Level.FINE)){
-	              if (multiThreadedLoader instanceof ThreadPoolExecutor){
-	                  final ThreadPoolExecutor tpe = (ThreadPoolExecutor) multiThreadedLoader;
-	                  LOGGER.fine("Using ThreadPoolExecutor with the following settings: " +
-	                              "core pool size = " + tpe.getCorePoolSize() + 
-	                              "\nmax pool size = " + tpe.getMaximumPoolSize() + 
-	                              "\nkeep alive time " + tpe.getKeepAliveTime(TimeUnit.MILLISECONDS));    
-	              }
-	          }
-	      }
-	    }
-	    
-	    // max allowed tiles for a single request
-            if (this.hints.containsKey(Hints.MAX_ALLOWED_TILES))
-                this.maxAllowedTiles = ((Integer) this.hints.get(Hints.MAX_ALLOWED_TILES));
-    
-            //
-            // Check source
-            //
-            if (source instanceof ImageMosaicDescriptor) {
-                initReaderFromDescriptor((ImageMosaicDescriptor) source, uHints);
-            } else {
-                try {
-                    if (uHints != null) {
-                        uHints.add(new Hints(Utils.MOSAIC_READER, this));
-                    } else {
-                        uHints = new Hints(Utils.MOSAIC_READER, this);
+    /**
+     * Constructor.
+     * 
+     * @param source The source object.
+     * @throws IOException
+     * @throws UnsupportedEncodingException
+     * 
+     */
+    public ImageMosaicReader(Object source, Hints uHints) throws IOException {
+        super(source, uHints);
+
+        //
+        // try to extract a multithreaded loader if available
+        //
+        if (this.hints.containsKey(Hints.EXECUTOR_SERVICE)) {
+            final Object executor = uHints.get(Hints.EXECUTOR_SERVICE);
+            if (executor != null && executor instanceof ExecutorService) {
+                multiThreadedLoader = (ExecutorService) executor;
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    if (multiThreadedLoader instanceof ThreadPoolExecutor) {
+                        final ThreadPoolExecutor tpe = (ThreadPoolExecutor) multiThreadedLoader;
+                        LOGGER.fine("Using ThreadPoolExecutor with the following settings: "
+                                + "core pool size = " + tpe.getCorePoolSize()
+                                + "\nmax pool size = " + tpe.getMaximumPoolSize()
+                                + "\nkeep alive time "
+                                + tpe.getKeepAliveTime(TimeUnit.MILLISECONDS));
                     }
-                    initReaderFromURL(source, uHints);
-                } catch (Exception e) {
-                    throw new DataSourceException(e);
                 }
             }
-	}
-	
-	/**
-	 * Init this {@link ImageMosaicReader} using the provided {@link ImageMosaicDescriptor} as source. 
-	 * @param source
-	 * @param uHints
-	 * @throws DataSourceException
-	 */
+        }
+
+        // max allowed tiles for a single request
+        if (this.hints.containsKey(Hints.MAX_ALLOWED_TILES))
+            this.maxAllowedTiles = ((Integer) this.hints.get(Hints.MAX_ALLOWED_TILES));
+
+        //
+        // Check source
+        //
+        if (source instanceof ImageMosaicDescriptor) {
+            initReaderFromDescriptor((ImageMosaicDescriptor) source, uHints);
+        } else {
+            try {
+                if (uHints != null) {
+                    uHints.add(new Hints(Utils.MOSAIC_READER, this));
+                } else {
+                    uHints = new Hints(Utils.MOSAIC_READER, this);
+                }
+                initReaderFromURL(source, uHints);
+            } catch (Exception e) {
+                throw new DataSourceException(e);
+            }
+        }
+    }
+
+    /**
+     * Init this {@link ImageMosaicReader} using the provided {@link ImageMosaicDescriptor} as source.
+     * 
+     * @param source
+     * @param uHints
+     * @throws DataSourceException
+     */
     private void initReaderFromDescriptor(final ImageMosaicDescriptor source, final Hints uHints) throws IOException {
         Utilities.ensureNonNull("source", source);
         final MosaicConfigurationBean configuration = source.getConfiguration();
@@ -234,7 +231,6 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         if (schema == null) {
             throw new DataSourceException("Unable to create reader for this mosaic since the inner catalog schema is null.");
         }
-       
 
         // grid geometry
         setGridGeometry(typeName);
@@ -245,134 +241,135 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     }
 
     /**
-     * Init this {@link ImageMosaicReader} using the provided object as a source referring to an {@link URL}. 
+     * Init this {@link ImageMosaicReader} using the provided object as a source referring to an {@link URL}.
      * 
      * @param source
      * @param uHints
      * @throws DataSourceException
      */
     private void initReaderFromURL(final Object source, final Hints hints) throws Exception {
-                final boolean hasIndex = Utils.minimalIndexCheck(source);
-                this.sourceURL = Utils.checkSource(source, hints);
-		if(this.sourceURL==null)
-			throw new DataSourceException("This plugin accepts File, URL or String. The string may describe a File or an URL");
-		
-		//
-		// Load properties file
-		//
-		MosaicConfigurationBean configuration = null; 
-		try {
-		    if (sourceURL.getProtocol().equals("file")) {
-	                final File sourceFile = DataUtilities.urlToFile(sourceURL);
-	                if (!sourceFile.exists()) {
-	                    throw new DataSourceException("The specified sourceURL doesn't refer to an existing file");
-	                }
-	            }
-		    
-		    configuration = Utils.loadMosaicProperties(sourceURL,this.locationAttributeName);
-		if(configuration==null){
-			//
-			// do we have a datastore properties file? It will preempt on the shapefile
-			//
-        	final File parent=DataUtilities.urlToFile(sourceURL).getParentFile();
-			
-			// this can be used to look for properties files that do NOT define a datastore
-			final File[] properties = parent.listFiles(
-					(FilenameFilter)
-					FileFilterUtils.and(
-							FileFilterUtils.notFileFilter(FileFilterUtils.nameFileFilter("indexer.properties")),
-						FileFilterUtils.and(
-								FileFilterUtils.notFileFilter(FileFilterUtils.nameFileFilter("datastore.properties")),
-								FileFilterUtils.makeFileOnly(FileFilterUtils.suffixFileFilter(".properties")
-						)
-					)
-			));
-			
-			// do we have a valid datastore + mosaic properties pair?
-			
-			    final File datastoreProperties = new File(parent, "datastore.properties");			    
-			    
-			    List<MosaicConfigurationBean> beans = new ArrayList<MosaicConfigurationBean>();
-			for(File propFile:properties) {
-				if(Utils.checkFileReadable(propFile)&&
-						Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile), "")!=null){
-					configuration = Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile),this.locationAttributeName);
-					if (configuration != null) {
-					    beans.add(configuration);
-					}
-				}               	
-			}
+//        final boolean hasIndex = Utils.minimalIndexCheck(source);
+        this.sourceURL = Utils.checkSource(source, hints);
+        
+        // Preliminar check on source
+        if (this.sourceURL == null) {
+            throw new DataSourceException(
+                    "This plugin accepts File, URL or String. The string may describe a File or an URL");
+        }
+
+        // Load properties file
+        MosaicConfigurationBean configuration = null;
+        try {
+            if (sourceURL.getProtocol().equals("file")) {
+                final File sourceFile = DataUtilities.urlToFile(sourceURL);
+                if (!sourceFile.exists()) {
+                    throw new DataSourceException("The specified sourceURL doesn't refer to an existing file");
+                }
+            }
+
+            configuration = Utils.loadMosaicProperties(sourceURL, this.locationAttributeName);
+            if (configuration == null) {
+                //
+                // do we have a datastore properties file? It will preempt on the shapefile
+                //
+                final File parent = DataUtilities.urlToFile(sourceURL).getParentFile();
+
+                // this can be used to look for properties files that do NOT define a datastore
+                final File[] properties = parent.listFiles((FilenameFilter) FileFilterUtils.and(
+                        FileFilterUtils.notFileFilter(FileFilterUtils
+                                .nameFileFilter("indexer.properties")), FileFilterUtils.and(
+                                FileFilterUtils.notFileFilter(FileFilterUtils
+                                        .nameFileFilter("datastore.properties")), FileFilterUtils
+                                        .makeFileOnly(FileFilterUtils
+                                                .suffixFileFilter(".properties")))));
+
+                // do we have a valid datastore + mosaic properties pair?
+                final File datastoreProperties = new File(parent, "datastore.properties");
+
+                // Scan for MosaicConfigurationBeans from properties files
+                List<MosaicConfigurationBean> beans = new ArrayList<MosaicConfigurationBean>();
+                for (File propFile : properties) {
+                    if (Utils.checkFileReadable(propFile) && Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile), "") != null) {
+                        configuration = Utils.loadMosaicProperties(DataUtilities.fileToURL(propFile), this.locationAttributeName);
+                        if (configuration != null) {
+                            beans.add(configuration);
+                        }
+                    }
+                }
+                
+                // In case we didn't find any configuration bean and datastore properties, we can't do anything
                 if (beans.isEmpty() && !datastoreProperties.exists()) {
                     throw new DataSourceException("No mosaic properties file or datastore properties file have been found");
                 }
+                
+                // Catalog initialization from datastore
                 GranuleCatalog catalog = null;
-                Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
+                final Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
+
                 // SPI
                 final String SPIClass = props.getProperty("SPI");
+
                 // create a datastore as instructed
                 final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
                 final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(props, spi);
 
-                // params.put("TypeName", sb.toString());
+                // Since we are dealing with a catalog from an existing store, make sure to scan for all the typeNames on initialization
                 params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
                 catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, beans.get(0).getCatalogConfigurationBean(), params);
                 if (granuleCatalog == null) {
                     granuleCatalog = catalog;
                 }
 
+                if (granuleCatalog == null) {
+                    throw new DataSourceException("Unable to create index for this URL " + sourceURL);
+                }
+
                 // Creating a RasterManager for each mosaic configuration found on disk
                 for (MosaicConfigurationBean bean : beans) {
-                    if (granuleCatalog == null) {
-                        throw new DataSourceException("Unable to create index for this URL " + sourceURL);
-                    }
+                    // Add a RasterManager on top of this Mosaic configuration bean and initialize it
                     addRasterManager(bean, true);
                 }
-			} else {
-			    CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
-			    if (catalogBean.getTypeName() == null) {
-			        if (sourceURL.getPath().endsWith("shp")) {
-			            catalogBean.setTypeName(configuration.getName());
-			        } else {
-			            catalogBean.setTypeName("mosaic");
-			        }			    
-			    }
-			    if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
-			        final String hintLocation = (String)this.hints.get(Hints.MOSAIC_LOCATION_ATTRIBUTE);
-			        if (!catalogBean.getLocationAttribute().equalsIgnoreCase(hintLocation)) {
-			            throw new DataSourceException("wrong location attribute");
-			        }
-			        
-		            }
-			    
-			    granuleCatalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogBean, null);
-			    addRasterManager(configuration, true);
-			}
-		}
-		catch (Throwable e) {
-			try {
-				if(granuleCatalog!=null){
-				    granuleCatalog.dispose();
-				}
-			} catch (Throwable e1) {
-				if (LOGGER.isLoggable(Level.FINEST)){
-				    LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
-				}
-			}
-			finally{
-			    granuleCatalog=null;
-			}
-			
-			// dispose raster managers as well
-						
-			// rethrow
-			throw new  DataSourceException(e);
-		}
-		
-	}
+            } else {
+                
+                // Old style code: we have a single MosaicConfigurationBean. Use that to create the catalog 
+                granuleCatalog = CatalogManager.createCatalog(sourceURL, configuration, this.hints);
+                addRasterManager(configuration, true);
+            }
+        } catch (Throwable e) {
+            
+            // Dispose catalog
+            try {
+                if (granuleCatalog != null) {
+                    granuleCatalog.dispose();
+                }
+            } catch (Throwable e1) {
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
+                }
+            } finally {
+                granuleCatalog = null;
+            }
+            
+            // dispose raster managers as well
+            try {
+                disposeManagers();
+            } catch (Throwable e1) {
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, e1.getLocalizedMessage(), e1);
+                }
+            } finally {
+                rasterManagers = null;
+            }
 
-	private void setGridGeometry(final ReferencedEnvelope envelope, final GranuleCatalog catalog, String typeName) {
-		Utilities.ensureNonNull("index", catalog);
-	    //
+            // rethrow
+            throw new DataSourceException(e);
+        }
+    }
+
+    private void setGridGeometry(final ReferencedEnvelope envelope, final GranuleCatalog catalog,
+            String typeName) {
+        Utilities.ensureNonNull("index", catalog);
+        //
         // save the bbox and prepare other info
         //
         final BoundingBox bounds = catalog.getBounds(typeName);
@@ -659,19 +656,25 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
             try {
                 if (granuleCatalog != null)
                     this.granuleCatalog.dispose();
-
-                if (rasterManagers != null) {
-                    Set<String> keys = rasterManagers.keySet();
-                    for (String key: keys) {
-                        rasterManagers.get(key).dispose();
-                    }
-                    rasterManagers.clear();
-                    rasterManagers = null;
-                }
+                disposeManagers();
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE))
                     LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
             }
+        }
+    }
+
+    /**
+     * Dispose raster managers
+     */
+    private void disposeManagers() {
+        if (rasterManagers != null) {
+            Set<String> keys = rasterManagers.keySet();
+            for (String key: keys) {
+                rasterManagers.get(key).dispose();
+            }
+            rasterManagers.clear();
+            rasterManagers = null;
         }
     }
 
@@ -688,22 +691,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     @Override
     public String[] getMetadataNames(String coverageName) {
         String name = checkUnspecifiedCoverage(coverageName);
-        final List<String> metadataNames = new ArrayList<String>();
-        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
-        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
-        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
-        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
-        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
-        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
-        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
-        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
-        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
-        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
         RasterManager manager = getRasterManager(name);
-        if (manager.domainsManager != null) {
-            metadataNames.addAll(manager.domainsManager.getMetadataNames());
-        }
-        return metadataNames.toArray(new String[metadataNames.size()]);
+        return manager.getMetadataNames();
     }
 
     @Override
@@ -714,55 +703,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     @Override
     public String getMetadataValue(String coverageName, final String name) {
         coverageName = checkUnspecifiedCoverage(coverageName);
-        String value = null;
         RasterManager manager = getRasterManager(coverageName);
-        final boolean hasTimeDomain = manager.timeDomainManager != null;
-        final boolean hasElevationDomain = manager.elevationDomainManager != null;
-
-        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
-            return String.valueOf(hasElevationDomain);
-
-        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
-            return String.valueOf(hasTimeDomain);
-        }
-
-        // NOT supported
-        if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
-            return null;
-        }
-        // NOT supported
-        if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
-            return null;
-        }
-
-        if (hasTimeDomain) {
-            if (name.equalsIgnoreCase("time_domain")) {
-                return manager.timeDomainManager.getMetadataValue(name);
-            }
-            if ((name.equalsIgnoreCase("time_domain_minimum") || name
-                    .equalsIgnoreCase("time_domain_maximum"))) {
-                return manager.timeDomainManager.getMetadataValue(name);
-            }
-        }
-
-        if (hasElevationDomain) {
-            if (name.equalsIgnoreCase("elevation_domain")) {
-                return manager.elevationDomainManager.getMetadataValue(name);
-            }
-
-            if (name.equalsIgnoreCase("elevation_domain_minimum")
-                    || name.equalsIgnoreCase("elevation_domain_maximum")) {
-                return manager.elevationDomainManager.getMetadataValue(name);
-            }
-        }
-
-        // check additional domains
-        if (manager.domainsManager != null) {
-            return manager.domainsManager.getMetadataValue(name);
-        }
-
-        //
-        return value;
+        return manager.getMetadataValue(name);
     }
 
     @Override
@@ -821,6 +763,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     /**
      * Create a RasterManager on top of this {@link MosaicConfigurationBean}
      * @param configuration the {@link MosaicConfigurationBean} to be used to create the {@link RasterManager}
+     * @param init {@code true} if the Manager should be initialized. 
      * @return
      * @throws IOException
      */
@@ -858,13 +801,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 
     @Override
     public void createCoverage(String coverageName, SimpleFeatureType indexSchema) throws IOException, UnsupportedOperationException {
-//        throw new UnsupportedOperationException("Operation currently not implement: only adding granules to a GranuleStore is currently supported");
-     // create the schema for the new shape file
         RasterManager manager = getRasterManager(coverageName);
         if (manager != null) {
-            manager.createStore(coverageName, indexSchema);
+            manager.createStore(indexSchema);
         } else {
-            throw new IOException("The following coverageName has already been created: " + coverageName);
+            throw new IOException("This implementation requires to create a RasterManager for a coverage before creating the store. " + coverageName);
         }
     }
 

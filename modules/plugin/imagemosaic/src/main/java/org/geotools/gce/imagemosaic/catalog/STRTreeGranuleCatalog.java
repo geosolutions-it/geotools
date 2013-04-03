@@ -152,7 +152,7 @@ class STRTreeGranuleCatalog extends AbstractGranuleCatalog {
         this.wrappedCatalogue = catalogue;
         this.typeName = typeName;
         if (typeName == null) {
-            this.typeName =  ((GTDataStoreGranuleCatalog)wrappedCatalogue).typeNamess.iterator().next();
+            this.typeName =  ((GTDataStoreGranuleCatalog)wrappedCatalogue).typeNames.iterator().next();
         }
     }
 

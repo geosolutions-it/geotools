@@ -348,7 +348,7 @@ class RasterLayerResponse{
             Utilities.ensureNonNull("granuleDescriptor", granuleDescriptor);
             
             if (granuleFilter.evaluate(granuleDescriptor.originator)) {
-                Object imageIndex = granuleDescriptor.originator.getAttribute("index");
+                Object imageIndex = granuleDescriptor.originator.getAttribute("imageindex");
                 if(imageIndex != null && imageIndex instanceof Integer) {
                     imageChoice = ((Integer) imageIndex).intValue();
                 }

@@ -57,8 +57,8 @@ import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.grid.io.UnknownFormat;
@@ -181,7 +181,6 @@ public class ImageMosaicWalker implements Runnable {
 
         /**
          * Default constructor.
-         * 
          */
         ProgressEventDispatchThreadEventLauncher() {
         }
@@ -197,13 +196,10 @@ public class ImageMosaicWalker implements Runnable {
                 throw new NullPointerException("Input argumentBuilder cannot be null");
             this.listeners = listeners;
             this.event = evt;
-
         }
 
-        /*
-         * (non-Javadoc)
-         * 
-         * @see java.lang.Runnable#run()
+        /** 
+         * Run the event launcher
          */
         public void run() {
             final int numListeners = listeners.length;
@@ -215,11 +211,10 @@ public class ImageMosaicWalker implements Runnable {
                 for (int i = 0; i < numListeners; i++)
                     ((ProcessingEventListener) listeners[i]).getNotification(this.event);
         }
-
     }
 
     /**
-     * This class is responsible for walking through he files inside a directory (and its children directories) which respect a specified wildcard.
+     * This class is responsible for walking through the files inside a directory (and its children directories) which respect a specified wildcard.
      * 
      * <p>
      * Its role is basically to simplify the construction of the mosaic by implementing a visitor pattern for the files that we have to use for the
@@ -229,9 +224,10 @@ public class ImageMosaicWalker implements Runnable {
      * It is based on the Commons IO {@link DirectoryWalker} class.
      * 
      * @author Simone Giannecchini, GeoSolutions SAS
+     * @author Daniele Romagnoli, GeoSolutions SAS
      * 
      */
-    final class CatalogBuilderDirectoryWalker extends DirectoryWalker {
+    final class MosaicDirectoryWalker extends DirectoryWalker {
 
         private DefaultTransaction transaction;
 
@@ -287,15 +283,15 @@ public class ImageMosaicWalker implements Runnable {
             validFileName = FilenameUtils.getName(validFileName);
             fireEvent(Level.INFO, "Now indexing file " + validFileName,
                     ((fileIndex * 100.0) / numFiles));
-            AbstractGridCoverage2DReader coverageReader = null;
+            GridCoverage2DReader coverageReader = null;
             try {
                 // STEP 1
                 // Getting a coverage reader for this coverage.
                 //
                 final AbstractGridFormat format;
                 if (cachedFormat == null) {
-                    format = (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed,
-                            excludeMosaicHints);
+                    // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
+                    format = (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed, excludeMosaicHints);
                 } else {
                     if (cachedFormat.accepts(fileBeingProcessed)) {
                         format = cachedFormat;
@@ -312,41 +308,45 @@ public class ImageMosaicWalker implements Runnable {
                     return;
                 }
                 cachedFormat = format;
-                coverageReader = (AbstractGridCoverage2DReader) format.getReader(
+                coverageReader = (GridCoverage2DReader) format.getReader(
                         fileBeingProcessed, runConfiguration.getHints());
                 
-                // Getting available coverageNames
+                // Getting available coverageNames from the reader
                 String [] coverageNames = coverageReader.getGridCoverageNames();
                 for (String cvName : coverageNames) {
-                    GeneralEnvelope envelope = (GeneralEnvelope) coverageReader
-                            .getOriginalEnvelope(cvName);
-                    CoordinateReferenceSystem actualCRS = coverageReader
-                            .getCoordinateReferenceSystem(cvName);
-
-                    String inputCoverageName = cvName;
+                    
+                    final String inputCoverageName = cvName;
                     String coverageName = coverageReader instanceof StructuredGridCoverage2DReader ? inputCoverageName
                             : runConfiguration.getIndexName();
 
+                    // checking whether the coverage already exists 
                     final boolean coverageExists = coverageExists(coverageName);
                     MosaicConfigurationBean mosaicConfiguration = null;
                     MosaicConfigurationBean currentConfigurationBean = null;
                     RasterManager rasterManager = null;
                     if (coverageExists) {
+                        
+                        // Get the manager for this coverage so it can be updated
                         rasterManager = parentReader.getRasterManager(coverageName);
                         mosaicConfiguration = rasterManager.getConfiguration();
-                    } else {
-
                     }
-                    MosaicBeanBuilder configBuilder = new MosaicBeanBuilder();
+                    
+                    // STEP 2
+                    // Collecting all Coverage properties to setup a MosaicConfigurationBean through
+                    // the builder
+                    final MosaicBeanBuilder configBuilder = new MosaicBeanBuilder();
+                    
+                    final GeneralEnvelope envelope = (GeneralEnvelope) coverageReader.getOriginalEnvelope(cvName);
+                    final CoordinateReferenceSystem actualCRS = coverageReader.getCoordinateReferenceSystem(cvName);
 
                     SampleModel sm = null;
                     ColorModel cm = null;
                     int numberOfLevels = 1;
                     double[][] resolutionLevels = null;
 
-                    if (/* numberOfProcessedFiles == 0 */mosaicConfiguration == null) {
-                        //
-                        // STEP 2
+                    if (mosaicConfiguration == null) {
+                        // We don't have a configuration for this configuration 
+                        
                         // Get the type specifier for this image and the check that the
                         // image has the correct sample model and color model.
                         // If this is the first cycle of the loop we initialize everything.
@@ -357,11 +357,9 @@ public class ImageMosaicWalker implements Runnable {
                         numberOfLevels = coverageReader.getNumOverviews(inputCoverageName) + 1;
                         resolutionLevels = coverageReader.getResolutionLevels(inputCoverageName);
 
-                        //
                         // at the first step we initialize everything that we will
                         // reuse afterwards starting with color models, sample
                         // models, crs, etc....
-                        //
 
                         configBuilder.setSampleModel(sm);
                         configBuilder.setColorModel(cm);
@@ -381,7 +379,8 @@ public class ImageMosaicWalker implements Runnable {
                             configBuilder.setPalette(defaultPalette);
                         }
 
-                        // Preparing configuration
+                        // STEP 2.A
+                        // Preparing configuration 
                         configBuilder.setCrs(actualCRS);
                         configBuilder.setLevels(resolutionLevels);
                         configBuilder.setLevelsNum(numberOfLevels);
@@ -409,18 +408,22 @@ public class ImageMosaicWalker implements Runnable {
                         configurations.put(currentConfigurationBean.getName(), currentConfigurationBean);
 
                     } else {
+                        // We already have a Configuration for this coverage.
+                        // Check its properties are compatible with the existing coverage.
+                        
                         CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration
                                 .getCatalogConfigurationBean();
                         if (!catalogConfigurationBean.isHeterogeneous()) {
-                            // //
-                            //
+
                             // There is no need to check resolutions if the mosaic
                             // has been already marked as heterogeneous
-                            //
-                            // //
-                            // numberOfLevels = imageioReader.getNumImages(true);
+
                             numberOfLevels = coverageReader.getNumOverviews(inputCoverageName) + 1;
                             boolean needUpdate = false;
+
+                            // 
+                            // Heterogeneousity check
+                            //
                             if (numberOfLevels != mosaicConfiguration.getLevelsNum()) {
                                 catalogConfigurationBean.setHeterogeneous(true);
                                 if (numberOfLevels > mosaicConfiguration.getLevelsNum()) {
@@ -438,6 +441,7 @@ public class ImageMosaicWalker implements Runnable {
                                     needUpdate = true;
                                 }
                             }
+                            // configuration need to be updated
                             if (needUpdate) {
                                 configurations.put(mosaicConfiguration.getName(), mosaicConfiguration);
                             }
@@ -446,12 +450,9 @@ public class ImageMosaicWalker implements Runnable {
                         cm = layout.getColorModel(null);
                         sm = layout.getSampleModel(null);
 
-                        // ////////////////////////////////////////////////////////
-                        //
                         // comparing ColorModel
                         // comparing SampeModel
                         // comparing CRSs
-                        // ////////////////////////////////////////////////////////
                         ColorModel actualCM = cm;
                         if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(
                                 mosaicConfiguration.getCrs(), actualCRS)) : false)) {
@@ -473,13 +474,8 @@ public class ImageMosaicWalker implements Runnable {
                         }
                     }
 
-                    // ////////////////////////////////////////////////////////
-                    //
-                    // STEP 4
-                    //
+                    // STEP 3
                     // create and store features
-                    //
-                    // ////////////////////////////////////////////////////////
                     CatalogManager.updateCatalog(coverageName, fileBeingProcessed, coverageReader,
                             parentReader, runConfiguration, envelope, transaction,
                             propertiesCollectors);
@@ -487,8 +483,6 @@ public class ImageMosaicWalker implements Runnable {
                     fireEvent(Level.FINE, "Done with file " + fileBeingProcessed,
                             (((fileIndex + 1) * 99.0) / numFiles));
 
-                    // advance files
-                    numberOfProcessedFiles++;
                 }
             } catch (IOException e) {
                 fireException(e);
@@ -557,7 +551,7 @@ public class ImageMosaicWalker implements Runnable {
             return true;
         }
 
-        public CatalogBuilderDirectoryWalker(final List<String> indexingDirectories,
+        public MosaicDirectoryWalker(final List<String> indexingDirectories,
                 final FileFilter filter) throws IOException {
             super(filter, Integer.MAX_VALUE);// runConfiguration.isRecursive()?Integer.MAX_VALUE:0);
 
@@ -605,10 +599,6 @@ public class ImageMosaicWalker implements Runnable {
                     fireException(e);
                 }
             }
-        }
-
-        public int getNumberOfProcessedFiles() {
-            return numberOfProcessedFiles;
         }
 
         /**
@@ -731,43 +721,21 @@ public class ImageMosaicWalker implements Runnable {
      */
     private volatile boolean stop = false;
 
-//    private MosaicConfigurationBean mosaicConfiguration;
-
-    //
-    // declaring a precision model to adhere the java double type
-    // precision
-    //
     private GranuleCatalog catalog;
-
-    private int numberOfProcessedFiles;
 
     /**
      * This field will tell the plugin if it must do a conversion of color from the original index color model to an RGB color model. This happens f
      * the original images uses different color maps between each other making for us impossible to reuse it for the mosaic.
      */
-//    private boolean mustConvertToRGB = Utils.DEFAULT_COLOR_EXPANSION_BEHAVIOR;
-
     private int fileIndex = 0;
-
-//    private ColorModel defaultCM = null;
-
-//    private CoordinateReferenceSystem defaultCRS = null;
-
-//    private byte[][] defaultPalette = null;
 
     private CatalogBuilderConfiguration runConfiguration;
 
     private ImageReaderSpi cachedReaderSPI;
 
-//    private SampleModel defaultSM;
-
     private ReferencedEnvelope imposedBBox;
 
-//    private SimpleFeatureType indexSchema;
-
     private AbstractGridFormat cachedFormat;
-
-//    private CatalogConfigurationBean catalogConfigurationBean;
 
     private ImageMosaicReader parentReader;
 
@@ -777,10 +745,8 @@ public class ImageMosaicWalker implements Runnable {
 
     private File parent;
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#run()
+    /**
+     * run the directory walker
      */
     public void run() {
 
@@ -806,7 +772,7 @@ public class ImageMosaicWalker implements Runnable {
             if (numFiles > 0) {
                 final List<String> indexingDirectories = runConfiguration.getIndexingDirectories();
                 @SuppressWarnings("unused")
-                final CatalogBuilderDirectoryWalker walker = new CatalogBuilderDirectoryWalker(
+                final MosaicDirectoryWalker walker = new MosaicDirectoryWalker(
                         indexingDirectories, finalFilter);
 
             }
@@ -982,18 +948,9 @@ public class ImageMosaicWalker implements Runnable {
         removeAllProcessingEventListeners();
         // clear stop
         stop = false;
-
         closeIndexObjects();
 
-        // clear other stuff
-//        defaultCM = null;
-//        defaultPalette = null;
-//        defaultCRS = null;
-        
         fileIndex = 0;
-        numberOfProcessedFiles = 0;
-
-        // clear directories
         runConfiguration = null;
 
     }
@@ -1110,20 +1067,12 @@ public class ImageMosaicWalker implements Runnable {
 
     private void indexingPreamble() throws IOException {
 
-        // //
-        // // create the index
-        // //
+         //
+         // create the index
+         //
         catalog = CatalogManager.createCatalog(runConfiguration);
         parentReader.granuleCatalog = catalog;
 
-        //
-        // creating a mosaic runConfiguration bean to store the properties file elements
-        // TODO: CHECK THOSE
-//        mosaicConfiguration = new MosaicConfigurationBean();
-//        mosaicConfiguration.setName(runConfiguration.getIndexName());
-//        catalogConfigurationBean = new CatalogConfigurationBean();
-//        mosaicConfiguration.setCatalogConfigurationBean(catalogConfigurationBean);
-//        catalogConfigurationBean.setCaching(runConfiguration.isCaching());
         
         //
         // IMPOSED ENVELOPE
@@ -1141,9 +1090,11 @@ public class ImageMosaicWalker implements Runnable {
         // load property collectors
         //
         loadPropertyCollectors();
-
     }
 
+    /**
+     * Load properties collectors from the configuration
+     */
     private void loadPropertyCollectors() {
         // load property collectors
         String pcConfig = runConfiguration.getPropertyCollectors();
@@ -1243,7 +1194,6 @@ public class ImageMosaicWalker implements Runnable {
                     }
                     continue;
                 }
-                // it is readable
 
                 // property names
                 final String propertyNames[] = pcDef.substring(roundLPos + 1, roundRPos).split(",");
@@ -1259,7 +1209,6 @@ public class ImageMosaicWalker implements Runnable {
                                 + " from config file:" + configFile);
                     }
                 }
-
             }
             this.propertiesCollectors = pcs;
         }
@@ -1270,42 +1219,25 @@ public class ImageMosaicWalker implements Runnable {
         if (success) {
 
             // complete initialization of mosaic configuration
-            if (/*numberOfProcessedFiles > 0*/ configurations != null && !configurations.isEmpty()) {
+            if (configurations != null && !configurations.isEmpty()) {
+                
+                // We did found some MosaicConfigurations 
                 Set<String> keys = configurations.keySet();
                 for (String key : keys) {
                     MosaicConfigurationBean mosaicConfiguration = configurations.get(key);
                     RasterManager manager = parentReader.getRasterManager(key);
                     manager.initialize();
-//                    CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration.getCatalogConfigurationBean();
-                    
-//                    mosaicConfiguration.setName(runConfiguration.getIndexName());
-//    //                mosaicConfiguration.setExpandToRGB(mustConvertToRGB);
-//                    catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
-//                    catalogConfigurationBean.setLocationAttribute(runConfiguration.getLocationAttribute());
-//                    catalogConfigurationBean.setCaching(runConfiguration.isCaching());
-//                    final String timeAttribute = runConfiguration.getTimeAttribute();
-//                    if (timeAttribute != null) {
-//                        mosaicConfiguration.setTimeAttribute(runConfiguration.getTimeAttribute());
-//                    }
-//                    final String elevationAttribute = runConfiguration.getElevationAttribute();
-//                    if (elevationAttribute != null) {
-//                        mosaicConfiguration.setElevationAttribute(runConfiguration.getElevationAttribute());
-//                    }
-//    
-//                    final String additionalDomainAttribute = runConfiguration.getAdditionalDomainAttribute();
-//                    if (additionalDomainAttribute != null) {
-//                        mosaicConfiguration.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
-//                    }
-    
+
                     // create sample image if the needed elements are available
+                    // TODO: DR: Create SampleImage
                     createSampleImage(mosaicConfiguration.getSampleModel(), mosaicConfiguration.getColorModel());
-    
-                    
                     fireEvent(Level.INFO, "Creating final properties file ", 99.9);
                     createPropertiesFiles(mosaicConfiguration);
                 }
                 if (keys.size() > 1) {
                     
+                    // TODO: DR: Remove that when dealing with Indexer.xml which should allow to know if configurations
+                    // are available
                     final String source = 
                             runConfiguration.getRootMosaicDirectory() + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
                     final String base = FilenameUtils.getName(parent.getAbsolutePath());
@@ -1323,8 +1255,6 @@ public class ImageMosaicWalker implements Runnable {
         } else {
             // processing information
             fireEvent(Level.FINE, "Canceled!!!", 100);
-
-            // TODO remove all files created so far
         }
         closeIndexObjects();
     }
@@ -1349,7 +1279,8 @@ public class ImageMosaicWalker implements Runnable {
     }
 
     private void closeIndexObjects() {
-        //TODO: consider delegating that to the reader
+        
+        // TODO: We may consider avoid disposing the catalog to allow the reader to use the already available catalog
         try {
             if (catalog != null) {
                 catalog.dispose();
@@ -1373,21 +1304,26 @@ public class ImageMosaicWalker implements Runnable {
         // CREATING GENERAL INFO FILE
         //
 
-        CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration
-                .getCatalogConfigurationBean();
-        // envelope
+        CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration.getCatalogConfigurationBean();
+
+        //envelope
         final Properties properties = new Properties();
         properties.setProperty(Utils.Prop.ABSOLUTE_PATH, Boolean.toString(catalogConfigurationBean.isAbsolutePath()));
         properties.setProperty(Utils.Prop.LOCATION_ATTRIBUTE, catalogConfigurationBean.getLocationAttribute());
+
+        // Time
         final String timeAttribute = mosaicConfiguration.getTimeAttribute();
         if (timeAttribute != null) {
             properties.setProperty(Utils.Prop.TIME_ATTRIBUTE, mosaicConfiguration.getTimeAttribute());
         }
+
+        // Elevation
         final String elevationAttribute = mosaicConfiguration.getElevationAttribute();
         if (elevationAttribute != null) {
             properties.setProperty(Utils.Prop.ELEVATION_ATTRIBUTE, mosaicConfiguration.getElevationAttribute());
         }
 
+        // Additional domains
         final String additionalDomainAttribute = mosaicConfiguration.getAdditionalDomainAttributes();
         if (additionalDomainAttribute != null) {
             properties.setProperty(Utils.Prop.ADDITIONAL_DOMAIN_ATTRIBUTES, mosaicConfiguration.getAdditionalDomainAttributes());
@@ -1444,6 +1380,4 @@ public class ImageMosaicWalker implements Runnable {
     public void dispose() {
         reset();
     }
-
-    
 }

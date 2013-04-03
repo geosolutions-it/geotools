@@ -36,14 +36,17 @@ import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.factory.Hints;
 import org.geotools.feature.collection.AbstractFeatureVisitor;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
@@ -265,6 +268,7 @@ public class CatalogManager {
         
         final ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
         final String fileLocation = prepareLocation(configuration, fileBeingProcessed);
+        final String locationAttribute = configuration.getLocationAttribute();
 
         // getting input granules
         if (inputReader instanceof StructuredGridCoverage2DReader) {
@@ -301,12 +305,16 @@ public class CatalogManager {
                                 propName = prop.getName();
                                 propValue = prop.getValue();
                                 
+                                // Matching attributes are set
                                 if (destAttributes.contains(propName)) {
                                     destFeature.setAttribute(propName, propValue);
                                 }
                             }
                             
-                            destFeature.setAttribute(configuration.getLocationAttribute(), fileLocation);
+                            // Set location
+                            destFeature.setAttribute(locationAttribute, fileLocation);
+                            
+                            // delegate remaining attributes set to properties collector 
                             updateAttributesFromCollectors(destFeature, fileBeingProcessed, inputReader, propertiesCollectors);
                             collection.add(destFeature);
                             
@@ -318,11 +326,10 @@ public class CatalogManager {
                                     throw new IllegalStateException("Feature visitor has been canceled");
                             }
                     }
-                }            
+                } 
             }, listener);
-            
         } else {
-            
+
             //
             // Case B: old style reader, proceed with classic way, using properties collectors 
             // 
@@ -333,6 +340,8 @@ public class CatalogManager {
             updateAttributesFromCollectors(feature, fileBeingProcessed, inputReader, propertiesCollectors);
             collection.add(feature);
         }
+
+        // Add the granules collection to the store
         store.addGranules(collection);
     }
 
@@ -365,7 +374,7 @@ public class CatalogManager {
      * @return
      * @throws IOException
      */
-    static private String prepareLocation(CatalogBuilderConfiguration runConfiguration, final File fileBeingProcessed) throws IOException {
+    private static String prepareLocation(CatalogBuilderConfiguration runConfiguration, final File fileBeingProcessed) throws IOException {
         // absolute
         if (runConfiguration.isAbsolute()) {
             return fileBeingProcessed.getAbsolutePath();
@@ -375,7 +384,51 @@ public class CatalogManager {
         String path = fileBeingProcessed.getCanonicalPath();
         path = path.substring(runConfiguration.getRootMosaicDirectory().length());
         return path;
+    }
 
+    /**
+     * Make sure a proper type name is specified in the catalogBean, it will be used to 
+     * create the {@link GranuleCatalog}
+     * 
+     * @param sourceURL
+     * @param configuration
+     */
+    private static void checkTypeName(URL sourceURL, MosaicConfigurationBean configuration) {
+        CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
+        if (catalogBean.getTypeName() == null) {
+            if (sourceURL.getPath().endsWith("shp")) {
+                // In case we didn't find a typeName and we are dealing with a shape index, 
+                // we set the typeName as the shape name
+                catalogBean.setTypeName(configuration.getName());
+            } else {
+                // use the default "mosaic" name
+                catalogBean.setTypeName("mosaic");
+            }
+        }
+    }
+
+    /**
+     * Create a {@link GranuleCatalog} on top of the provided Configuration
+     * @param sourceURL
+     * @param configuration
+     * @param hints
+     * @return
+     * @throws DataSourceException
+     */
+    static GranuleCatalog createCatalog(final URL sourceURL, final MosaicConfigurationBean configuration, Hints hints) throws DataSourceException {
+        CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
+        
+        // Check the typeName
+        checkTypeName(sourceURL, configuration);
+        if (hints != null && hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)) {
+            final String hintLocation = (String) hints
+                    .get(Hints.MOSAIC_LOCATION_ATTRIBUTE);
+            if (!catalogBean.getLocationAttribute().equalsIgnoreCase(hintLocation)) {
+                throw new DataSourceException("wrong location attribute");
+            }
+        }
+        // Create the catalog
+        return GranuleCatalogFactory.createGranuleCatalog(sourceURL, catalogBean, null);
     }
 
 }

@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -102,16 +103,12 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	
 	private DataStore tileIndexStore;
 
-//	private String typeName;
-	
-	Set<String> typeNamess = new HashSet<String>();
+	Set<String> typeNames = new HashSet<String>();
 
 	private String geometryPropertyName;
 
-	private Map<String, ReferencedEnvelope> bounds = new HashMap<String, ReferencedEnvelope>();
+	private Map<String, ReferencedEnvelope> bounds = new ConcurrentHashMap<String, ReferencedEnvelope>();
 
-//	private ReferencedEnvelope bounds;
-	
 	private DataStoreFactorySpi spi;
 
 	private PathType pathType;
@@ -203,7 +200,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	                    String[] typeNames = tileIndexStore.getTypeNames();
 	                    if (typeNames != null) {
 	                        for (String tn : typeNames) {
-	                            typeNamess.add(tn);
+	                            this.typeNames.add(tn);
 	                        }
 	                    }
 	                } else if (typeName != null) {
@@ -636,26 +633,25 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	}
 
     private void addTypeName(String typeName, final boolean check) {
-        
-        //TODO DR: Consider extracting typeNames from tileIndexStore instead of parsing multiple typeNames
-        if (typeName.contains(",")) {
-            String [] typeNames = typeName.split(",");
-            for (String tn: typeNames) {
-                addTypeName(tn, check);
-            }
-        } else {
-            if (check && typeNamess.contains(typeName)) {
+//        //TODO DR: Consider extracting typeNames from tileIndexStore instead of parsing multiple typeNames
+//        if (typeName.contains(",")) {
+//            String [] typeNames = typeName.split(",");
+//            for (String tn: typeNames) {
+//                addTypeName(tn, check);
+//            }
+//        } else {
+            if (check && this.typeNames.contains(typeName)) {
                 throw new IllegalArgumentException("This typeName already exists: " + typeName);
             }
-            typeNamess.add(typeName);    
-        }
+            this.typeNames.add(typeName);    
+//        }
 
     }
 
     @Override
     public String[] getTypeNames() {
-        if (typeNamess != null && !typeNamess.isEmpty()) {
-            return (String[]) typeNamess.toArray(new String[]{});
+        if (this.typeNames != null && !this.typeNames.isEmpty()) {
+            return (String[]) this.typeNames.toArray(new String[]{});
         }
         return null;
     }
@@ -730,7 +726,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			lock.lock();
 			checkStore();
 //			if(typeName==null){
-			if (typeNamess.isEmpty() || !typeNamess.contains(typeName)) {
+			if (this.typeNames.isEmpty() || !this.typeNames.contains(typeName)) {
 			    return null;
 			}
 			return tileIndexStore.getSchema(typeName);
@@ -788,7 +784,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
                     LOGGER.warning("This granule catalog was not properly dispose as it still points to:"+tileIndexStore.getInfo().toString());
                 }
                 // try to dispose the underlying store if it has not been disposed yet
-                this.dispose();                
+                this.dispose();
             }
 
         }

@@ -83,7 +83,7 @@ public class CoverageSlicesCatalog {
 
     private String parentLocation;
     
-    public final static String IMAGE_INDEX_ATTR = "index";
+    public final static String IMAGE_INDEX_ATTR = "imageindex";
 
     private final SoftValueHashMap<Integer, CoverageSlice> CoverageSliceDescriptorsCache = new SoftValueHashMap<Integer, CoverageSlice>(0);
 

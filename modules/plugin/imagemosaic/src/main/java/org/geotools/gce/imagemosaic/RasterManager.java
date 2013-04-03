@@ -46,6 +46,7 @@ import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.DecimationPolicy;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
@@ -1184,8 +1185,15 @@ public class RasterManager {
         return granuleCatalog;
     }
     
-    public void createStore (String coverageName, SimpleFeatureType indexSchema) throws IOException {
-        String typeName = indexSchema.getTypeName();
+    /**
+     * Create a store for the coverage related to this {@link RasterManager} using the 
+     * provided schema
+     *
+     * @param indexSchema
+     * @throws IOException
+     */
+    public void createStore (SimpleFeatureType indexSchema) throws IOException {
+        final String typeName = indexSchema.getTypeName();
         final SimpleFeatureType type = typeName != null ? granuleCatalog.getType(typeName) : null;
         if (type == null) {
             granuleCatalog.createType(indexSchema);
@@ -1215,22 +1223,33 @@ public class RasterManager {
     }
 
     public MosaicConfigurationBean getConfiguration() {
-            return configuration;
-        }
+        return configuration;
+    }
 
-        public void setConfiguration(MosaicConfigurationBean configuration) {
-            this.configuration = configuration;
-        }
+    public void setConfiguration(MosaicConfigurationBean configuration) {
+        this.configuration = configuration;
+    }
 
     public void dispose() {
         synchronized (this) {
             try {
-                if (granuleCatalog != null)
+                if (granuleCatalog != null) {
                     this.granuleCatalog.dispose();
+                }
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE))
                     LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
-            }                
+            } finally {
+                if (granuleSource != null) {
+                    granuleSource = null;
+                }
+                if (granuleStore != null) {
+                    granuleStore = null;
+                }
+                if (granuleCatalog != null) {
+                    granuleCatalog = null;
+                }
+            }
         }
     }
 
@@ -1271,6 +1290,85 @@ public class RasterManager {
         } catch (FactoryException e) {
             throw new IOException("Exception occurred while initializing the SpatialDomainManager", e);
         }
+    }
+
+    /**
+     * Return the metadataNames for this manager
+     * 
+     * @return
+     */
+    String[] getMetadataNames() {
+        final List<String> metadataNames = new ArrayList<String>();
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
+        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        if (domainsManager != null) {
+            metadataNames.addAll(domainsManager.getMetadataNames());
+        }
+        return metadataNames.toArray(new String[metadataNames.size()]);
+    }
+
+    /** 
+     * Return the metadata value for the specified metadata name 
+     * @param name the name of the metadata to be returned
+     * @return
+     */
+    String getMetadataValue(String name) {
+        String value = null;
+        final boolean hasTimeDomain = timeDomainManager != null;
+        final boolean hasElevationDomain = elevationDomainManager != null;
+
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_ELEVATION_DOMAIN))
+            return String.valueOf(hasElevationDomain);
+
+        if (name.equalsIgnoreCase(GridCoverage2DReader.HAS_TIME_DOMAIN)) {
+            return String.valueOf(hasTimeDomain);
+        }
+
+        // NOT supported
+        if (name.equalsIgnoreCase(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION)) {
+            return null;
+        }
+        // NOT supported
+        if (name.equalsIgnoreCase(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION)) {
+            return null;
+        }
+
+        if (hasTimeDomain) {
+            if (name.equalsIgnoreCase("time_domain")) {
+                return timeDomainManager.getMetadataValue(name);
+            }
+            if ((name.equalsIgnoreCase("time_domain_minimum") || name
+                    .equalsIgnoreCase("time_domain_maximum"))) {
+                return timeDomainManager.getMetadataValue(name);
+            }
+        }
+
+        if (hasElevationDomain) {
+            if (name.equalsIgnoreCase("elevation_domain")) {
+                return elevationDomainManager.getMetadataValue(name);
+            }
+
+            if (name.equalsIgnoreCase("elevation_domain_minimum")
+                    || name.equalsIgnoreCase("elevation_domain_maximum")) {
+                return elevationDomainManager.getMetadataValue(name);
+            }
+        }
+
+        // check additional domains
+        if (domainsManager != null) {
+            return domainsManager.getMetadataValue(name);
+        }
+
+        //
+        return value;
     }
 
 }

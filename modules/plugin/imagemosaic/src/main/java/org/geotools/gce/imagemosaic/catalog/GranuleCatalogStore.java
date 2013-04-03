@@ -22,10 +22,8 @@ import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
-import org.geotools.resources.coverage.FeatureUtilities;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory2;
 
 /**
  * A {@link GranuleStore} implementation wrapping a {@link GranuleCatalog}.
@@ -35,20 +33,10 @@ import org.opengis.filter.FilterFactory2;
  */
 public class GranuleCatalogStore extends GranuleCatalogSource implements GranuleStore {
     
-    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
-    
     private Transaction transaction;
     
-//    private Filter filterName;
-
     public GranuleCatalogStore(GranuleCatalog catalog, final String typeName) {
         super(catalog, typeName);
-        //TODO: once we allow to create different catalogs (based on different featureTypes) 
-        // we can stop filtering by name 
-//        List<Filter> filters = new ArrayList<Filter>(); 
-//        filters.add(FF.equal(FF.property("coverage"),
-//                FF.literal(coverageName), true));
-//        filterName = FF.and(filters);
     }
 
     @Override
@@ -95,8 +83,7 @@ public class GranuleCatalogStore extends GranuleCatalogSource implements Granule
 
     @Override
     public int removeGranules(Filter filter) {
-        // TODO Auto-generated method stub
-        return 0;
+        throw new UnsupportedOperationException("Operation not supported yet");
     }
 
     @Override
