@@ -75,6 +75,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.geotools.data.DataAccessFactory.Param;
+import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
@@ -324,12 +325,23 @@ public class Utils {
 		retValue.setCatalogConfigurationBean(catalogConfigurationBean);
 		final boolean ignoreSome = ignorePropertiesSet != null && !ignorePropertiesSet.isEmpty();
 
-		//
-		// load the properties file
-		//
-		URL propsURL = sourceURL;
-		if (!sourceURL.toExternalForm().endsWith(".properties"))
-			propsURL = DataUtilities.changeUrlExt(sourceURL, "properties");
+        //
+        // load the properties file
+        //
+        URL propsURL = sourceURL;
+        if (!sourceURL.toExternalForm().endsWith(".properties")) {
+            propsURL = DataUtilities.changeUrlExt(sourceURL, "properties");
+            if (propsURL.getProtocol().equals("file")) {
+                final File sourceFile = DataUtilities.urlToFile(propsURL);
+                if (!sourceFile.exists()) {
+                    if (LOGGER.isLoggable(Level.INFO)) {
+                        LOGGER.info("properties file doesn't exist");
+                    }
+                    return null;
+                }
+            }
+        }
+		
 		final Properties properties = loadPropertiesFromURL(propsURL);
 		if (properties == null) {
 			if (LOGGER.isLoggable(Level.INFO))

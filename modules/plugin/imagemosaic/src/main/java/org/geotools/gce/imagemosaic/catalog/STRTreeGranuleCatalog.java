@@ -288,14 +288,14 @@ class STRTreeGranuleCatalog extends AbstractGranuleCatalog {
 		try{
 			l.lock();	        
 			 
-			// original index //TODO: don't dispose it since we are now dealing with multiple types
-//			if(wrappedCatalogue!=null)
-//			    try{
-//			        wrappedCatalogue.dispose();
-//			    }catch (Exception e) {
-//                                if(LOGGER.isLoggable(Level.FINE))
-//                                    LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
-//                            }
+			// original index 
+			if(wrappedCatalogue!=null)
+			    try{
+			        wrappedCatalogue.dispose();
+			    }catch (Exception e) {
+                                if(LOGGER.isLoggable(Level.FINE))
+                                    LOGGER.log(Level.FINE,e.getLocalizedMessage(),e);
+                            }
 //	
 			
 		}finally{

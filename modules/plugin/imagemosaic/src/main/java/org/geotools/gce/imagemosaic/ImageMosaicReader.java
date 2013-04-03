@@ -258,11 +258,18 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 			throw new DataSourceException("This plugin accepts File, URL or String. The string may describe a File or an URL");
 		
 		//
-		// Load properties file with information about levels and envelope
+		// Load properties file
 		//
-		// Edit coveragesManager accordingly
-		MosaicConfigurationBean configuration = Utils.loadMosaicProperties(sourceURL,this.locationAttributeName);
+		MosaicConfigurationBean configuration = null; 
 		try {
+		    if (sourceURL.getProtocol().equals("file")) {
+	                final File sourceFile = DataUtilities.urlToFile(sourceURL);
+	                if (!sourceFile.exists()) {
+	                    throw new DataSourceException("The specified sourceURL doesn't refer to an existing file");
+	                }
+	            }
+		    
+		    configuration = Utils.loadMosaicProperties(sourceURL,this.locationAttributeName);
 		if(configuration==null){
 			//
 			// do we have a datastore properties file? It will preempt on the shapefile
@@ -295,33 +302,39 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 					}
 				}               	
 			}
-		        GranuleCatalog catalog = null;
-		        Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
-		        // SPI
-		        final String SPIClass = props.getProperty("SPI");
-		            // create a datastore as instructed
-		            final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
-		            final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(props, spi);
+                if (beans.isEmpty() && !datastoreProperties.exists()) {
+                    throw new DataSourceException("No mosaic properties file or datastore properties file have been found");
+                }
+                GranuleCatalog catalog = null;
+                Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
+                // SPI
+                final String SPIClass = props.getProperty("SPI");
+                // create a datastore as instructed
+                final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
+                final Map<String, Serializable> params = Utils.createDataStoreParamsFromPropertiesFile(props, spi);
 
-//		            params.put("TypeName", sb.toString());
-		            params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
-		            catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL,  beans.get(0).getCatalogConfigurationBean(), params);
-		            if (granuleCatalog == null) {
-		                granuleCatalog = catalog;
-		            }
-			
+                // params.put("TypeName", sb.toString());
+                params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
+                catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, beans.get(0).getCatalogConfigurationBean(), params);
+                if (granuleCatalog == null) {
+                    granuleCatalog = catalog;
+                }
+
                 // Creating a RasterManager for each mosaic configuration found on disk
                 for (MosaicConfigurationBean bean : beans) {
                     if (granuleCatalog == null) {
-                        throw new DataSourceException("Unable to create index for this URL "
-                                + sourceURL);
+                        throw new DataSourceException("Unable to create index for this URL " + sourceURL);
                     }
                     addRasterManager(bean, true);
                 }
 			} else {
 			    CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
 			    if (catalogBean.getTypeName() == null) {
-			        catalogBean.setTypeName("mosaic");
+			        if (sourceURL.getPath().endsWith("shp")) {
+			            catalogBean.setTypeName(configuration.getName());
+			        } else {
+			            catalogBean.setTypeName("mosaic");
+			        }			    
 			    }
 			    if(this.hints.containsKey(Hints.MOSAIC_LOCATION_ATTRIBUTE)){
 			        final String hintLocation = (String)this.hints.get(Hints.MOSAIC_LOCATION_ATTRIBUTE);
