@@ -32,6 +32,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
@@ -392,14 +393,16 @@ public class CatalogManager {
      * 
      * @param sourceURL
      * @param configuration
+     * @throws IOException 
      */
-    private static void checkTypeName(URL sourceURL, MosaicConfigurationBean configuration) {
+    private static void checkTypeName(URL sourceURL, MosaicConfigurationBean configuration) throws IOException {
         CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
         if (catalogBean.getTypeName() == null) {
             if (sourceURL.getPath().endsWith("shp")) {
                 // In case we didn't find a typeName and we are dealing with a shape index, 
                 // we set the typeName as the shape name
-                catalogBean.setTypeName(configuration.getName());
+                final File file = DataUtilities.urlToFile(sourceURL);
+                catalogBean.setTypeName(FilenameUtils.getBaseName(file.getCanonicalPath()));
             } else {
                 // use the default "mosaic" name
                 catalogBean.setTypeName("mosaic");
@@ -413,9 +416,9 @@ public class CatalogManager {
      * @param configuration
      * @param hints
      * @return
-     * @throws DataSourceException
+     * @throws IOException 
      */
-    static GranuleCatalog createCatalog(final URL sourceURL, final MosaicConfigurationBean configuration, Hints hints) throws DataSourceException {
+    static GranuleCatalog createCatalog(final URL sourceURL, final MosaicConfigurationBean configuration, Hints hints) throws IOException {
         CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
         
         // Check the typeName

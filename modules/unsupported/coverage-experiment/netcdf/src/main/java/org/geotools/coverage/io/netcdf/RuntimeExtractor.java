@@ -65,7 +65,7 @@ class RuntimeExtractor extends PropertiesCollector {
         // get name of the file
         if (type.equalsIgnoreCase(RuntimeType.MODIFY_TIME.toString())) {
 
-            // TODO Need to take into account locale
+            // TODO Need to take into account locale?
             date = new Date(file.lastModified());
         }
         // final String name = FilenameUtils.getBaseName(file.getAbsolutePath());

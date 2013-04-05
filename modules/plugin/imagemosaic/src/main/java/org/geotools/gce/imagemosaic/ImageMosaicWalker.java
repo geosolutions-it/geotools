@@ -1380,4 +1380,9 @@ public class ImageMosaicWalker implements Runnable {
     public void dispose() {
         reset();
     }
+    
+    public Map<String, MosaicConfigurationBean> getConfigurations() {
+        return configurations;
+    }
+
 }

@@ -234,10 +234,9 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 
         // grid geometry
         setGridGeometry(typeName);
-        
+
         // raster manager
         addRasterManager(configuration, false);
-        
     }
 
     /**

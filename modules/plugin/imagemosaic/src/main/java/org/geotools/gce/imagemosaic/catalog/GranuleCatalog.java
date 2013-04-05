@@ -48,13 +48,10 @@ public interface GranuleCatalog {
 	 *         {@link BoundingBox}.
 	 * @throws IOException 
 	 */
-//	public Collection<GranuleDescriptor> getGranules(final BoundingBox envelope)throws IOException;
 
     public Collection<GranuleDescriptor> getGranules(final String typeName, final BoundingBox envelope) throws IOException;
 
     public Collection<GranuleDescriptor> getGranules(final Query q) throws IOException;
-//
-//	public Collection<GranuleDescriptor> getGranules() throws IOException;
 
     public Collection<GranuleDescriptor> getGranules(final String typeName) throws IOException;
 	
@@ -67,13 +64,10 @@ public interface GranuleCatalog {
 	 *         {@link BoundingBox}.
 	 * @throws IOException 
 	 */
-//	public void getGranules (final BoundingBox envelope, final  GranuleCatalogVisitor visitor) throws IOException;
 
     public void getGranules (final String typeName, final BoundingBox envelope, final  GranuleCatalogVisitor visitor) throws IOException;
 	
 	public void getGranules (final Query q, final GranuleCatalogVisitor visitor) throws IOException;
-
-//    public void getGranules (final String typeName, final Query q, final GranuleCatalogVisitor visitor) throws IOException;
 
 	public void dispose();
 
@@ -81,29 +75,19 @@ public interface GranuleCatalog {
 
         public void addGranules(final String typeName, final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException;
 
-//	public void addGranule(final SimpleFeature granule, final Transaction transaction) throws IOException;
-//	
-//	public void addGranules(final Collection<SimpleFeature> granules, final Transaction transaction) throws IOException;
-
 	public void createType(String namespace, String typeName, String typeSpec) throws IOException, SchemaException;
 
 	public void createType(SimpleFeatureType featureType) throws IOException;
 
 	public void createType(String identification, String typeSpec) throws SchemaException, IOException;
 
-//	public SimpleFeatureType getType() throws IOException;
-
     public SimpleFeatureType getType(final String typeName) throws IOException;
 
     public int removeGranules (final Query query);
 
-//	public BoundingBox getBounds();
-
     public BoundingBox getBounds(final String typeName);
 
 	public void computeAggregateFunction(final Query q, final FeatureCalc function) throws IOException;
-
-//	public QueryCapabilities getQueryCapabilities();
 
     public QueryCapabilities getQueryCapabilities(final String typeName);
     

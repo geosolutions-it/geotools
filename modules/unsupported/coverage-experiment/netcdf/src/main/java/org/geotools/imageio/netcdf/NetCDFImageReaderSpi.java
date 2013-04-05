@@ -36,10 +36,12 @@ import ucar.nc2.dataset.NetcdfDataset.Enhance;
  */
 public class NetCDFImageReaderSpi extends UnidataImageReaderSpi {
 
-    static{
-//        NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
+    static {
+        // Current version doesn't contain that method. I sent an email to the netcdf-java mailing list
+        // they told that they will restore it in the next version
+        // NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
     }
-    
+
     /** Default Logger * */
     private static final Logger LOGGER = Logging.getLogger(NetCDFImageReaderSpi.class);
 

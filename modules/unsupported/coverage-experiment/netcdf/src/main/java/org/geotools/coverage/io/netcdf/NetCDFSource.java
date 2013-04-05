@@ -43,7 +43,6 @@ public class NetCDFSource extends DefaultCoverageSource {
         this.reader = reader;
     }
 
-
     @Override
     public CoverageResponse read(CoverageReadRequest request, ProgressListener listener)
             throws IOException {
@@ -53,6 +52,4 @@ public class NetCDFSource extends DefaultCoverageSource {
         NetCDFResponse netCDFresponse = new NetCDFResponse(coverageRequest);
         return netCDFresponse.createResponse();
     }
-    
-
 }

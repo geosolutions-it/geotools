@@ -39,6 +39,8 @@ import org.apache.commons.io.FileUtils;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GridFormatFinder;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker;
+import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
@@ -594,13 +596,13 @@ public class PyramidBuilder extends BaseArgumentsManager implements Runnable,
                 configuration.setIndexingDirectories(Arrays.asList(configuration.getRootMosaicDirectory()));
 
 	        // prepare and run the index builder
-	        final CatalogBuilder builder = new CatalogBuilder(configuration);
+	        final ImageMosaicWalker builder = new ImageMosaicWalker(configuration);
 	        builder.run();	    
-	        builder.addProcessingEventListener(new CatalogBuilder.ProcessingEventListener() {
+	        builder.addProcessingEventListener(new ImageMosaicWalker.ProcessingEventListener() {
                     
                     @Override
                     public void getNotification(
-                            org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ProcessingEvent event) {
+                            ImageMosaicWalker.ProcessingEvent event) {
                        slaveToolsListener.getNotification(
                                new ProcessingEvent(
                                        event.getSource(),
@@ -611,13 +613,14 @@ public class PyramidBuilder extends BaseArgumentsManager implements Runnable,
                     
                     @Override
                     public void exceptionOccurred(
-                            org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ExceptionEvent event) {
+                            ImageMosaicWalker.ExceptionEvent event) {
                         slaveToolsListener.exceptionOccurred(new ExceptionEvent(event.getSource(),event.getMessage(),event.getPercentage(),event.getException()));
                         
                     }
                 });
 		builder.removeAllProcessingEventListeners();
-		return new double[] { builder.getMosaicConfiguration().getLevels()[0][0],builder.getMosaicConfiguration().getLevels()[0][1]};
+		MosaicConfigurationBean bean = builder.getConfigurations().values().iterator().next();
+		return new double[] { bean.getLevels()[0][0],bean.getLevels()[0][1]};
 	}
 
 	/**

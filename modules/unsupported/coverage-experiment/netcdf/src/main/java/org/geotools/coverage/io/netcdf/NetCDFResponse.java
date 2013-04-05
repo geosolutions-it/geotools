@@ -513,24 +513,6 @@ public class NetCDFResponse extends CoverageResponse{
         }
         try {
 
-//            reader = NetCDFDriver.SPI.createReaderInstance();
-            // TODO Avoid That! Should we use the same reader?
-//            if (reader == null) {
-//                if (LOGGER.isLoggable(java.util.logging.Level.WARNING)) {
-//                    LOGGER.warning(new StringBuilder(
-//                            "Unable to get s reader for granuleDescriptor ")
-//                            .append(this.toString()).append(" with request ")
-//                            .append(request.toString())
-//                            .append(" Resulting in no granule loaded: Empty result").toString());
-//                }
-//                return null;
-//            }
-//            inStream = ImageIOExt.getImageInputStreamSPI(datasetURL, true)
-//                    .createInputStreamInstance(datasetURL, ImageIO.getUseCache(),
-//                            ImageIO.getCacheDirectory());
-//            // set input (Note that we set ignoreMetadata = true to avoid any useless slicesCatalog initialization)
-//            reader.setInput(inStream, false, true);
-            
             // What about thread safety?
             
             imageIndex = index;

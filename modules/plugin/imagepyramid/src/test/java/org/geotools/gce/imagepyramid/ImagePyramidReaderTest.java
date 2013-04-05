@@ -16,8 +16,6 @@
  */
 package org.geotools.gce.imagepyramid;
 
-import it.geosolutions.imageio.utilities.ImageIOUtilities;
-
 import java.awt.Color;
 import java.awt.Rectangle;
 import java.io.File;
