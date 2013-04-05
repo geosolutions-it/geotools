@@ -61,7 +61,7 @@ public class NetCDFCoverageReadRequest extends CoverageReadRequest{
 
     NetCDFSource source;
 
-    // on NetCDF adopt the direct read: see the google document (Which one?)
+    // on NetCDF adopt the direct read: see the google document (Which one? it seems it has been deleted)
     ReadType readType = ReadType.DIRECT_READ;
 
     SpatialRequestHelper spatialRequestHelper;

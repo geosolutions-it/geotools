@@ -63,7 +63,7 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
     
     private String namePrefix = null;
     
-    private Map<Name, Name> nameToVarMap = new HashMap<Name, Name>();
+//    private Map<Name, Name> nameToVarMap = new HashMap<Name, Name>();
     /**
      * Constructor 
      * 
@@ -116,7 +116,7 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
                 for (Name name : originalNames) {
                     Name coverageName = new NameImpl(/*namePrefix + */name.toString());
                     names.add(coverageName);
-                    nameToVarMap.put(coverageName, name);
+//                    nameToVarMap.put(coverageName, name);
                 }
             }
         } catch (Exception e) {
@@ -131,7 +131,7 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
         }
         listener.started();
         try {
-            return new NetCDFSource((NetCDFImageReader)reader, nameToVarMap.get(name));
+            return new NetCDFSource((NetCDFImageReader)reader, /*nameToVarMap.get(name)*/ name);
         } catch (Throwable e) {
             listener.exceptionOccurred(e);
             return null;

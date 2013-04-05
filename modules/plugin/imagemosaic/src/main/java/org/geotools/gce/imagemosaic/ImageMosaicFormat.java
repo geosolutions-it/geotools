@@ -296,10 +296,12 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
             // check if we have to build the index
             ImageMosaicReader reader = getReader(source, hints);
             if (reader != null) {
-                // TODO: DR: Is inefficient
+                // TODO: It's inefficient
                 reader.dispose();
                 return true;
             }
+            
+            
             
             URL sourceURL = Utils.checkSource(source, hints);
             if(sourceURL == null){
@@ -494,8 +496,8 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
                 LOGGER.log(Level.WARNING, e.getLocalizedMessage(), e);
             return null;
         } catch (IOException e) {
-            if (LOGGER.isLoggable(Level.WARNING))
-                LOGGER.log(Level.WARNING, e.getLocalizedMessage(), e);
+            if (LOGGER.isLoggable(Level.FINE))
+                LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
             return null;
         }
     }

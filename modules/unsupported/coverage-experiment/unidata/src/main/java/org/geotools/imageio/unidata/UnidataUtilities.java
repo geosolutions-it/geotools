@@ -71,61 +71,64 @@ import ucar.nc2.dataset.VariableDS;
  */
 public class UnidataUtilities {
 
+    static final String EXTERNAL_DATA_DIR;
+
+    private static final String NETCDF_DATA_DIR = "NETCDF_DATA_DIR";
+
     public static class KeyValuePair implements Map.Entry<String, String> {
-		
-		public KeyValuePair(final String key, final String value){
-			this.key = key;
-			this.value = value;
-		}
-			
-		private String key;
-		private String value;
 
-		public String getKey() {
-			return key;
-		}
+        public KeyValuePair(final String key, final String value) {
+            this.key = key;
+            this.value = value;
+        }
 
-		public String getValue() {
-			return value;
-		}
+        private String key;
 
-		private boolean equal(Object a, Object b) {
-			return a == b || a != null && a.equals(b);
-		}
+        private String value;
 
-		public boolean equals(Object o) {
-			return o instanceof KeyValuePair
-					&& equal(((KeyValuePair) o).key, key)
-					&& equal(((KeyValuePair) o).value, value);
-		}
+        public String getKey() {
+            return key;
+        }
 
-		private static int hashCode(Object a) {
-			return a == null ? 42 : a.hashCode();
-		}
+        public String getValue() {
+            return value;
+        }
 
-		public int hashCode() {
-			return hashCode(key) * 3 + hashCode(value);
-		}
+        private boolean equal(Object a, Object b) {
+            return a == b || a != null && a.equals(b);
+        }
 
-		public String toString() {
-			return "(" + key + "," + value + ")";
-		}
+        public boolean equals(Object o) {
+            return o instanceof KeyValuePair && equal(((KeyValuePair) o).key, key)
+                    && equal(((KeyValuePair) o).value, value);
+        }
 
-		public String setValue(String value) {
-			this.value = value;
-			return value;
+        private static int hashCode(Object a) {
+            return a == null ? 42 : a.hashCode();
+        }
 
-		}
-	}
-	
+        public int hashCode() {
+            return hashCode(key) * 3 + hashCode(value);
+        }
+
+        public String toString() {
+            return "(" + key + "," + value + ")";
+        }
+
+        public String setValue(String value) {
+            this.value = value;
+            return value;
+        }
+    }
+
     /** The LOGGER for this class. */
     private static final Logger LOGGER = Logger.getLogger(UnidataUtilities.class.toString());
 
     public static final int JGREG = 15 + 31 * (10 + 12 * 1582);
-    
+
     private UnidataUtilities() {
-    	
-    }    
+
+    }
 
     public final static String LOWER_LEFT_LONGITUDE = "lower_left_longitude";
 
@@ -136,7 +139,7 @@ public class UnidataUtilities {
     public final static String UPPER_RIGHT_LATITUDE = "upper_right_latitude";
 
     public static final String COORDSYS = "latLonCoordSys";
-    
+
     public final static String LATITUDE = "latitude";
 
     public final static String LAT = "lat";
@@ -250,7 +253,6 @@ public class UnidataUtilities {
             } else {
                 throw new IllegalArgumentException(
                         "The specified axis doesn't represent a valid zeta Axis");
-
             }
         }
 
@@ -317,6 +319,19 @@ public class UnidataUtilities {
         VALID_TYPES.add(DataType.LONG);
         VALID_TYPES.add(DataType.FLOAT);
         VALID_TYPES.add(DataType.DOUBLE);
+
+        // Didn't extracted to a separate method 
+        // since we can't initialize the static fields
+        final Object externalDir = System.getProperty(NETCDF_DATA_DIR);
+        String finalDir = null;
+        if (externalDir != null) {
+            String dir = (String) externalDir;
+            final File file = new File(dir);
+            if (isValid(file)) {
+                finalDir = dir;
+            }
+        }
+        EXTERNAL_DATA_DIR = finalDir;
     }
 
     /**
@@ -347,6 +362,31 @@ public class UnidataUtilities {
         }
 
         return -1;
+    }
+
+    public static boolean isValid(File file) {
+        String dir = file.getAbsolutePath();
+        if (!file.exists()) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.warning("The specified " + NETCDF_DATA_DIR + " property doesn't refer "
+                        + "to an existing folder. Please check the path: " + dir);
+            }
+            return false;
+        } else if (!file.isDirectory()) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.warning("The specified " + NETCDF_DATA_DIR + " property doesn't refer "
+                        + "to a directory. Please check the path: " + dir);
+            }
+            return false;
+        } else if (!file.canWrite()) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.warning("The specified " + NETCDF_DATA_DIR + " property refers to "
+                        + "a directory which can't be write. Please check the path and"
+                        + " the permissions for: " + dir);
+            }
+            return false;
+        }
+        return true;
     }
 
     private static int getZDimensionLength(Variable var) {
@@ -671,6 +711,8 @@ public class UnidataUtilities {
     public static boolean isVariableAccepted(final String name,
             final CheckType checkType) {
         if (checkType == CheckType.NONE) {
+            return true;
+        } else {
             if (name.equalsIgnoreCase(LATITUDE)
                     || name.equalsIgnoreCase(LONGITUDE)
                     || name.equalsIgnoreCase(LON) 
@@ -692,7 +734,7 @@ public class UnidataUtilities {
 //            return TSS_OAG_ACCEPTED.containsKey(name);
 //        else if (checkType == CheckType.PE_MODEL)
 //            return TSS_PE_ACCEPTED.containsKey(name);
-        return true;
+//        return true;
     }
 
     /**

@@ -41,8 +41,6 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.TileCache;
 import javax.media.jai.TileScheduler;
-import javax.media.jai.operator.TransposeDescriptor;
-import javax.media.jai.operator.TransposeType;
 
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;

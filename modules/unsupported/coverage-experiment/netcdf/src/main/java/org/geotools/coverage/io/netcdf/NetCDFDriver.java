@@ -47,7 +47,6 @@ import org.opengis.util.ProgressListener;
 /**
  * NetCDF Driver
  * 
- * @source $URL$
  */
 public class NetCDFDriver extends DefaultFileDriver implements FileDriver, Driver {
 
@@ -69,7 +68,7 @@ public class NetCDFDriver extends DefaultFileDriver implements FileDriver, Drive
                 temp = null;
             }
         }
-        // assing the SPI
+        // assign the SPI
         SPI = temp;
     }
 

@@ -113,7 +113,7 @@ public class Utils {
     final private static double RESOLUTION_TOLERANCE_FACTOR = 1E-2;
 
     public final static Key EXCLUDE_MOSAIC = new Key(Boolean.class);
-
+    
     public final static Key MOSAIC_READER = new Key(ImageMosaicReader.class);
 
     public static final String RANGE_SPLITTER_CHAR = ";";
@@ -121,7 +121,7 @@ public class Utils {
     public final static String INDEXER_PROPERTIES = "indexer.properties";
 
     /** EHCache instance to cache histograms */ 
-    private static Cache ehcache;    
+    private static Cache ehcache;
 
     /** RGB to GRAY coefficients (for Luminance computation) */
     public final static double RGB_TO_GRAY_MATRIX [][]= {{ 0.114, 0.587, 0.299, 0 }};

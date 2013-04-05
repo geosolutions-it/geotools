@@ -46,6 +46,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,6 +55,7 @@ import javax.imageio.ImageReadParam;
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.spi.ImageReaderSpi;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
@@ -213,16 +215,371 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             setProperty("driver", DRIVER);
             setProperty("type", TYPE);
             setProperty("urlPrefix", URL_PREFIX + database);
-            setProperty("database", database);            
+            setProperty("database", database);
             setProperty(TYPE_NAME, database);
         }
     }
     
-    protected Properties datastoreProps = null;
-    
+    /** 
+     * A class used to store any auxiliary indexing information
+     * 
+     * @author Daniele Romagnoli, GeoSolutions SAS
+     */
+    static class NetCDFIndexer {
+
+        public NetCDFIndexer(final File file) {
+            org.geotools.util.Utilities.ensureNonNull("file", file);
+            if (!file.exists()) {
+                throw new IllegalArgumentException("The specified file doesn't exist: " + file);
+            }
+
+            // Set files  
+            mainFile = file;
+            parentDir = new File(mainFile.getParent());
+
+            // Look for external folder configuration
+            final String baseFolder = UnidataUtilities.EXTERNAL_DATA_DIR;
+            File baseDir = null;
+            if (baseFolder != null) {
+                baseDir = new File(baseFolder);
+                // Check it again in case it has been deleted in the meantime:
+                baseDir = UnidataUtilities.isValid(baseDir) ? baseDir : null;
+            }
+
+            try {
+                String mainFilePath = mainFile.getCanonicalPath();
+                String baseName = FilenameUtils.removeExtension(FilenameUtils.getName(mainFilePath));
+                destinationDir = new File(parentDir, "." + baseName);
+
+                // append base file folder tree to the optional external data dir
+                if (baseDir != null) {
+                    destinationDir = new File(baseDir, FilenameUtils.getPath(destinationDir
+                            .getAbsolutePath()));
+                }
+
+                boolean createdDir = false;
+                if (!destinationDir.exists()) {
+                    createdDir = destinationDir.mkdirs();
+                }
+
+                // Init auxiliary file names
+                slicesIndexFile = new File(destinationDir, baseName + ".idx");
+                variablesSummaryFile = new File(destinationDir, baseName + ".cvs");
+                slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
+                
+                if (!createdDir) {
+                    // Check for index to be reset only in case we didn't created a new directory.
+                    checkReset(mainFile, slicesIndexFile, destinationDir);
+                }
+
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING, e.getMessage(), e);
+                }
+            } 
+        }
+
+        /**
+         * Check whether the Net
+         * @param mainFile
+         * @param slicesIndexFile
+         * @param destinationDir
+         * @throws IOException
+         */
+        private static void checkReset(final File mainFile, final File slicesIndexFile, final File destinationDir) throws IOException {
+            // TODO: Consider acquiring a LOCK on the file
+            if (slicesIndexFile.exists()) {
+                final long mainFileTime = mainFile.lastModified();
+                final long indexTime = slicesIndexFile.lastModified();
+
+                // Check whether the NetCDF time is more recent with respect to the auxiliary indexes
+                if (mainFileTime > indexTime) {
+                    // Need to delete all the auxiliary files and start from scratch
+                    FileUtils.deleteDirectory(destinationDir);
+                }
+            }
+        }
+
+        /**
+         * The list of Slice2D indexes
+         */
+        protected List<UnidataSlice2DIndex> slicesIndexList;
+        
+        /** 
+         * The Slice2D index manager
+         */
+        protected UnidataSlice2DIndexManager slicesIndexManager;
+
+        /** 
+         * The list of coverages to be put in the coverages summary file
+         */
+        private Map<String, Name> coveragesMap = null;
+        private Map<Name, String> variablesMap = null;
+
+        private File parentDir;
+
+        private File destinationDir;
+
+        /**
+         * The main NetCDF file
+         */
+        private File mainFile;
+
+        /** 
+         * File storing the slices index (index, Tsection, Zsection) 
+         */
+        private File slicesIndexFile;
+
+        /**
+         * File storing the coverage names summary. This will allow knowing the available coverages name without opening and scanning again all the
+         * dataset
+         */
+        private File variablesSummaryFile;
+        
+        /** 
+         * The datastore containing the {@link CoverageSlice} index
+         */
+        protected Properties datastoreProps = null;
+        
+        public void writeToDisk()
+                throws IOException {
+            // Write collected information
+            UnidataSlice2DIndexManager.writeIndexFile(slicesIndexFile, slicesIndexList);
+            storeCoverages(variablesSummaryFile, coveragesMap);
+        }
+
+        /**
+         * Write to disk the variable summary, a simple text file containing variable names.
+         * 
+         * @param variablesSummaryFile
+         * @param coverages
+         */
+        private void storeCoverages(final File variablesSummaryFile,
+                final Map<String, Name> coverages) {
+            if (coverages == null || coverages.isEmpty()) {
+                throw new IllegalArgumentException("No valid coverages name to be written");
+            }
+            BufferedWriter writer = null;
+            try {
+                writer = new BufferedWriter(new FileWriter(variablesSummaryFile));
+                Set<String> keys = coverages.keySet();
+                for (String key: keys) {
+                    writer.write(key + "=" + coverages.get(key).toString() + "\n");
+                }
+            } catch (FileNotFoundException e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE, "file not found" + e);
+                }
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE, "unable to write the coverages summary file " + e);
+                }
+            } finally {
+                if (writer != null) {
+                    IOUtils.closeQuietly(writer);
+                }
+            }
+        }
+        
+        private void initCoverageNames() {
+            getCoverages();
+        }
+        
+        /**
+         * Initialize Variables Name list from the summary file.
+         */
+        private Map<String, Name> getCoverages() {
+            if (coveragesMap == null) {
+                coveragesMap = new HashMap<String, Name>();
+                variablesMap = new HashMap<Name, String>();
+                if (variablesSummaryFile.exists()) {
+                    BufferedReader reader = null;
+                    try {
+                        reader = new BufferedReader(new FileReader(variablesSummaryFile));
+                        String line = null;
+                        while ((line = reader.readLine()) != null) {
+                            if (line.contains("=")) {
+                                String variableCoveragePair[] = line.split("=");
+                                if (variableCoveragePair.length == 2) {
+                                    Name name = new NameImpl(variableCoveragePair[1]);
+                                    coveragesMap.put(variableCoveragePair[0], name);
+                                    variablesMap.put(name, variableCoveragePair[0]);
+                                } else {
+                                    throw new IllegalArgumentException("Variable coverage mapping doesn't contain a pair VARNAME=COVERAGENAME");
+                                }
+                            } else {
+                                Name name = new NameImpl(line);
+                                coveragesMap.put(line, name);
+                                variablesMap.put(name, line);
+                            }
+                        }
+                    } catch (FileNotFoundException e) {
+                        if (LOGGER.isLoggable(Level.SEVERE)) {
+                            LOGGER.log(Level.SEVERE, "file not found" + e);
+                        }
+                    } catch (IOException e) {
+                        if (LOGGER.isLoggable(Level.SEVERE)) {
+                            LOGGER.log(Level.SEVERE, "unable to read from the coverages summary file " + e);
+                        }
+                    } finally {
+                        if (reader != null) {
+                            try {
+                                reader.close();
+                            } catch (Throwable t) {
+                                
+                            }
+                        }
+                    }
+                }
+            }
+            return coveragesMap;
+        }
+
+        Name getCoverageName(String varName) {
+            Map<String, Name> coveragesMap = getCoverages();
+            if (coveragesMap.containsKey(varName)) {
+                return coveragesMap.get(varName);
+            }
+            return null;
+        }
+
+        private SimpleFeatureType initializeSchema(Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+            
+            CoordinateReferenceSystem actualCRS = null;
+            SimpleFeatureType indexSchema = null;
+//            final File datastoreProperties= new File(slicesIndexFile.getParent(),"datastore.properties");
+//            if (Utilities.checkFileReadable(datastoreProperties)) {
+                // read the properties file
+//            
+//                    Properties datastoreProps = Utilities.loadPropertiesFromURL(DataUtilities.fileToURL(datastoreProperties));
+//                    if (datastoreProps == null) {
+//                        throw new IOException("Unable to load properties from:"
+//                                + datastoreProperties.getAbsolutePath());
+//                    }
+//            final String SPIClass = datastoreProps.getProperty(DatastoreProperties.SPI);
+//            slicesIndexDatastore = new File(datastoreProps.getProperty("Dat))
+            
+            initializeParams(params);
+
+            String schema = CoverageSlice.Attributes.FULLSCHEMA;
+            if (schema != null) {
+                schema = schema.trim();
+                // get the schema
+                try {
+                    indexSchema = DataUtilities.createType((String)datastoreProps.get(DatastoreProperties.TYPE_NAME), schema);
+                    // override the crs in case the provided one was wrong or absent
+                    indexSchema = DataUtilities.createSubType(indexSchema,
+                            DataUtilities.attributeNames(indexSchema), actualCRS);
+                } catch (Throwable e) {
+                    if (LOGGER.isLoggable(Level.FINE))
+                        LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
+                    indexSchema = null;
+                }
+            }
+            // }
+            return indexSchema;
+        }
+
+        private void initializeParams(Map<String, Serializable> params) throws IOException {
+            final String filePath = slicesIndexFile.getAbsolutePath();
+            datastoreProps = new DatastoreProperties(FilenameUtils.removeExtension(FilenameUtils.getName(filePath)).replace(".", ""));
+            
+            try {
+                // create a datastore as instructed
+                params.putAll(Utilities.createDataStoreParamsFromProperties(datastoreProps,  DatastoreProperties.SPI));
+        
+                // set ParentLocation parameter since for embedded database like H2 we must change the database
+                // to incorporate the path where to write the db
+                params.put("ParentLocation", DataUtilities.fileToURL(destinationDir).toExternalForm());
+                String typeName = datastoreProps.getProperty("database");
+                if (typeName != null) {
+                    params.put(DatastoreProperties.TYPE_NAME, typeName);
+                }
+
+            } catch (Throwable e) {
+                throw new IOException(e);
+            }
+        }
+
+        /**
+         * Dispose the Indexer
+         */
+        public void dispose() {
+            try {
+                if (slicesIndexList != null) {
+                    slicesIndexList = null;
+                }
+                
+                if (slicesIndexManager != null) {
+                    slicesIndexManager.dispose();
+                }
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning("Errors Disposing the indexer." + e.getLocalizedMessage());
+                }
+            } finally {
+                slicesIndexManager = null;
+                slicesIndexList = null;
+            }
+        }
+
+        /**
+         * Return a {@link UnidataSlice2DIndex} related to the provided imageIndex
+         * @param imageIndex
+         * @return
+         * @throws IOException
+         */
+        public UnidataSlice2DIndex getSlice2DIndex(final int imageIndex) throws IOException {
+            UnidataSlice2DIndex variableIndex;
+            if (slicesIndexManager != null) {
+                variableIndex = slicesIndexManager.getSlice2DIndex(imageIndex);
+            } else {
+                variableIndex = slicesIndexList.get(imageIndex);
+            }
+            return variableIndex;
+        }
+
+        public void addVariable(final UnidataSlice2DIndex variableIndex) {
+            slicesIndexList.add(variableIndex);
+        }
+
+        public void addCoverage(String varName, Name coverageName) {
+            if (coveragesMap == null) {
+                coveragesMap = new HashMap<String, Name>();
+                variablesMap = new HashMap<Name, String>();
+            }
+            coveragesMap.put(varName, coverageName);
+            variablesMap.put(coverageName, varName);
+            
+        }
+
+        public void initManager() throws IOException {
+            slicesIndexManager = new UnidataSlice2DIndexManager(slicesIndexFile);
+            slicesIndexManager.open();
+        }
+
+        public void resetManager() throws IOException {
+            if (slicesIndexManager != null) {
+                slicesIndexManager.dispose();
+            }
+            // clean existing index
+            slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
+        }
+
+        public List<Name> getCoveragesNames() {
+            return new ArrayList<Name>(getCoverages().values());
+        }
+    }
+
+    /** 
+     * An instance of {@link NetCDFIndexer} which takes care of handling all the auxiliary index
+     * files and initializations.
+     */
+    private NetCDFIndexer indexer = null;
+
     /** Summary set of coverage names */
     protected List<Name> coverages = new ArrayList<Name>();
-    
+
     @Override
     public List<Name> getNames() {
         return Collections.unmodifiableList(coverages);
@@ -238,16 +595,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * open by {@link #ensureOpen} when first needed.
      */
     protected NetcdfDataset dataset;
-    
-    /** File storing the slices index (index, Tsection, Zsection) */
-    protected File slicesIndexFile;
-    
-    /** File storing the coverage names summary. This will allow knowing the available 
-     * coverages name without opening and scanning again all the dataset */ 
-    protected File variablesSummaryFile;
-    protected List<UnidataSlice2DIndex> slicesIndexList;
-    protected UnidataSlice2DIndexManager slicesIndexManager;
-    
+
     protected Map<String, Variable> coordinatesVariables;
     protected CheckType checkType = CheckType.UNSET;
 
@@ -524,13 +872,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         }
         try {
             dataset = extractDataset(input);
-
             file = UnidataUtilities.getFile(input);
-            final String parent = file.getParent();
-            parentDir = new File(parent);
             if (file != null) {
-                slicesIndexFile = new File(file.getAbsolutePath() + ".idx");
-                variablesSummaryFile = new File(file.getAbsolutePath() + ".cvs");
+                indexer = new NetCDFIndexer(file);
             }
 
             init();
@@ -550,13 +894,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         DefaultTransaction transaction = new DefaultTransaction("indexTransaction" + System.nanoTime());
         final Map<String, Serializable> params = new HashMap<String, Serializable>();
         boolean rollback = false;
-        
+        int numImages = 0;
         try {
             
             // create the schema for the slices index
-            SimpleFeatureType indexSchema = initializeSchema(params);
+            SimpleFeatureType indexSchema = indexer.initializeSchema(params);
             initCatalog(params, true, DatastoreProperties.SPI, indexSchema);
-            int numImages = 0;
             if (variables != null) {
                 for (final Variable variable : variables) {
                     if (variable != null && variable instanceof VariableDS) {
@@ -567,7 +910,19 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
                         CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem((VariableDS) variable);
                         // Add the accepted variable to the list of coverages name
-                        coverages.add(new NameImpl(varName));
+                        Map<String, Name> coveragesMap = indexer.getCoverages();
+                        Name coverageName = null;
+                        if (coverages.isEmpty() || coverages.size() <= coveragesMap.size()) {
+                            coverageName = null;
+                            if (!coveragesMap.isEmpty()) {
+                                coverageName = indexer.getCoverageName(varName);
+                            } 
+                            if (coverageName == null) {
+                                coverageName = new NameImpl(varName);
+                                indexer.addCoverage(varName, coverageName);
+                            }
+                            coverages.add(coverageName);
+                        }
                         
                         // Currently, we only support Geographic CRS
                         Geometry geometry = UnidataCRSUtilities.extractEnvelopeAsGeometry((VariableDS)variable);
@@ -626,27 +981,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                                 }
                                 }
                             }
-                            
+
                             //Put a new sliceIndex in the list
                             UnidataSlice2DIndex variableIndex = new UnidataSlice2DIndex(tIndex, zIndex, varName);
-                            slicesIndexList.add(variableIndex);
+                            indexer.addVariable(variableIndex);
 
                             // Create a feature for that index to be put in the CoverageSlicesCatalog
-                            Date startDate = UnidataUtilities.getTimeValueByIndex(this, variable, tIndex, cs);
-                            double verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
+                            SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema, geometry);
 
-                            final SimpleFeature feature = DataUtilities.template(indexSchema);
-                            feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, geometry);
-                            feature.setAttribute(CoverageSlice.Attributes.INDEX, imageIndex);
-                            feature.setAttribute(CoverageSlice.Attributes.COVERAGENAME, varName);
-                            if (startDate != null) {
-                                feature.setAttribute(CoverageSlice.Attributes.TIME, startDate);
-                            }
-                            if (!Double.isNaN(verticalValue)) {
-                                feature.setAttribute(CoverageSlice.Attributes.ELEVATION, verticalValue);
-                            }
-//                            slicesCatalog.addGranule(feature, transaction);
-                            
                             collection.add(feature);
                             features++;
                             
@@ -663,144 +1005,68 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                     }
                 }
             }
-            
-            // Write collected information 
-            UnidataSlice2DIndexManager.writeIndexFile(slicesIndexFile, slicesIndexList);
-            writeVariablesSummary(variablesSummaryFile, coverages);
+            indexer.writeToDisk();
         } catch (Throwable e) {
             rollback = true;
             throw new IOException(e);
         } finally {
             if (rollback) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine("Rollback");
+                }
                 transaction.rollback();
             } else {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine("Committing changes to the DB");
+                }
                 transaction.commit();
             }
             try {
                 transaction.close();
             } catch (Throwable t) {
-                
+
             }
         }
         return numImages;
     }
 
     /**
-     * Initialize Variables Name list from the summary file.
+     * Create a SimpleFeature on top of the provided variable and indexes.
+     * 
+     * @param variable the input variable 
+     * @param tIndex the time index 
+     * @param zIndex the zeta index
+     * @param cs the {@link CoordinateSystem} associated with that variable
+     * @param imageIndex the index to be associated to the feature in the index
+     * @param indexSchema the schema to be used to create the feature
+     * @param geometry the geometry to be attached to the feature
+     * @return the created {@link SimpleFeature}
      */
-    private List<Name> initVariablesNames() {
-        BufferedReader reader = null;
-        List<Name> coverages = new LinkedList<Name>();
-        try {
-            reader = new BufferedReader(new FileReader(variablesSummaryFile));
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                coverages.add(new NameImpl(line));
-            }
-        } catch (FileNotFoundException e) {
-            if (LOGGER.isLoggable(Level.SEVERE)) {
-                LOGGER.log(Level.SEVERE, "file not found" + e);
-            }
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(Level.SEVERE)) {
-                LOGGER.log(Level.SEVERE, "unable to read from the coverages summary file " + e);
-            }
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (Throwable t) {
-                    
-                }
-            }
+    private SimpleFeature createFeature(
+            final Variable variable,
+            final String coverageName,
+            final int tIndex,
+            final int zIndex,
+            final CoordinateSystem cs,
+            final int imageIndex, 
+            final SimpleFeatureType indexSchema,
+            final Geometry geometry) {
+        final Date startDate = UnidataUtilities.getTimeValueByIndex(this, variable, tIndex, cs);
+        final double verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
+
+        final SimpleFeature feature = DataUtilities.template(indexSchema);
+        feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, geometry);
+        feature.setAttribute(CoverageSlice.Attributes.INDEX, imageIndex);
+        feature.setAttribute(CoverageSlice.Attributes.COVERAGENAME, coverageName);
+
+        // Check if we have time and elevation domain and set the attribute if needed
+        if (startDate != null) {
+            feature.setAttribute(CoverageSlice.Attributes.TIME, startDate);
         }
-        return coverages;
-    }
-
-    /**
-     * Write to disk the variable summary, a simple text file containing variable names.
-     * @param variablesSummaryFile
-     * @param coverages
-     */
-    private void writeVariablesSummary(final File variablesSummaryFile, final List<Name> coverages) {
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(variablesSummaryFile));
-            for (Name name : coverages) {
-                writer.write(name.toString() + "\n");
-            }
-        } catch (FileNotFoundException e) {
-            if (LOGGER.isLoggable(Level.SEVERE)) {
-                LOGGER.log(Level.SEVERE, "file not found" + e);
-            }
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(Level.SEVERE)) {
-                LOGGER.log(Level.SEVERE, "unable to write the coverages summary file " + e);
-            }
-        } finally {
-            if (writer != null) {
-                IOUtils.closeQuietly(writer);
-            }
+        if (!Double.isNaN(verticalValue)) {
+            feature.setAttribute(CoverageSlice.Attributes.ELEVATION, verticalValue);
         }
-    }
-
-    private SimpleFeatureType initializeSchema(Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-        
-        CoordinateReferenceSystem actualCRS = null;
-        SimpleFeatureType indexSchema = null;
-//        final File datastoreProperties= new File(slicesIndexFile.getParent(),"datastore.properties");
-//        if (Utilities.checkFileReadable(datastoreProperties)) {
-            // read the properties file
-//        
-//                Properties datastoreProps = Utilities.loadPropertiesFromURL(DataUtilities.fileToURL(datastoreProperties));
-//                if (datastoreProps == null) {
-//                    throw new IOException("Unable to load properties from:"
-//                            + datastoreProperties.getAbsolutePath());
-//                }
-//        final String SPIClass = datastoreProps.getProperty(DatastoreProperties.SPI);
-//        slicesIndexDatastore = new File(datastoreProps.getProperty("Dat))
-        // SPI
-        
-        initializeParams(params);
-
-        String schema = CoverageSlice.Attributes.FULLSCHEMA;
-        if (schema != null) {
-            schema = schema.trim();
-            // get the schema
-            try {
-                indexSchema = DataUtilities.createType((String)datastoreProps.get(DatastoreProperties.TYPE_NAME), schema);
-                // override the crs in case the provided one was wrong or absent
-                indexSchema = DataUtilities.createSubType(indexSchema,
-                        DataUtilities.attributeNames(indexSchema), actualCRS);
-            } catch (Throwable e) {
-                if (LOGGER.isLoggable(Level.FINE))
-                    LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
-                indexSchema = null;
-            }
-        }
-        // }
-        return indexSchema;
-    }
-
-    private void initializeParams(Map<String, Serializable> params) throws IOException {
-        final String filePath = slicesIndexFile.getAbsolutePath();
-        datastoreProps = new DatastoreProperties(FilenameUtils.removeExtension(FilenameUtils.getBaseName(filePath)));
-        
-        try {
-            // create a datastore as instructed
-            params.putAll(Utilities.createDataStoreParamsFromProperties(datastoreProps,  DatastoreProperties.SPI));
-    
-            // set ParentLocation parameter since for embedded database like H2 we must change the database
-            // to incorporate the path where to write the db
-            params.put("ParentLocation", DataUtilities.fileToURL(parentDir).toExternalForm());
-            String typeName = datastoreProps.getProperty("database");
-            if (typeName != null) {
-                params.put(DatastoreProperties.TYPE_NAME, typeName);
-            }
-
-        } catch (Throwable e) {
-            throw new IOException(e);
-        }
+        return feature;
     }
 
     protected void fillCoordinatesMap( final List<Variable> variables ) throws IOException {
@@ -830,24 +1096,22 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
         coordinatesVariables.clear();
         coordinatesVariables = null;
-        if (slicesIndexList != null) {
-            slicesIndexList = null;
-        }
-
         numImages = -1;
         try {
             if (dataset != null) {
                 dataset.close();
             }
-            if (slicesIndexManager != null) {
-                slicesIndexManager.dispose();
+           
+            if (indexer != null) {
+                indexer.dispose();
             }
+            
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.WARNING))
                 LOGGER.warning("Errors closing NetCDF dataset." + e.getLocalizedMessage());
         } finally {
             dataset = null;
-            slicesIndexManager = null;
+            indexer = null;
         }
     }
 
@@ -859,7 +1123,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      */
     private synchronized void init() throws IOException {
         int numImages = 0;
-        slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
 
         // variablesMap = new HashMap<Range, NetCDFVariableWrapper>();
         coordinatesVariables = new HashMap<String, Variable>();
@@ -870,36 +1133,37 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
                 final List<Variable> variables = dataset.getVariables();
                 fillCoordinatesMap(variables);
-
+                final File slicesIndexFile = indexer.slicesIndexFile;
+                final File variablesSummaryFile = indexer.variablesSummaryFile;
+                
                 if (slicesIndexFile != null) {
+                    if (variablesSummaryFile.exists()) {
+                        indexer.initCoverageNames();
+                    }
+
                     // === use sidecar index
                     if (slicesIndexFile.exists()) {
-                        slicesIndexManager = new UnidataSlice2DIndexManager(slicesIndexFile);
-                        slicesIndexManager.open();
-                        numImages = slicesIndexManager.getNumberOfRecords();
+                        indexer.initManager();
+                        numImages = indexer.slicesIndexManager.getNumberOfRecords();
                         if (!ignoreMetadata) {
                             final Map<String, Serializable> params = new HashMap<String, Serializable>();
-                            initializeParams(params);
+                            indexer.initializeParams(params);
                             initCatalog(params, false, DatastoreProperties.SPI, null);
-                            coverages = initVariablesNames();
+                            coverages = indexer.getCoveragesNames();
                         }
                     }
 
                     if (numImages <= 0 || !slicesIndexFile.exists()) {
                         // === index doesn't exists already, build it first
                         // close existing
-                        if (slicesIndexManager != null) {
-                            slicesIndexManager.dispose();
-                        }
+                        
+                        // TODO: Optimize this. Why it's storing the index and reading it back??
+                        indexer.resetManager();
                         numImages = initIndex(variables);
 
-                        // clean existing index
-                        slicesIndexList = null;
-
                         // reopen file to cut caching
-                        slicesIndexManager = new UnidataSlice2DIndexManager(slicesIndexFile);
-                        slicesIndexManager.open();
-                        numImages = slicesIndexManager.getNumberOfRecords();
+                        indexer.initManager();
+                        numImages = indexer.slicesIndexManager.getNumberOfRecords();
                     }
 
                 } else {
@@ -916,14 +1180,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         setNumImages(numImages);
     }
 
-//    /**
-//     * Invoked by the NetCDF library when an error occurred during the read
-//     * operation. Users should not invoke this method directly.
-//     */
-//    public void setError( final String message ) {
-//        lastError = message;
-//    }
-    
     /**
      * Wraps a generic exception into a {@link IIOException}.
      */
@@ -942,13 +1198,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @throws IOException
      */
     public UnidataSlice2DIndex getSlice2DIndex( int imageIndex ) throws IOException {
-        UnidataSlice2DIndex variableIndex;
-        if (slicesIndexManager != null) {
-            variableIndex = slicesIndexManager.getSlice2DIndex(imageIndex);
-        } else {
-            variableIndex = slicesIndexList.get(imageIndex);
-        }
-        return variableIndex;
+        return indexer.getSlice2DIndex(imageIndex);
     }
 
     /**
@@ -989,7 +1239,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
     @Override
     public CoverageSourceDescriptor createCoverageDescriptor(Name name) {
-        return new UnidataCoverageDescriptor(this,(VariableDS) getVariableByName(name.toString()));
+        return new UnidataCoverageDescriptor(this,(VariableDS) getVariableByName(indexer.variablesMap.get(name)));
     }
 
     /**

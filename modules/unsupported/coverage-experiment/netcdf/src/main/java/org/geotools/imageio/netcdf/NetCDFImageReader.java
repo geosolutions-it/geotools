@@ -16,13 +16,11 @@
  */
 package org.geotools.imageio.netcdf;
 
-
 import java.awt.image.RenderedImage;
 
 import javax.imageio.ImageReader;
 import javax.imageio.spi.ImageReaderSpi;
 
-import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.imageio.unidata.UnidataImageReader;
 
 /**
