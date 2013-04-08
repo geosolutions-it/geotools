@@ -17,6 +17,7 @@
 package org.geotools.imageio.netcdf;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.logging.Logger;
 
@@ -24,6 +25,9 @@ import javax.imageio.ImageReader;
 
 import org.geotools.imageio.unidata.UnidataImageReaderSpi;
 import org.geotools.util.logging.Logging;
+
+import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dataset.NetcdfDataset.Enhance;
 
 /**
  * Service provider interface for the NetCDF Image
@@ -33,9 +37,7 @@ import org.geotools.util.logging.Logging;
 public class NetCDFImageReaderSpi extends UnidataImageReaderSpi {
 
     static {
-        // Current version doesn't contain that method. I sent an email to the netcdf-java mailing list
-        // they told that they will restore it in the next version
-        // NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
+         NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
     }
 
     /** Default Logger * */

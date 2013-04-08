@@ -94,7 +94,7 @@
     <dependency>
       <groupId>edu.ucar</groupId>
       <artifactId>netcdf</artifactId> 
-      <version>4.3.15</version>
+      <version>4.3.16</version>
     </dependency>
     <dependency>
       <groupId>opendap</groupId>
@@ -120,6 +120,6 @@
       <artifactId>gt-sample-data</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
   </dependencies>
 </project>
