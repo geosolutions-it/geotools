@@ -69,6 +69,7 @@ import org.geotools.feature.NameImpl;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.UnidataUtilities.KeyValuePair;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -445,7 +446,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
         private SimpleFeatureType initializeSchema(Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
             
-            CoordinateReferenceSystem actualCRS = null;
+            // for the moment we only handle data in 4326
+            CoordinateReferenceSystem actualCRS = DefaultGeographicCRS.WGS84;
             SimpleFeatureType indexSchema = null;
 //            final File datastoreProperties= new File(slicesIndexFile.getParent(),"datastore.properties");
 //            if (Utilities.checkFileReadable(datastoreProperties)) {
