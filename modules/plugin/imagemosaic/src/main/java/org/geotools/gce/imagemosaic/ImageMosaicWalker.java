@@ -133,6 +133,34 @@ public class ImageMosaicWalker implements Runnable {
         }
 
     }
+    
+    /**
+     * A special ProcessingEvent raised when a file has completed/failed ingestion
+     */
+    static public class FileProcessingEvent extends ProcessingEvent {
+        private File file;
+        private boolean ingested;
+
+        /**
+         * @param source
+         */
+        public FileProcessingEvent(final Object source, final File file, final boolean ingested, final String message, final double percentage) {
+            super(source, message, percentage);
+            this.file = file;
+            this.ingested = ingested;
+        }
+
+        public File getFile() {
+            return file;
+        }
+
+        public boolean isIngested() {
+            return ingested;
+        }
+
+        
+
+    }
 
     /**
      * Event launched when an exception occurs. Percentage and message may be missing, in this case they will be -1 and the exception message
@@ -276,8 +304,10 @@ public class ImageMosaicWalker implements Runnable {
             try {
                 validFileName = fileBeingProcessed.getCanonicalPath();
                 validFileName = FilenameUtils.normalize(validFileName);
-            } catch (IOException e1) {
-                fireException(e1);
+            } catch (IOException e) {
+                fireFileEvent(Level.FINER, fileBeingProcessed, false, 
+                        "Exception occurred while processing file " + fileBeingProcessed + ": " + e.getMessage(), ((fileIndex * 100.0) / numFiles));
+                fireException(e);
                 return;
             }
             validFileName = FilenameUtils.getName(validFileName);
@@ -300,10 +330,10 @@ public class ImageMosaicWalker implements Runnable {
                     }
                 }
                 if ((format instanceof UnknownFormat) || format == null) {
-                    fireEvent(
+                    fireFileEvent(
                             Level.INFO,
-                            new StringBuilder("Skipped file ").append(fileBeingProcessed)
-                                    .append(": File format is not supported.").toString(),
+                            fileBeingProcessed, false,
+                            "Skipped file " + fileBeingProcessed + ": File format is not supported.",
                             ((fileIndex * 99.0) / numFiles));
                     return;
                 }
@@ -313,6 +343,7 @@ public class ImageMosaicWalker implements Runnable {
                 
                 // Getting available coverageNames from the reader
                 String [] coverageNames = coverageReader.getGridCoverageNames();
+                CatalogBuilderConfiguration catalogConfig;
                 for (String cvName : coverageNames) {
                     
                     final String inputCoverageName = cvName;
@@ -345,6 +376,7 @@ public class ImageMosaicWalker implements Runnable {
                     double[][] resolutionLevels = null;
 
                     if (mosaicConfiguration == null) {
+                        catalogConfig = runConfiguration;
                         // We don't have a configuration for this configuration 
                         
                         // Get the type specifier for this image and the check that the
@@ -408,11 +440,15 @@ public class ImageMosaicWalker implements Runnable {
                         configurations.put(currentConfigurationBean.getName(), currentConfigurationBean);
 
                     } else {
+                        catalogConfig = new CatalogBuilderConfiguration();
+                        CatalogConfigurationBean bean = mosaicConfiguration.getCatalogConfigurationBean();
+                        catalogConfig.setLocationAttribute(bean.getLocationAttribute());
+                        catalogConfig.setAbsolute(bean.isAbsolutePath());
+                        catalogConfig.setRootMosaicDirectory(runConfiguration.getRootMosaicDirectory());
                         // We already have a Configuration for this coverage.
                         // Check its properties are compatible with the existing coverage.
                         
-                        CatalogConfigurationBean catalogConfigurationBean = mosaicConfiguration
-                                .getCatalogConfigurationBean();
+                        CatalogConfigurationBean catalogConfigurationBean = bean;
                         if (!catalogConfigurationBean.isHeterogeneous()) {
 
                             // There is no need to check resolutions if the mosaic
@@ -454,22 +490,31 @@ public class ImageMosaicWalker implements Runnable {
                         // comparing SampeModel
                         // comparing CRSs
                         ColorModel actualCM = cm;
-                        if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(
-                                mosaicConfiguration.getCrs(), actualCRS)) : false)) {
+                        CoordinateReferenceSystem expectedCRS; 
+                        if(mosaicConfiguration.getCrs() != null) {
+                            expectedCRS = mosaicConfiguration.getCrs();
+                        } else {
+                            expectedCRS = rasterManager.spatialDomainManager.coverageCRS;
+                        }
+                        if (!(CRS.equalsIgnoreMetadata(expectedCRS, actualCRS))) {
                             // if ((fileIndex > 0 ? !(CRS.equalsIgnoreMetadata(defaultCRS, actualCRS)) : false)) {
-                            fireEvent(Level.INFO,
-                                    new StringBuilder("Skipping image ").append(fileBeingProcessed)
-                                            .append(" because CRSs do not match.").toString(),
+                            fireFileEvent(Level.INFO, fileBeingProcessed, false,
+                                    "Skipping image " + fileBeingProcessed + " because CRSs do not match.",
                                     (((fileIndex + 1) * 99.0) / numFiles));
                             return;
                         }
 
-                        if (checkColorModels(mosaicConfiguration, actualCM)) {
+                        byte[][] palette = mosaicConfiguration.getPalette();
+                        ColorModel colorModel = mosaicConfiguration.getColorModel();
+                        if(colorModel == null) {
+                            palette = rasterManager.getConfiguration().getPalette();
+                            colorModel = rasterManager.defaultCM;
+                        }
+                        if (checkColorModels(colorModel, palette, mosaicConfiguration, actualCM)) {
                             // if (checkColorModels(defaultCM, defaultPalette, actualCM)) {
-                            fireEvent(Level.INFO,
-                                    new StringBuilder("Skipping image ").append(fileBeingProcessed)
-                                            .append(" because color models do not match.")
-                                            .toString(), (((fileIndex + 1) * 99.0) / numFiles));
+                            fireFileEvent(Level.INFO, fileBeingProcessed, false,
+                                    "Skipping image " + fileBeingProcessed + " because color models do not match.",
+                                    (((fileIndex + 1) * 99.0) / numFiles));
                             return;
                         }
                     }
@@ -477,10 +522,10 @@ public class ImageMosaicWalker implements Runnable {
                     // STEP 3
                     // create and store features
                     CatalogManager.updateCatalog(coverageName, fileBeingProcessed, coverageReader,
-                            parentReader, runConfiguration, envelope, transaction,
+                            parentReader, catalogConfig, envelope, transaction,
                             propertiesCollectors);
                     // fire event
-                    fireEvent(Level.FINE, "Done with file " + fileBeingProcessed,
+                    fireFileEvent(Level.FINE, fileBeingProcessed, true, "Done with file " + fileBeingProcessed,
                             (((fileIndex + 1) * 99.0) / numFiles));
 
                 }
@@ -614,10 +659,7 @@ public class ImageMosaicWalker implements Runnable {
          * @param actualCM
          * @return a boolean asking to skip this feature.
          */
-        private boolean checkColorModels(MosaicConfigurationBean configuration, ColorModel actualCM) {
-
-            ColorModel defaultCM = configuration.getColorModel();
-            byte[][] defaultPalette = configuration.getPalette();
+        private boolean checkColorModels(ColorModel defaultCM, byte[][] defaultPalette, MosaicConfigurationBean configuration, ColorModel actualCM) {
             //
             //
             // ComponentColorModel
@@ -744,6 +786,8 @@ public class ImageMosaicWalker implements Runnable {
     private File indexerProperties;
 
     private File parent;
+    
+    private IOFileFilter fileFilter;
 
     /**
      * run the directory walker
@@ -791,7 +835,7 @@ public class ImageMosaicWalker implements Runnable {
                 runConfiguration.getWildcard(), IOCase.INSENSITIVE);
         IOFileFilter dirFilter = FileFilterUtils.and(
                 FileFilterUtils.directoryFileFilter(), HiddenFileFilter.VISIBLE);
-        IOFileFilter fileFilter = Utils.excludeFilters(FileFilterUtils.makeSVNAware(FileFilterUtils
+        IOFileFilter filesFilter = Utils.excludeFilters(FileFilterUtils.makeSVNAware(FileFilterUtils
                 .makeFileOnly(FileFilterUtils.and(specialWildCardFileFilter,
                         HiddenFileFilter.VISIBLE))), FileFilterUtils.suffixFileFilter("shp"),
                 FileFilterUtils.suffixFileFilter("dbf"), FileFilterUtils.suffixFileFilter("shx"),
@@ -805,32 +849,32 @@ public class ImageMosaicWalker implements Runnable {
         // exclude common extensions
         Set<String> extensions = WorldImageFormat.getWorldExtension("png");
         for (String ext : extensions) {
-            fileFilter = FileFilterUtils.and(fileFilter, FileFilterUtils
+            filesFilter = FileFilterUtils.and(filesFilter, FileFilterUtils
                     .notFileFilter(FileFilterUtils.suffixFileFilter(ext.substring(1))));
         }
         extensions = WorldImageFormat.getWorldExtension("gif");
         for (String ext : extensions) {
-            fileFilter = FileFilterUtils.and(fileFilter, FileFilterUtils
+            filesFilter = FileFilterUtils.and(filesFilter, FileFilterUtils
                     .notFileFilter(FileFilterUtils.suffixFileFilter(ext.substring(1))));
         }
         extensions = WorldImageFormat.getWorldExtension("jpg");
         for (String ext : extensions) {
-            fileFilter = FileFilterUtils.and(fileFilter, FileFilterUtils
+            filesFilter = FileFilterUtils.and(filesFilter, FileFilterUtils
                     .notFileFilter(FileFilterUtils.suffixFileFilter(ext.substring(1))));
         }
         extensions = WorldImageFormat.getWorldExtension("tiff");
         for (String ext : extensions) {
-            fileFilter = FileFilterUtils.and(fileFilter, FileFilterUtils
+            filesFilter = FileFilterUtils.and(filesFilter, FileFilterUtils
                     .notFileFilter(FileFilterUtils.suffixFileFilter(ext.substring(1))));
         }
         extensions = WorldImageFormat.getWorldExtension("bmp");
         for (String ext : extensions) {
-            fileFilter = FileFilterUtils.and(fileFilter, FileFilterUtils
+            filesFilter = FileFilterUtils.and(filesFilter, FileFilterUtils
                     .notFileFilter(FileFilterUtils.suffixFileFilter(ext.substring(1))));
         }
 
         // sdw
-        fileFilter = FileFilterUtils.and(fileFilter,
+        filesFilter = FileFilterUtils.and(filesFilter,
                 FileFilterUtils.notFileFilter(FileFilterUtils.suffixFileFilter("sdw")) //);
         // aux
 //        fileFilter = FileFilterUtils.andFileFilter(fileFilter,
@@ -841,8 +885,12 @@ public class ImageMosaicWalker implements Runnable {
         // svn
 //        fileFilter = FileFilterUtils.andFileFilter(fileFilter,
                 ,FileFilterUtils.notFileFilter(FileFilterUtils.suffixFileFilter("svn")));
+        
+        if(this.fileFilter != null) {
+            filesFilter = FileFilterUtils.and(this.fileFilter, filesFilter);
+        }
 
-        final IOFileFilter finalFilter = FileFilterUtils.or(dirFilter, fileFilter);
+        final IOFileFilter finalFilter = FileFilterUtils.or(dirFilter, filesFilter);
         return finalFilter;
     }
 
@@ -925,7 +973,6 @@ public class ImageMosaicWalker implements Runnable {
         configuration.check();
 
         this.runConfiguration = new CatalogBuilderConfiguration(configuration);
-
     }
 
     /**
@@ -973,6 +1020,30 @@ public class ImageMosaicWalker implements Runnable {
             message.append(Thread.currentThread().getName()).append(newLine);
             message.append(this.getClass().toString()).append(newLine).append(inMessage);
             final ProcessingEvent evt = new ProcessingEvent(this, message.toString(), percentage);
+            ProgressEventDispatchThreadEventLauncher eventLauncher = new ProgressEventDispatchThreadEventLauncher();
+            eventLauncher.setEvent(evt, this.notificationListeners.toArray());
+            sendEvent(eventLauncher);
+        }
+    }
+    
+    /**
+     * Firing an event to listeners in order to inform them about what we are doing and about the percentage of work already carried out.
+     * 
+     * @param level
+     * 
+     * @param message The message to show.
+     * @param percentage The percentage for the process.
+     */
+    private void fireFileEvent(Level level, final File file, final boolean ingested, final String inMessage, final double percentage) {
+        if (LOGGER.isLoggable(level)) {
+            LOGGER.log(level, inMessage);
+        }
+        synchronized (notificationListeners) {
+            final String newLine = System.getProperty("line.separator");
+            final StringBuilder message = new StringBuilder("Thread Name ");
+            message.append(Thread.currentThread().getName()).append(newLine);
+            message.append(this.getClass().toString()).append(newLine).append(inMessage);
+            final FileProcessingEvent evt = new FileProcessingEvent(this, file, ingested, message.toString(), percentage);
             ProgressEventDispatchThreadEventLauncher eventLauncher = new ProgressEventDispatchThreadEventLauncher();
             eventLauncher.setEvent(evt, this.notificationListeners.toArray());
             sendEvent(eventLauncher);
@@ -1383,6 +1454,19 @@ public class ImageMosaicWalker implements Runnable {
     
     public Map<String, MosaicConfigurationBean> getConfigurations() {
         return configurations;
+    }
+
+    public IOFileFilter getFileFilter() {
+        return fileFilter;
+    }
+
+    /**
+     * Sets a filter that can reduce the file the mosaic walker will take into consideration
+     * (in a more flexible way than the wildcards)
+     * @param fileFilter
+     */
+    public void setFileFilter(IOFileFilter fileFilter) {
+        this.fileFilter = fileFilter;
     }
 
 }

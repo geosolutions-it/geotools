@@ -42,7 +42,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.imageio.ImageTypeSpecifier;
 import javax.media.jai.ImageLayout;
 
 import org.geotools.coverage.grid.GeneralGridGeometry;
@@ -54,6 +53,7 @@ import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
+import org.geotools.coverage.grid.io.HarvestedFile;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.io.CoverageAccess;
@@ -759,12 +759,16 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     public void createCoverage(String coverageName, SimpleFeatureType schema/*,
             Set<DimensionDescriptor> dimensions*/) throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
-        
     }
 
     @Override
     public boolean removeCoverage(String coverageName) throws IOException,
             UnsupportedOperationException {
+        throw new UnsupportedOperationException("This operation is not supported on this reader");
+    }
+
+    @Override
+    public List<HarvestedFile> harvest(String defaultCoverage, File source, Hints hints) throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
     }
 }

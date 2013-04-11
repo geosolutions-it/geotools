@@ -50,6 +50,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -57,8 +58,12 @@ import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridFormatFinder;
+import org.geotools.coverage.grid.io.HarvestedFile;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.data.DataUtilities;
+import org.geotools.data.Query;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
@@ -71,6 +76,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.geometry.Envelope;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -1651,6 +1657,172 @@ public class ImageMosaicReaderTest extends Assert{
         assertEquals("wrong number of bands detected",3,image.getSampleModel().getNumBands());
         assertEquals(DataBuffer.TYPE_SHORT, image.getSampleModel().getDataType());
         
+    }
+    
+    @Test
+    public void testHarvestSingleFile() throws Exception {
+        File source = DataUtilities.urlToFile(timeURL);
+        File directory1 = new File("./target/singleHarvest1");
+        File directory2 = new File("./target/singleHarvest2");
+        if(directory1.exists()) {
+            FileUtils.deleteDirectory(directory1);
+        }            
+        FileUtils.copyDirectory(source, directory1);
+        // remove all files besides month 2 and 5
+        for(File file : FileUtils.listFiles(directory1, new RegexFileFilter("world\\.20040[^25].*\\.tiff"), null)) {
+            assertTrue(file.delete());
+        }
+        // remove all mosaic related files
+        for(File file : FileUtils.listFiles(directory1, new RegexFileFilter("time_geotiff.*"), null)) {
+            assertTrue(file.delete());
+        }
+        // move month 5 to another dir, we'll harvet it later
+        String monthFiveName = "world.200405.3x5400x2700.tiff";
+        File monthFive = new File(directory1, monthFiveName);
+        if(directory2.exists()) {
+            FileUtils.deleteDirectory(directory2);
+        } 
+        directory2.mkdirs();
+        File renamed = new File(directory2, monthFiveName);
+        assertTrue(monthFive.renameTo(renamed));
+        
+        // ok, let's create a mosaic with a single granule and check its times
+        URL harvestSingleURL = DataUtilities.fileToURL(directory1);
+        final AbstractGridFormat format = TestUtils.getFormat(harvestSingleURL);
+        ImageMosaicReader reader = TestUtils.getReader(harvestSingleURL, format);
+        try {
+            String[] metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+            
+            // now go and harvest the other file
+            List<HarvestedFile> summary = reader.harvest(null, renamed, null);
+            assertEquals(1, summary.size());
+            HarvestedFile hf = summary.get(0);
+            assertEquals(renamed.getCanonicalFile(), hf.getFile());
+            assertTrue(hf.success());
+            
+            // the harvest put the file in the same coverage
+            assertEquals(1, reader.getGridCoverageNames().length);
+            metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+            
+            // check the granule catalog
+            String coverageName = reader.getGridCoverageNames()[0];
+            GranuleSource granules = reader.getGranules(coverageName, true);
+            assertEquals(2, granules.getCount(Query.ALL));
+            Query q = new Query(Query.ALL);
+            SimpleFeatureIterator fi = granules.getGranules(q).features();
+            try {
+                assertTrue(fi.hasNext());
+                SimpleFeature f = fi.next();
+                assertEquals("world.200402.3x5400x2700.tiff", f.getAttribute("location"));
+                assertEquals("2004-02-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+                f = fi.next();
+                assertEquals("../singleHarvest2/world.200405.3x5400x2700.tiff", f.getAttribute("location"));
+                assertEquals("2004-05-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            } finally {
+                fi.close();
+            }
+            
+        } finally {
+            reader.dispose();
+        }
+    }
+    
+    @Test
+    public void testHarvestDirectory() throws Exception {
+        File source = DataUtilities.urlToFile(timeURL);
+        File directory1 = new File("./target/harvest1");
+        File directory2 = new File("./target/harvest2");
+        if(directory1.exists()) {
+            FileUtils.deleteDirectory(directory1);
+        }            
+        FileUtils.copyDirectory(source, directory1);
+        if(directory2.exists()) {
+            FileUtils.deleteDirectory(directory2);
+        } 
+        directory2.mkdirs();
+        // move all files besides month 2 and 5 to the second directory
+        for(File file : FileUtils.listFiles(directory1, new RegexFileFilter("world\\.20040[^25].*\\.tiff"), null)) {
+            File renamed = new File(directory2, file.getName());
+            assertTrue(file.renameTo(renamed));
+        }
+        // remove all mosaic related files
+        for(File file : FileUtils.listFiles(directory1, new RegexFileFilter("time_geotiff.*"), null)) {
+            assertTrue(file.delete());
+        }
+        
+        // ok, let's create a mosaic with the two original granules
+        URL harvestSingleURL = DataUtilities.fileToURL(directory1);
+        final AbstractGridFormat format = TestUtils.getFormat(harvestSingleURL);
+        ImageMosaicReader reader = TestUtils.getReader(harvestSingleURL, format);
+        try {
+            String[] metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+            
+            // now go and harvest the other directory
+            List<HarvestedFile> summary = reader.harvest(null, directory2, null);
+            assertEquals(2, summary.size());
+            for (HarvestedFile hf : summary) {
+                assertTrue(hf.success());
+            }
+            
+            // the harvest put the file in the same coverage
+            assertEquals(1, reader.getGridCoverageNames().length);
+            metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z,2004-03-01T00:00:00.000Z,2004-04-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", 
+                    reader.getMetadataValue(metadataNames[0]));
+        } finally {
+            reader.dispose();
+        }
+    }
+    
+    @Test
+    public void testHarvestError() throws Exception {
+        File source = DataUtilities.urlToFile(timeURL);
+        File directory = new File("./target/harvest-error");
+        if(directory.exists()) {
+            FileUtils.deleteDirectory(directory);
+        }            
+        FileUtils.copyDirectory(source, directory);
+        // remove all files besides month 2
+        for(File file : FileUtils.listFiles(directory, new RegexFileFilter("world\\.20040[^2].*\\.tiff"), null)) {
+            assertTrue(file.delete());
+        }
+        // remove all mosaic related files
+        for(File file : FileUtils.listFiles(directory, new RegexFileFilter("time_geotiff.*"), null)) {
+            assertTrue(file.delete());
+        }
+        
+        // ok, let's create a mosaic with the original granule
+        URL harvestSingleURL = DataUtilities.fileToURL(directory);
+        final AbstractGridFormat format = TestUtils.getFormat(harvestSingleURL);
+        ImageMosaicReader reader = TestUtils.getReader(harvestSingleURL, format);
+        try {
+            String[] metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+            
+            // now go and try to make it harvest an invalid file
+            File bogus = new File(directory, "test.tiff");
+            assertTrue(bogus.createNewFile());
+            List<HarvestedFile> summary = reader.harvest(null, bogus, null);
+            assertEquals(1, summary.size());
+            HarvestedFile hf = summary.get(0);
+            assertFalse(hf.success());
+            assertEquals("test.tiff", hf.getFile().getName());
+        } finally {
+            reader.dispose();
+        }
     }
 
     @AfterClass

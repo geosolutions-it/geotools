@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2011, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2013, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -16,9 +16,11 @@
  */
 package org.geotools.coverage.grid.io;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Set;
+import java.util.List;
 
+import org.geotools.factory.Hints;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 /**
@@ -65,4 +67,20 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      * removes a granule store for the specified coverageName
      */
     boolean removeCoverage(String coverageName) throws IOException, UnsupportedOperationException;
+    
+    /**
+     * Harvests the specified file into the reader. Depending on the implementation, the original file
+     * is harvested in place (e.g., image mosaic), or might be copied into the reader persistent storage (e.g., database raster handling)
+     *
+     * @param defaultCoverage Default target coverage, to be used in case the files being harvested are not structured ones. The parameter is optional,
+     *                        in case it's missing the reader will use the first coverage as the default target. 
+     *                        
+     * @param source The source can be a single file, or a folder. The file types supported by the harvest operation
+     *               vary depending on the implementation, but generally speaking, all coverages having a reader should be supported.
+     * @param hints Used to provide implementation specific hints on how to harvest the files
+     * @throws IOException
+     * @throws UnsupportedOperationException
+     */
+    List<HarvestedFile> harvest(String defaultTargetCoverage, File source, Hints hints) throws IOException,
+            UnsupportedOperationException;
 }

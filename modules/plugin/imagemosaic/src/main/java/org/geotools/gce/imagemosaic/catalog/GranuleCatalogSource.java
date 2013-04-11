@@ -81,10 +81,11 @@ public class GranuleCatalogSource implements GranuleSource {
 
     private Query setupBaseQuery(Query q) {
         if (q == null) {
-            q = new Query(typeName);
+            q = new Query();
         } else  {
-            q.setTypeName(typeName);
+            q = new Query(q);
         }
+        q.setTypeName(typeName);
         return q;
     }
 

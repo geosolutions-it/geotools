@@ -42,19 +42,26 @@ import javax.imageio.spi.ImageReaderSpi;
 import javax.media.jai.ImageLayout;
 
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.DefaultHarvestedFile;
 import org.geotools.coverage.grid.io.GranuleSource;
+import org.geotools.coverage.grid.io.HarvestedFile;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.FileProcessingEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
+import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
@@ -883,5 +890,58 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         String name = checkUnspecifiedCoverage(coverageName);
         RasterManager manager = getRasterManager(name);
         return manager.levels;
+    }
+
+    @Override
+    public List<HarvestedFile> harvest(String defaultCoverage, File source, Hints hints) throws IOException, UnsupportedOperationException {
+        // the mosaic walker works on a single directory, if we need to harvest 
+        // a single file we'll have to use the parent folder and add a filter
+        IOFileFilter filter = null;
+        File directory = source;
+        if(!source.isDirectory()) {
+            directory = source.getParentFile();
+            filter = FileFilterUtils.nameFileFilter(source.getName());
+        }
+        
+        // prepare the walker configuration
+        CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
+        configuration.setAbsolute(Utils.DEFAULT_PATH_BEHAVIOR);
+        String indexingPath = directory.getAbsolutePath();
+        configuration.setIndexingDirectories(Collections.singletonList(indexingPath));
+        if(defaultCoverage == null) {
+            defaultCoverage = getGridCoverageNames()[0];
+        } 
+        configuration.setIndexName(defaultCoverage);
+        configuration.setHints(new Hints(Utils.MOSAIC_READER, this));
+        
+        File mosaicSource = DataUtilities.urlToFile(sourceURL);
+        if(!mosaicSource.isDirectory()) {
+            mosaicSource = mosaicSource.getParentFile();
+        }
+        configuration.setRootMosaicDirectory(mosaicSource.getAbsolutePath());
+        
+        // run the walker and collect information
+        ImageMosaicWalker walker = new ImageMosaicWalker(configuration);
+        walker.setFileFilter(filter);
+        final List<HarvestedFile> result = new ArrayList<HarvestedFile>();
+        walker.addProcessingEventListener(new ImageMosaicWalker.ProcessingEventListener() {
+            
+            @Override
+            public void getNotification(ProcessingEvent event) {
+                if(event instanceof FileProcessingEvent) {
+                    FileProcessingEvent fileEvent = (FileProcessingEvent) event;
+                    result.add(new DefaultHarvestedFile(fileEvent.getFile(), fileEvent.isIngested(), fileEvent.getMessage()));
+                }
+            }
+            
+            @Override
+            public void exceptionOccurred(ExceptionEvent event) {
+                // nothing to do
+            }
+        });
+        
+        walker.run();
+        
+        return result;
     }
 }
