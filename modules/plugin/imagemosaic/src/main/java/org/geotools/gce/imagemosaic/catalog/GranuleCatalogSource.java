@@ -85,7 +85,9 @@ public class GranuleCatalogSource implements GranuleSource {
         } else  {
             q = new Query(q);
         }
-        q.setTypeName(typeName);
+        if(q.getTypeName() == null) {
+            q.setTypeName(typeName);
+        }
         return q;
     }
 

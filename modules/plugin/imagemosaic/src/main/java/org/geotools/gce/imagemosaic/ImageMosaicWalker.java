@@ -1305,13 +1305,16 @@ public class ImageMosaicWalker implements Runnable {
                     fireEvent(Level.INFO, "Creating final properties file ", 99.9);
                     createPropertiesFiles(mosaicConfiguration);
                 }
-                if (keys.size() > 1) {
+                final String base = FilenameUtils.getName(parent.getAbsolutePath());
+                // we create a root properties file if we have more than one coverage, or if the
+                // one coverage does not have the default name
+                if (keys.size() > 1 || (keys.size() > 0 && !base.equals(keys.iterator().next()))) {
                     
                     // TODO: DR: Remove that when dealing with Indexer.xml which should allow to know if configurations
                     // are available
                     final String source = 
                             runConfiguration.getRootMosaicDirectory() + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
-                    final String base = FilenameUtils.getName(parent.getAbsolutePath());
+                    
                     final File mosaicFile = new File(indexerProperties.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
                     FileUtils.copyFile(new File(source) , mosaicFile);
                 }

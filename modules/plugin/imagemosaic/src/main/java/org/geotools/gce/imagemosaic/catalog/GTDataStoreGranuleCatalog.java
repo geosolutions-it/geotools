@@ -509,9 +509,9 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			        	
 			        	// caching by granule's location
 			        	synchronized (granuleDescriptorsCache) {
-			        	    String granuleLocation = (String) sf.getAttribute(locationAttribute);
-                                            if(granuleDescriptorsCache.containsKey(granuleLocation)){
-                                                granule=granuleDescriptorsCache.get(granuleLocation);
+			        	    String featureId = sf.getID();
+                                            if(granuleDescriptorsCache.containsKey(featureId)){
+                                                granule=granuleDescriptorsCache.get(featureId);
                                             } else{
                                                 // create the granule descriptor
                                                 granule= new GranuleDescriptor(
@@ -521,7 +521,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
                                                                 locationAttribute,
                                                                 parentLocation,
                                                                 heterogeneous);
-                                                granuleDescriptorsCache.put(granuleLocation, granule);
+                                                granuleDescriptorsCache.put(featureId, granule);
                                             }
   
 			        	    
