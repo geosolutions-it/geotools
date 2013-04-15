@@ -1722,7 +1722,8 @@ public class ImageMosaicReaderTest extends Assert{
                 assertEquals("world.200402.3x5400x2700.tiff", f.getAttribute("location"));
                 assertEquals("2004-02-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
                 f = fi.next();
-                assertEquals("../singleHarvest2/world.200405.3x5400x2700.tiff", f.getAttribute("location"));
+                String expected = "../singleHarvest2/world.200405.3x5400x2700.tiff".replace('/', File.separatorChar);
+                assertEquals(expected, f.getAttribute("location"));
                 assertEquals("2004-05-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
             } finally {
                 fi.close();
