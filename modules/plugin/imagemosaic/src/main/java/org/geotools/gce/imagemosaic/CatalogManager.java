@@ -269,7 +269,7 @@ public class CatalogManager {
             throw new IllegalArgumentException("No valid granule store has been found for: " + coverageName);
         }
         final SimpleFeatureType indexSchema = store.getSchema();
-        final SimpleFeature feature = DataUtilities.template(indexSchema);
+        final SimpleFeature feature = new ShapefileCompatibleFeature(DataUtilities.template(indexSchema));
         store.setTransaction(transaction);
         
         final ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
