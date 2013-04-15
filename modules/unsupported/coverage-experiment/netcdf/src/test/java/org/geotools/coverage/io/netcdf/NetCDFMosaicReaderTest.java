@@ -278,6 +278,104 @@ public class NetCDFMosaicReaderTest extends Assert {
     }
     
     @Test
+    public void testReHarvest() throws IOException {
+        // prepare a "mosaic" with just one NetCDF
+        File nc1 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_test.nc");
+        File mosaic = new File("./target/nc_harvest");
+        if(mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+        
+        // The indexer
+        String indexer = "TimeAttribute=time\n" + 
+                "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n";
+        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+        
+        // the datastore.properties file is also mandatory...
+        File dsp = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+        
+        // have the reader harvest it
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        SimpleFeatureIterator it = null;
+        assertNotNull(reader);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            assertEquals(1, names.length);
+            assertEquals("O3", names[0]);
+            
+            // check we have the two granules we expect
+            GranuleSource source = reader.getGranules("O3", true);
+            FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
+            Query q = new Query(Query.ALL);
+            q.setSortBy(new SortBy[] {ff.sort("time", SortOrder.ASCENDING)});
+            SimpleFeatureCollection granules = source.getGranules(q);
+            assertEquals(2, granules.size());
+            it = granules.features();
+            assertTrue(it.hasNext());
+            SimpleFeature f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(0, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            assertTrue(it.hasNext());
+            f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(1, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T01:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            it.close();
+            
+            // close the reader and re-open it
+            reader.dispose();
+            reader = format.getReader(mosaic);
+            source = reader.getGranules("O3", true);
+            
+            // now replace the netcdf file with a more up to date version of the same 
+            File nc2 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_test_more_times.nc");
+            File target = new File(mosaic, "polyphemus_20130301_test.nc");
+            FileUtils.copyFile(nc2, target, false);
+            File fileToHarvest = new File(mosaic, "polyphemus_20130301_test.nc");
+            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+            assertEquals(1, harvestSummary.size());
+            HarvestedFile hf = harvestSummary.get(0);
+            assertEquals("polyphemus_20130301_test.nc", hf.getFile().getName());
+            assertTrue(hf.success());
+            assertEquals(1, reader.getGridCoverageNames().length);
+            
+            // check that we have four times now
+            granules = source.getGranules(q);
+            assertEquals(4, granules.size());
+            it = granules.features();
+            f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(0, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            assertTrue(it.hasNext());
+            f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(1, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T01:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(2, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T02:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            assertTrue(it.hasNext());
+            f = it.next();
+            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
+            assertEquals(3, f.getAttribute("imageindex"));
+            assertEquals("2013-03-01T03:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+            it.close();
+        } finally {
+            if(it != null) {
+                it.close();
+            }
+            reader.dispose();
+        }
+    }
+    
+    @Test
     public void testHarvestAddVariable() throws IOException {
         // prepare a "mosaic" with just one NetCDF
         File nc1 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_test.nc");
@@ -423,12 +521,14 @@ public class NetCDFMosaicReaderTest extends Assert {
     @After
     public void tearDown() throws FileNotFoundException, IOException {
         cleanUp();
-
     }
 
     @AfterClass
     public static void close() {
         System.clearProperty("org.geotools.referencing.forceXY");
+        System.clearProperty("user.timezone");
+        System.clearProperty("org.geotools.shapefile.datetime");
+
     }
 
     /**

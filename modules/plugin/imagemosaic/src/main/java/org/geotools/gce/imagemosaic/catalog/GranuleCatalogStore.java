@@ -19,6 +19,7 @@ package org.geotools.gce.imagemosaic.catalog;
 import java.io.IOException;
 
 import org.geotools.coverage.grid.io.GranuleStore;
+import org.geotools.data.Query;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -83,7 +84,7 @@ public class GranuleCatalogStore extends GranuleCatalogSource implements Granule
 
     @Override
     public int removeGranules(Filter filter) {
-        throw new UnsupportedOperationException("Operation not supported yet");
+        return catalog.removeGranules(new Query(typeName, filter));
     }
 
     @Override

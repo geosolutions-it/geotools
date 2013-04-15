@@ -45,6 +45,7 @@ import org.geotools.data.DefaultTransaction;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.feature.collection.AbstractFeatureVisitor;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
@@ -62,6 +63,9 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.MultiValuedFilter.MatchAction;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -336,14 +340,33 @@ public class CatalogManager {
             // 
             feature.setAttribute(indexSchema.getGeometryDescriptor().getLocalName(),
                     GEOM_FACTORY.toGeometry(new ReferencedEnvelope((Envelope) envelope)));
-            feature.setAttribute(configuration.getLocationAttribute(), fileLocation);
+            feature.setAttribute(locationAttribute, fileLocation);
             
             updateAttributesFromCollectors(feature, fileBeingProcessed, inputReader, propertiesCollectors);
             collection.add(feature);
         }
 
+        // drop all the granules associated to the same 
+        FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
+        Filter filter = ff.equal(ff.property(locationAttribute), ff.literal(fileLocation), 
+                !isCaseSensitiveFileSystem(fileBeingProcessed));
+        store.removeGranules(filter);
+        
         // Add the granules collection to the store
         store.addGranules(collection);
+    }
+
+    /**
+     * Checks if the file system is case sensitive or not using File.exists (the only method
+     * that also works on OSX too according to 
+     * http://stackoverflow.com/questions/1288102/how-do-i-detect-whether-the-file-system-is-case-sensitive )
+     * @param fileBeingProcessed
+     * @return
+     */
+    private static boolean isCaseSensitiveFileSystem(File fileBeingProcessed) {
+        File loCase = new File(fileBeingProcessed.getParentFile(), fileBeingProcessed.getName().toLowerCase());
+        File upCase = new File(fileBeingProcessed.getParentFile(), fileBeingProcessed.getName().toUpperCase());
+        return loCase.exists() && upCase.exists();
     }
 
     /**
