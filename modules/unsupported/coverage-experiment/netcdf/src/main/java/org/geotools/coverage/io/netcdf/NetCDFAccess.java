@@ -27,6 +27,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.io.CoverageAccess;
@@ -44,6 +46,7 @@ import org.geotools.feature.NameImpl;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.netcdf.NetCDFImageReader;
 import org.geotools.util.NullProgressListener;
+import org.geotools.util.logging.Logging;
 import org.opengis.feature.type.Name;
 import org.opengis.util.ProgressListener;
 
@@ -57,7 +60,7 @@ import org.opengis.util.ProgressListener;
  */
 public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageAccess {
 
-//    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(NetCDFAccess.class.toString());
+    private final static Logger LOGGER = Logging.getLogger(NetCDFAccess.class.toString());
 
     GeoSpatialImageReader reader = null;
     
@@ -133,6 +136,7 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
         try {
             return new NetCDFSource((NetCDFImageReader)reader, /*nameToVarMap.get(name)*/ name);
         } catch (Throwable e) {
+            LOGGER.log(Level.SEVERE, "Failed to access the NetCDF source", e);
             listener.exceptionOccurred(e);
             return null;
         }finally {

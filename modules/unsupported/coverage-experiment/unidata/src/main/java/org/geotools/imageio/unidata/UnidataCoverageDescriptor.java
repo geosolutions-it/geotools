@@ -32,15 +32,17 @@ import java.util.logging.Level;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridGeometry2D;
-import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
+import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.RasterLayout;
 import org.geotools.coverage.io.range.FieldType;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.coverage.io.range.impl.DefaultFieldType;
 import org.geotools.coverage.io.range.impl.DefaultRangeType;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
+import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.Utilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -430,7 +432,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             
             // Getting global Extent
             final DateRange global = UnidataUtilities.getTemporalExtent(timeAxis);
-            final SortedSet<DateRange> globalTemporalExtent = new TreeSet<DateRange>();
+            final SortedSet<DateRange> globalTemporalExtent = new DateRangeTreeSet();
             globalTemporalExtent.add(global);
             temporalDomain.globalTemporalExtent = Collections.unmodifiableSortedSet(globalTemporalExtent);
             
@@ -457,7 +459,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             
             // Getting global Extent
             final NumberRange<Double> global = UnidataUtilities.getVerticalExtent(zAxis);
-            final SortedSet<NumberRange<Double>> globalVerticalExtent = new TreeSet<NumberRange<Double>>();
+            final SortedSet<NumberRange<Double>> globalVerticalExtent = new DoubleRangeTreeSet();
             globalVerticalExtent.add(global);
             verticalDomain.globalVerticalExtent = Collections.unmodifiableSortedSet(globalVerticalExtent);
             

@@ -33,7 +33,7 @@ import org.geotools.coverage.io.ReadType;
 import org.geotools.coverage.io.SpatialRequestHelper;
 import org.geotools.coverage.io.SpatialRequestHelper.CoverageProperties;
 import org.geotools.coverage.io.range.RangeType;
-import org.geotools.coverage.io.util.DateRangeComparator;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.unidata.UnidataCoverageDescriptor;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -182,7 +182,7 @@ public class NetCDFCoverageReadRequest extends CoverageReadRequest{
             if (temporalSubset.isEmpty()) {
                 Set<DateRange> temporalExtent = temporalDomain.getTemporalExtent();
                 if (temporalExtent != null) {
-                    temporalSubset = DateRangeComparator.fromExisting(temporalExtent);
+                    temporalSubset = new DateRangeTreeSet(temporalExtent);
                 }
                 request.setTemporalSubset(temporalSubset);
             }    

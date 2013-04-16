@@ -50,6 +50,7 @@ import org.geotools.coverage.io.Driver.DriverCapabilities;
 import org.geotools.coverage.io.GridCoverageResponse;
 import org.geotools.coverage.io.impl.DefaultFileDriver;
 import org.geotools.coverage.io.util.DateRangeComparator;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.imageio.netcdf.NetCDFImageReader;
 import org.geotools.imageio.netcdf.NetCDFImageReaderSpi;
 import org.geotools.imageio.unidata.UnidataSlice2DIndex;
@@ -253,7 +254,7 @@ public final class NetCDFPolyphemusTest extends Assert {
                     }
                     readRequest.setVerticalSubset(requestedVerticalSubset);
 
-                    SortedSet<DateRange> requestedTemporalSubset = new TreeSet<DateRange>(new DateRangeComparator());
+                    SortedSet<DateRange> requestedTemporalSubset = new DateRangeTreeSet();
                     SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(false, null);
                     final int numTimes = temporalElements.size();
                     Iterator<? extends DateRange> iteratorT = temporalElements.iterator();

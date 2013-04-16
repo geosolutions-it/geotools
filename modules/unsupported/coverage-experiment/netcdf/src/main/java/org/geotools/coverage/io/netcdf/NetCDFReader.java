@@ -69,7 +69,8 @@ import org.geotools.coverage.io.GridCoverageResponse;
 import org.geotools.coverage.io.RasterLayout;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalogSource;
-import org.geotools.coverage.io.util.DateRangeComparator;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
+import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
@@ -113,8 +114,6 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             .getLogger("org.geotools.coverage.io.netcdf.NetCDFReader");
 
     static FileDriver DRIVER = new NetCDFDriver();
-
-    static NumberRangeComparator COMPARATOR = new NumberRangeComparator();
 
     private CoverageAccess access = null;
 
@@ -481,7 +480,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             }
             final List<?> dates = (List<?>) value;
             if (dates != null && !dates.isEmpty()) {
-                SortedSet<DateRange> requestedTemporalSubset = new TreeSet<DateRange>(new DateRangeComparator());
+                SortedSet<DateRange> requestedTemporalSubset = new DateRangeTreeSet();
                 for (Object val : dates) {
                     if (val instanceof Date) {
                         requestedTemporalSubset.add(new DateRange((Date) val, (Date) val));
@@ -508,7 +507,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                 return;
             List<?> values = (List<?>) value;
             if (values != null && !values.isEmpty()) {
-                Set<NumberRange<Double>> verticalSubset = new TreeSet<NumberRange<Double>>(COMPARATOR);
+                Set<NumberRange<Double>> verticalSubset = new DoubleRangeTreeSet();
                 for (Object val : values) {
                     if (val instanceof Number) {
                         verticalSubset.add(new NumberRange<Double>(Double.class, ((Number) val).doubleValue(), ((Number) val).doubleValue()));

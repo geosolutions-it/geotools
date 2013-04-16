@@ -22,10 +22,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.io.range.RangeType;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -171,18 +171,17 @@ public class CoverageReadRequest extends CoverageRequest {
      */
     public SortedSet<DateRange> getTemporalSubset() {
         if (temporalSubset == null) {
-            Set<DateRange> empty = Collections.emptySet();
-            temporalSubset = new TreeSet<DateRange>(empty);
-            return temporalSubset;
-        } else
-            return new TreeSet<DateRange>(temporalSubset);
+            temporalSubset = new DateRangeTreeSet();
+        } 
+        
+        return new DateRangeTreeSet(temporalSubset);
     }
 
     /**
      * @see org.geotools.coverage.io.CoverageReadRequest#setTemporalSubset(java.util.SortedSet)
      */
     public void setTemporalSubset(SortedSet<DateRange> temporalSubset) {
-        this.temporalSubset = new TreeSet<DateRange>(temporalSubset);
+        this.temporalSubset = new DateRangeTreeSet(temporalSubset);
     }
 
     /**

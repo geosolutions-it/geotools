@@ -45,6 +45,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.geotools.coverage.io.util.DateRangeComparator;
+import org.geotools.coverage.io.util.DateRangeTreeSet;
+import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
@@ -1335,7 +1337,7 @@ public class UnidataUtilities {
         }
 
         TimeBuilder timeBuilder = new TimeBuilder(axis);
-        SortedSet<DateRange> sorted = new TreeSet<DateRange>(new DateRangeComparator());
+        SortedSet<DateRange> sorted = new DateRangeTreeSet();
         final int numTimes = timeBuilder.getNumTimes();
         for (int i = 0; i < numTimes; i++) {
             Date startTime = timeBuilder.buildTime(i);
@@ -1375,7 +1377,7 @@ public class UnidataUtilities {
             throw new IllegalArgumentException("The specified axis is not a vertical axis");
         }
         ZetaBuilder builder = new ZetaBuilder(zAxis);
-        SortedSet<NumberRange<Double>> sorted = new TreeSet<NumberRange<Double>>(new NumberRangeComparator());
+        SortedSet<NumberRange<Double>> sorted = new DoubleRangeTreeSet();
         final int numZetas = builder.getNumZetas();
         for (int i = 0; i < numZetas; i++) {
             Double start = builder.build(i);
