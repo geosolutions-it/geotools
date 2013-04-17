@@ -379,7 +379,9 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 				return -1;
 			}
 			// do your thing
-		}finally{
+		} finally {
+		    // TODO: see if we can optimize and just drop the features that have been deleted
+		    granuleDescriptorsCache.clear();
 			lock.unlock();
 		}			
 	}
