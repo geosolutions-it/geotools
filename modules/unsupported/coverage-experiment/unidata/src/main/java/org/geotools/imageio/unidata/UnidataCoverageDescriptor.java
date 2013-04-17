@@ -32,6 +32,8 @@ import java.util.logging.Level;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
+import org.geotools.coverage.io.CoverageSource.DomainType;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
@@ -47,6 +49,7 @@ import org.geotools.coverage.io.util.Utilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.Identification;
+import org.geotools.imageio.unidata.UnidataUtilities.AxisValueGetter;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -228,6 +231,61 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         }
     }
 
+    public class UnidataAdditionalDomain extends AdditionalDomain {
+
+        /** The detailed domain extent */
+        private Set<Object> domainExtent;
+        
+        /** The merged domain extent */
+        private Set<Object> globalDomainExtent;
+
+        /** The domain name */
+        private String name;
+        
+        private DomainType type;
+
+        @Override
+        public Set<Object> getElements(boolean overall, ProgressListener listener)
+                throws IOException {
+            if (overall) {
+                return globalDomainExtent;
+            } else {
+                return domainExtent;
+            }
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public DomainType getType() {
+            return type;
+        }
+
+        public Set<Object> getDomainExtent() {
+            return domainExtent;
+        }
+
+        public void setDomainExtent(Set<Object> domainExtent) {
+            this.domainExtent = domainExtent;
+        }
+
+        public void setGlobalDomainExtent(Set<Object> globalDomainExtent) {
+            this.globalDomainExtent = globalDomainExtent;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setType(DomainType type) {
+            this.type = type;
+        }
+        
+    }
+    
     private VariableDS variableDS;
 
     private ucar.nc2.dataset.CoordinateSystem coordinateSystem;
@@ -323,11 +381,18 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             }
             if (axisType == AxisType.Height || axisType == AxisType.GeoZ
                     || axisType == AxisType.Pressure) {
-                zAxis = axis;
-                continue;
+                
+                //TODO: check that.
+                String axisName = axis.getFullName();
+                if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
+                    zAxis = axis;
+                    continue;
+                }
             }
 
-            otherAxes.add(axis);
+            if (axisType != AxisType.Lat && axisType != AxisType.Lon) {
+                otherAxes.add(axis);
+            }
         }
 
         // END extract necessary info from unidata structures
@@ -343,6 +408,8 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         // Init vertical domain
         final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(cs, csName, zAxis, csFactory, datumFactory, crsFactory);
         initVerticalDomain(verticalCRS, zAxis);
+        
+        
 
         // ////
         // Creating the CoordinateReferenceSystem
@@ -400,11 +467,11 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         final GridGeometry2D gridGeometry = getGridGeometry(variableDS, coordinateReferenceSystem);
         spatialDomain.setGridGeometry(gridGeometry);
 
+        String description = variableDS.getDescription();
         final StringBuilder sb = new StringBuilder();
         final Set<SampleDimension> sampleDims = new HashSet<SampleDimension>();
-        sampleDims.add(new GridSampleDimension(name + ":sd", (Category[]) null, null));
+        sampleDims.add(new GridSampleDimension(description + ":sd", (Category[]) null, null));
 
-        String description = variableDS.getDescription();
         InternationalString desc = null;
         if (description != null && !description.isEmpty()) {
             desc = new SimpleInternationalString(description);
@@ -413,6 +480,47 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         sb.append(description != null ? description.toString() + "," : "");
         final RangeType range = new DefaultRangeType(name, description, fieldType);
         this.setRangeType(range);
+        
+        if (otherAxes != null) {
+            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
+            this.setAdditionalDomains(additionalDomains);
+            for (CoordinateAxis axis: otherAxes) {
+               addAdditionalDomain(additionalDomains, axis);
+            }
+        }
+    }
+
+    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, CoordinateAxis axis) {
+        UnidataAdditionalDomain domain = new UnidataAdditionalDomain();
+        domain.setName(axis.getShortName());
+        
+        // TODO: Consider handling more types:
+        AxisValueGetter builder = new AxisValueGetter(axis);
+        final int numValues = builder.getNumValues();
+        Set<Object> extent = new TreeSet<Object>();
+        Set<Object> globalExtent = new HashSet<Object>();
+        final Double[] firstLast = new Double[2];
+        for (int i = 0; i < numValues; i++) {
+            Double value = builder.build(i);
+            if (i == 0 ) {
+                firstLast[0] = value;
+            } else if (i == numValues - 1 ) {
+                firstLast[1] = value;
+            }
+            extent.add(value);
+        }
+        domain.setDomainExtent(extent);
+        if (firstLast[0] > firstLast[1]) {
+            double t = firstLast[0];
+            firstLast[0] = firstLast[1];
+            firstLast[1] = t;
+        }
+        globalExtent.add(new NumberRange<Double>(Double.class, firstLast[0], firstLast[1]));
+        domain.setGlobalDomainExtent(globalExtent);
+        
+        domain.setType(DomainType.NUMBER);
+        additionalDomains.add(domain);
+        
     }
 
     /**

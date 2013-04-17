@@ -137,6 +137,11 @@ public abstract class DefaultCoverageSource implements CoverageSource {
     }
 
     @Override
+    public List<AdditionalDomain> getAdditionalDomains() throws IOException {
+        return coverageDescriptor.getAdditionalDomains();
+    }
+
+    @Override
     public ResourceInfo getInfo( ProgressListener listener ) {
         ensureNotDisposed();
         return null;

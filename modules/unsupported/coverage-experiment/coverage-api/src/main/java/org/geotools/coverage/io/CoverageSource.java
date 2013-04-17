@@ -53,6 +53,10 @@ import org.opengis.util.ProgressListener;
  * @source $URL$
  */
 public interface CoverageSource{
+    
+    enum DomainType {
+        NUMBER, NUMBERRANGE, DATE, DATERANGE, STRING
+    }
 
 	public abstract class SpatialDomain{
     
@@ -152,6 +156,25 @@ public interface CoverageSource{
     
     	public abstract CoordinateReferenceSystem getCoordinateReferenceSystem();
     	
+    }
+    
+    public abstract class AdditionalDomain {
+        
+        /**
+         * Describes the additional domain for the underlying {@link RasterDataset}
+         * by returning a {@link Set} of elements for it.
+         * 
+         * @param listener
+         * @return a {@link Set} of {@link DateRange}s elements.
+         * @todo allow transfinite sets!
+         * @throws IOException
+         */
+        public abstract Set<Object> getElements(final boolean overall, final ProgressListener listener) throws IOException;
+
+        public abstract String getName();
+
+        public abstract DomainType getType();
+
     }
 
     /**
@@ -258,6 +281,8 @@ public interface CoverageSource{
     public TemporalDomain getTemporalDomain() throws IOException;
 
     public VerticalDomain getVerticalDomain() throws IOException;
+    
+    public List<AdditionalDomain> getAdditionalDomains() throws IOException;
 
     public List<? extends RasterLayout> getOverviewsLayouts(final ProgressListener listener) throws IOException;
     

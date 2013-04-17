@@ -16,16 +16,21 @@
  */
 package org.geotools.coverage.io;
 
+import java.util.List;
+
+import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.range.RangeType;
 
 public class CoverageSourceDescriptor {
-    
+
     private boolean hasTemporalDomain = false;
 
     private boolean hasVerticalDomain = false;
+
+    private boolean hasAdditionalDomains = false;
 
     private String name;
 
@@ -40,6 +45,9 @@ public class CoverageSourceDescriptor {
 
     /** vertical domain of the wrapped coverage source */
     private VerticalDomain verticalDomain;
+
+    /** additional domains of the wrapped coverage source */
+    private List<AdditionalDomain> additionalDomains;
 
     public String getName() {
         return name;
@@ -81,6 +89,13 @@ public class CoverageSourceDescriptor {
         this.hasVerticalDomain = hasVerticalDomain;
     }
 
+    public boolean isHasAdditionalDomains() {
+        return hasAdditionalDomains;
+    }
+
+    public void setHasAdditionalDomains(boolean hasAdditionalDomains) {
+        this.hasAdditionalDomains = hasAdditionalDomains;
+    }
 
     protected void setRangeType(RangeType rangeType) {
         this.rangeType = rangeType;
@@ -96,6 +111,14 @@ public class CoverageSourceDescriptor {
 
     protected void setVerticalDomain(VerticalDomain verticalDomain) {
         this.verticalDomain = verticalDomain;
+    }
+
+    public List<AdditionalDomain> getAdditionalDomains() {
+        return additionalDomains;
+    }
+
+    public void setAdditionalDomains(List<AdditionalDomain> additionalDomains) {
+        this.additionalDomains = additionalDomains;
     }
 
     /**

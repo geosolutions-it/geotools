@@ -30,12 +30,13 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
@@ -60,6 +61,7 @@ import org.geotools.coverage.io.CoverageAccess.AccessType;
 import org.geotools.coverage.io.CoverageReadRequest;
 import org.geotools.coverage.io.CoverageResponse;
 import org.geotools.coverage.io.CoverageSource;
+import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.Driver.DriverCapabilities;
@@ -72,6 +74,8 @@ import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
+import org.geotools.data.Parameter;
+import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
@@ -108,6 +112,16 @@ import org.opengis.referencing.operation.TransformException;
  *
  */
 public class NetCDFReader extends AbstractGridCoverage2DReader implements StructuredGridCoverage2DReader{
+
+    private static final String QUERY = "QUERY";
+
+    static final String DOMAIN_SUFFIX = "_DOMAIN";
+
+    static final String HAS_PREFIX = "HAS_";
+
+    private static final String MINIMUM_SUFFIX = "_MAXIMUM";
+
+    private static final String MAXIMUM_SUFFIX = "_MINIMUM";
 
     private final static Logger LOGGER = Logging
             .getLogger("org.geotools.coverage.io.netcdf.NetCDFReader");
@@ -181,21 +195,46 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
-
+        addAdditionalMetadata(metadataNames, coverageName);
+        
         // TODO: Check for custom domains
         return metadataNames.toArray(new String[metadataNames.size()]);
+    }
+
+    private void addAdditionalMetadata(List<String> metadataNames, String coverageName) {
+        NetCDFSource source = null;
+        try {
+            source = (NetCDFSource) getGridCoverageSource(coverageName);
+            List<AdditionalDomain> domains = source.getAdditionalDomains();
+            if (domains != null && !domains.isEmpty()) {
+                for (AdditionalDomain domain: domains) {
+                    String domainName = domain.getName().toUpperCase();
+                    metadataNames.add(HAS_PREFIX + domainName);
+                    metadataNames.add(domainName + DOMAIN_SUFFIX);
+                    metadataNames.add(domainName + DOMAIN_SUFFIX + MINIMUM_SUFFIX);
+                    metadataNames.add(domainName + DOMAIN_SUFFIX + MAXIMUM_SUFFIX);
+                    
+                }
+                
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
+        
     }
 
     @Override
     public String getMetadataValue(String coverageName, String name) {
         String value = null;
         NetCDFSource source = null;
-        TemporalDomain timeDomain;
         try {
             source = (NetCDFSource) getGridCoverageSource(coverageName);
-            timeDomain = source.getTemporalDomain();
-
+            final TemporalDomain timeDomain = source.getTemporalDomain();
             final VerticalDomain verticalDomain = source.getVerticalDomain();
+            
+            final List<AdditionalDomain> additionalDomains = source.getAdditionalDomains();
+            final boolean hasAdditionalDomains = additionalDomains != null && !additionalDomains.isEmpty();
             final boolean hasTimeDomain = timeDomain != null;
             final boolean hasElevationDomain = verticalDomain != null;
 
@@ -235,11 +274,25 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                     return parseDomain(name, verticalDomain);
                 }
             }
-
-            // TODO check additional domains
-            // if (manager.domainsManager != null) {
-            // return manager.domainsManager.getMetadataValue(name);
-            // }
+            
+            if (hasAdditionalDomains) {
+                if (name.startsWith(HAS_PREFIX)) {
+                    final String substring = name.substring(HAS_PREFIX.length(), name.length() - DOMAIN_SUFFIX.length());
+                    for (AdditionalDomain additionalDomain: additionalDomains) {
+                        if (additionalDomain.getName().toUpperCase().contains(substring)) {
+                            return "true";
+                        }
+                    }
+                    return "false";
+                    
+                } else if (name.contains(DOMAIN_SUFFIX)) {
+                    for (AdditionalDomain additionalDomain: additionalDomains) {
+                        if (name.toUpperCase().startsWith(additionalDomain.getName().toUpperCase() + "_DOMAIN")) {
+                            return parseDomain(name, additionalDomain);
+                        }
+                    }
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -255,7 +308,11 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     @Override
     public Set<ParameterDescriptor<List>> getDynamicParameters(String coverageName)
             throws IOException {
-        return Collections.emptySet();
+        NetCDFSource source = (NetCDFSource) getGridCoverageSource(coverageName);
+        if (source != null) {
+            return source.getDynamicParameters();
+        } 
+        return null;
     }
 
     @Override
@@ -313,6 +370,25 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                     throw new IllegalArgumentException("Unsupported metadata name");
                 }
             }
+        } else if (domain instanceof AdditionalDomain) {
+            
+            // Vertical domain management
+            AdditionalDomain additionalDomain = (AdditionalDomain) domain;
+            if (name.endsWith("domain")) {
+                Set<Object> elements = additionalDomain.getElements(false, null);
+                return buildElementsList(elements);
+            } else {
+                // min or max requests
+                Set<Object> elements = additionalDomain.getElements(true, null);
+                NumberRange<Double> range = (NumberRange<Double>) elements.iterator().next();
+                if (name.endsWith("maximum")) {
+                    return Double.toString(range.getMaximum());
+                } else if (name.endsWith("minimum")) {
+                    return Double.toString(range.getMinimum());
+                } else {
+                    throw new IllegalArgumentException("Unsupported metadata name");
+                }
+            }
         } else {
             throw new IllegalArgumentException("Unsupported domain ");
         }
@@ -357,11 +433,29 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         return buildResultsString(ranges);
     }
 
+    /**
+     * Setup a String containing additional domain by doing a scan of a set of Elements
+     * @param elements
+     * @return
+     * TODO: improve that to deal with multiple types
+     */
+    private String buildElementsList(Set<Object> elements) {
+        Iterator<Object> iterator = (Iterator<Object>) elements.iterator();
+        LinkedHashSet<String> ranges = new LinkedHashSet<String>();
+
+        while (iterator.hasNext()) {
+            Double value = (Double)iterator.next();
+            ranges.add(value.toString());
+        }
+        return buildResultsString(ranges);
+    }
+
+    
     @Override
     public GridCoverage2D read(String coverageName, GeneralParameterValue[] parameters)
             throws IllegalArgumentException, IOException {
         final CoverageSource gridSource = getGridCoverageSource(coverageName);
-        final CoverageReadRequest request = setupCoverageRequest(parameters);
+        final CoverageReadRequest request = setupCoverageRequest(parameters, gridSource);
         final CoverageResponse result = gridSource.read(request, null);
         Collection<? extends Coverage> results = result.getResults(null);
         if (results == null || results.isEmpty()) {
@@ -380,7 +474,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
      * @return
      * @throws IOException
      */
-    private CoverageReadRequest setupCoverageRequest(GeneralParameterValue[] params) throws IOException {
+    private CoverageReadRequest setupCoverageRequest(GeneralParameterValue[] params, final CoverageSource gridSource) throws IOException {
         CoverageReadRequest request = new CoverageReadRequest();
         if (params != null) {
             for (GeneralParameterValue gParam : params) {
@@ -388,7 +482,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                     final ParameterValue<?> param = (ParameterValue<?>) gParam;
                     final ReferenceIdentifier name = param.getDescriptor().getName();
                     try {
-                        extractParameter(param, name, request);
+                        extractParameter(param, name, request, gridSource);
                     } catch (MismatchedDimensionException e) {
                         throw new IOException(e);
                     } catch (InvalidGridGeometryException e) {
@@ -403,8 +497,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     }
 
     private void extractParameter(ParameterValue<?> param, ReferenceIdentifier name,
-            CoverageReadRequest request) throws MismatchedDimensionException,
-            InvalidGridGeometryException, TransformException {
+            CoverageReadRequest request, CoverageSource gridSource) throws MismatchedDimensionException,
+            InvalidGridGeometryException, TransformException, IOException {
 
         // //
         //
@@ -516,6 +610,25 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                 }
                 // TODO IMPROVE THAT TO DEAL ON RANGES
                 request.setVerticalSubset(verticalSubset);
+            }
+            return;
+        }
+        
+        String paramName = name.getCode();
+        if (((NetCDFSource) gridSource).isParameterSupported(name)) {
+            final Object value = param.getValue();
+            if (value == null){
+                return;
+            }
+            if (value instanceof Set) {
+                Set values = (Set) value; // we are assuming it is a list !!!
+                // remove last comma
+                Map<String, Set<?>> domainsSubset = request.getAdditionalDomainsSubset();
+                if (domainsSubset == null) {
+                    domainsSubset = new HashMap<String, Set<?>>();
+                    request.setAdditionalDomainsSubset(domainsSubset);
+                }
+                domainsSubset.put(paramName, values);
             }
             return;
         }

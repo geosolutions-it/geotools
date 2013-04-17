@@ -243,12 +243,12 @@ public class UnidataUtilities {
         }
     }
     
-    static class ZetaBuilder {
+    static class AxisValueGetter {
         CoordinateAxis1D axis1D;
         
         double[] values = null;
         
-        public ZetaBuilder(Variable axis) {
+        public AxisValueGetter(Variable axis) {
             if (((CoordinateAxis) axis).isNumeric() && axis instanceof CoordinateAxis1D) {
                 axis1D = (CoordinateAxis1D) axis;
                 values = axis1D.getCoordValues();
@@ -258,14 +258,14 @@ public class UnidataUtilities {
             }
         }
 
-        public double build(int zIndex) {
-            if (values != null && values.length > zIndex) {
-                return values[zIndex];
+        public double build(int index) {
+            if (values != null && values.length > index) {
+                return values[index];
             }
             return Double.NaN;
         }
         
-        public int getNumZetas() {
+        public int getNumValues() {
             return values.length;
         }
     }
@@ -1358,9 +1358,9 @@ public class UnidataUtilities {
                         && axisType != AxisType.GeoZ && axisType != AxisType.Pressure)) {
             throw new IllegalArgumentException("The specified axis is not a vertical axis");
         }
-        ZetaBuilder builder = new ZetaBuilder(zAxis);
+        AxisValueGetter builder = new AxisValueGetter(zAxis);
         Double start = builder.build(0);
-        Double end = builder.build(builder.getNumZetas() - 1);
+        Double end = builder.build(builder.getNumValues() - 1);
         return new NumberRange<Double>(Double.class, start, end);
     }
     
@@ -1376,9 +1376,9 @@ public class UnidataUtilities {
                         && axisType != AxisType.GeoZ && axisType != AxisType.Pressure)) {
             throw new IllegalArgumentException("The specified axis is not a vertical axis");
         }
-        ZetaBuilder builder = new ZetaBuilder(zAxis);
+        AxisValueGetter builder = new AxisValueGetter(zAxis);
         SortedSet<NumberRange<Double>> sorted = new DoubleRangeTreeSet();
-        final int numZetas = builder.getNumZetas();
+        final int numZetas = builder.getNumValues();
         for (int i = 0; i < numZetas; i++) {
             Double start = builder.build(i);
             sorted.add(new NumberRange<Double>(Double.class, start, start));
@@ -1408,7 +1408,7 @@ public class UnidataUtilities {
                 if (!AxisType.GeoZ.equals(type) && !AxisType.Pressure.equals(type) && !AxisType.Height.equals(type))
                     return ve;
                 
-                ZetaBuilder zetaBuilder = new ZetaBuilder(axis);
+                AxisValueGetter zetaBuilder = new AxisValueGetter(axis);
                 return zetaBuilder.build(zIndex);
             }
         }

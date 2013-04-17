@@ -25,6 +25,7 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -182,6 +183,7 @@ public class NetCDFResponse extends CoverageResponse{
         Set<NumberRange<Double>> verticalSubset = readRequest.getVerticalSubset();
         RangeType requestedRange = readRequest.getRangeSubset();
         Set<FieldType> fieldTypes = requestedRange.getFieldTypes();
+        Map<String, Set<?>> domainsSubset = readRequest.getAdditionalDomainsSubset();
         
         
         //
@@ -217,36 +219,53 @@ public class NetCDFResponse extends CoverageResponse{
            vertSubset = new HashSet<NumberRange<Double>>();
            vertSubset.add(null);
        }
+       
+       
+//       Map<String, Set<?>> domSubset = null;
+//       if (!domainsSubset.isEmpty()) {
+//           domSubset = domainsSubset;
+//       } else {
+//           domSubset = new HashMap<String, Set<?>>();
+//           domSubset.put(null, null);
+//       }
 
        // Current result order is as COARDS convention
        // (ascending times as slowest increasing index,
        // ascending elevations as fastest increasing index)
-       for (DateRange timeRange : tempSubset) {
-           for (NumberRange<Double> elevation : vertSubset) {
-               Query query = createQuery(timeRange, elevation);
-               query.setTypeName(request.source.reader.getTypeName(request.name));
-               List<Integer> indexes = request.source.reader.getImageIndex(query);
-               if (indexes == null || indexes.isEmpty()) {
-                   if (LOGGER.isLoggable(Level.FINE)) {
-                       LOGGER.fine(" No indexes found for this query: " + query.toString());
+//       Set<String> additionalDomains = domSubset.keySet();
+//       for (String additionalDomain: additionalDomains) {
+//           if (additionalDomain != null) {
+//               
+//           }
+           for (DateRange timeRange : tempSubset) {
+               for (NumberRange<Double> elevation : vertSubset) {
+                   
+                   
+                   Query query = createQuery(timeRange, elevation);
+                   query.setTypeName(request.source.reader.getTypeName(request.name));
+                   List<Integer> indexes = request.source.reader.getImageIndex(query);
+                   if (indexes == null || indexes.isEmpty()) {
+                       if (LOGGER.isLoggable(Level.FINE)) {
+                           LOGGER.fine(" No indexes found for this query: " + query.toString());
+                       }
+                       continue;
+                   } 
+                   int imageIndex = indexes.get(0);
+                   final RenderedImage image = loadRaster(baseReadParameters, imageIndex, mosaicBBox, finalWorldToGridCorner, hints);
+    
+                   // postproc
+                   RenderedImage finalRaster = postProcessRaster(image);
+                   // create the coverage
+                   GridCoverage2D gridCoverage = prepareCoverage(finalRaster, sampleDimensions);
+    
+                   // Adding coverage domain
+                   if (gridCoverage != null) {
+                       GridCoverage gcResponse = new DefaultGridCoverageResponse(gridCoverage, timeRange, elevation);
+                       addResult(gcResponse);
                    }
-                   continue;
-               } 
-               int imageIndex = indexes.get(0);
-               final RenderedImage image = loadRaster(baseReadParameters, imageIndex, mosaicBBox, finalWorldToGridCorner, hints);
-
-               // postproc
-               RenderedImage finalRaster = postProcessRaster(image);
-               // create the coverage
-               GridCoverage2D gridCoverage = prepareCoverage(finalRaster, sampleDimensions);
-
-               // Adding coverage domain
-               if (gridCoverage != null) {
-                   GridCoverage gcResponse = new DefaultGridCoverageResponse(gridCoverage, timeRange, elevation);
-                   addResult(gcResponse);
                }
            }
-       }
+//       }
        setStatus(Status.SUCCESS);
 
     }

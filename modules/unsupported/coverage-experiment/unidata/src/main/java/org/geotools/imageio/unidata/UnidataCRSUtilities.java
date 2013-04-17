@@ -5,8 +5,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,6 +120,8 @@ class UnidataCRSUtilities {
      *       completed.
      */
     private static final String[] SECONDS = {"second", "sec", "seconds since"};
+    
+    public final static Set<String> VERTICAL_AXIS_NAMES = new HashSet<String>();
     /**
      * Set of {@linkplain DefaultEllipsoid ellipsoids} already defined.
      */
@@ -144,6 +148,12 @@ class UnidataCRSUtilities {
         add(AxisType.Lon, "east", "west");
         add(AxisType.Height, "up", "down");
         add(AxisType.Pressure, "up", "down");
+        VERTICAL_AXIS_NAMES.add("elevation");
+        VERTICAL_AXIS_NAMES.add("height");
+        VERTICAL_AXIS_NAMES.add("z");
+        VERTICAL_AXIS_NAMES.add("depth");
+        VERTICAL_AXIS_NAMES.add("pressure");
+        
     }
 
     /**
@@ -469,6 +479,10 @@ class UnidataCRSUtilities {
         VerticalCRS verticalCRS = null;
         try {
             if (zAxis != null) {
+                String axisName = zAxis.getFullName();
+                if (!UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
+                    return null;
+                }
                 String units = zAxis.getUnitsString();
                 AxisType type = zAxis.getAxisType();
 

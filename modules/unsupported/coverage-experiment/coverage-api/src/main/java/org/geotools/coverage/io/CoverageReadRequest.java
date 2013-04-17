@@ -20,6 +20,7 @@ import java.awt.Rectangle;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -93,6 +94,9 @@ public class CoverageReadRequest extends CoverageRequest {
      */
     private SortedSet<DateRange> temporalSubset;
 
+    
+    private Map<String, Set<?>> additionalDomainsSubset;
+    
     /**
      * @see org.geotools.coverage.io.CoverageReadRequest#getRangeSubset()
      */
@@ -182,6 +186,14 @@ public class CoverageReadRequest extends CoverageRequest {
      */
     public void setTemporalSubset(SortedSet<DateRange> temporalSubset) {
         this.temporalSubset = new DateRangeTreeSet(temporalSubset);
+    }
+
+    public Map<String, Set<?>> getAdditionalDomainsSubset() {
+        return additionalDomainsSubset;
+    }
+
+    public void setAdditionalDomainsSubset(Map<String, Set<?>> additionalDomainsSubset) {
+        this.additionalDomainsSubset = additionalDomainsSubset;
     }
 
     /**
