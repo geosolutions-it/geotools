@@ -540,9 +540,10 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             
             initCatalog(params, true, DatastoreProperties.SPI);
             if (variables != null) {
-                String previousTypeName = null;
+//                String previousTypeName = null;
+//                String currentTypeName = null;
                 for (final Variable variable : variables) {
-                    String currentTypeName = null;
+//                    previousTypeName = currentTypeName;
                     if (variable != null && variable instanceof VariableDS) {
                         String varName = variable.getFullName();
                         if (!UnidataUtilities.isVariableAccepted(variable, checkType)) {
@@ -621,18 +622,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             // Create a feature for that index to be put in the CoverageSlicesCatalog
                             SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema, geometry);
 
-                            currentTypeName = indexSchema.getTypeName();
-                            if (previousTypeName != null) { 
-                                if (!currentTypeName.equalsIgnoreCase(previousTypeName)) {
-                                    slicesCatalog.addGranules(previousTypeName, collection, transaction);
-                                    collection.clear();
-                                }
-                            }
+                           
                             collection.add(feature);
                             features++;
                             
                             if (features % 1000 == 0) {
-                                slicesCatalog.addGranules(currentTypeName, collection, transaction);
+                                slicesCatalog.addGranules(indexSchema.getTypeName(), collection, transaction);
                                 collection.clear();
                             }
                         }
@@ -672,10 +667,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     private SimpleFeatureType getIndexSchema(Name coverageName, Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
         // Getting the schema for this coverage
         SimpleFeatureType indexSchema = null;
-        String schemaName = indexer.coveragesToSchemaMap.get(coverageName);
+        final String coverage = coverageName.toString();
+        String schemaName = indexer.coveragesToSchemaMap.get(coverage);
         if (schemaName == null) {
             schemaName = NetCDFIndexer.DEFAULT;
-            indexer.coveragesToSchemaMap.put(coverageName.toString(), schemaName);
+            indexer.coveragesToSchemaMap.put(coverage, schemaName);
         }
         
         String [] typeNames = slicesCatalog.getTypeNames();
