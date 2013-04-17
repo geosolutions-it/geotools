@@ -224,6 +224,7 @@ public class NetCDFResponse extends CoverageResponse{
        for (DateRange timeRange : tempSubset) {
            for (NumberRange<Double> elevation : vertSubset) {
                Query query = createQuery(timeRange, elevation);
+               query.setTypeName(request.source.reader.getTypeName(request.name));
                List<Integer> indexes = request.source.reader.getImageIndex(query);
                if (indexes == null || indexes.isEmpty()) {
                    if (LOGGER.isLoggable(Level.FINE)) {

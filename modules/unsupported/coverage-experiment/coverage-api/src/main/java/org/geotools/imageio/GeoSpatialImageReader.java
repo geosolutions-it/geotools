@@ -154,28 +154,9 @@ public abstract class GeoSpatialImageReader extends ImageReader {
         }
     }
 
-    /**
-     * Init the slicesCatalog based on the provided parameters
-     * 
-     * @param params the parameters to be used for initialization
-     * @param create whether to create the store
-     * @param spi the {@link DataStoreFactorySpi} to be used 
-     * @param indexSchema the {@link SimpleFeatureType} schema to be used to create type if not set yet
-     * @throws IOException
-     */
-    protected void initCatalog(final Map<String, Serializable> params, final boolean create, final DataStoreFactorySpi spi, final SimpleFeatureType indexSchema) throws IOException {
-        slicesCatalog = new CoverageSlicesCatalog(params, create, spi);
-        if (create) {
-            final SimpleFeatureType type = slicesCatalog.getSchema();
-            if (type == null) {
-                slicesCatalog.createType(indexSchema);
-            } else {
-                // remove them all, assuming the schema has not changed
-                final Query query = new Query(type.getTypeName());
-                query.setFilter(Filter.INCLUDE);
-                slicesCatalog.removeGranules(query);
-            }
-        }
+    
+    protected void setCatalog(CoverageSlicesCatalog catalog) {
+        slicesCatalog = catalog;
     }
 
     /**
@@ -188,9 +169,9 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      * @throws IOException
      */
     public List<Integer> getImageIndex(Query filterQuery) throws IOException {
-        Query query = new Query(slicesCatalog.getSchema().getTypeName());
-        query.setFilter(FF.and(query.getFilter(), filterQuery.getFilter()));
-        List<CoverageSlice> descs = slicesCatalog.getGranules(query);
+//        Query query = new Query(/*slicesCatalog.getSchema().getTypeName()*/);
+//        query.setFilter(FF.and(query.getFilter(), filterQuery.getFilter()));
+        List<CoverageSlice> descs = slicesCatalog.getGranules(filterQuery);
         List<Integer> indexes = new ArrayList<Integer>();
         for (CoverageSlice desc : descs) {
             Integer index = (Integer) desc.getOriginator().getAttribute(CoverageSlice.Attributes.INDEX);
@@ -214,5 +195,20 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      */
     public CoverageSlicesCatalog getCatalog() {
         return slicesCatalog;
+    }
+    
+    /**
+     * Init the slicesCatalog based on the provided parameters
+     * 
+     * @param params the parameters to be used for initialization
+     * @param create whether to create the store
+     * @param spi the {@link DataStoreFactorySpi} to be used
+     * @param indexSchema the {@link SimpleFeatureType} schema to be used to create type if not set yet
+     * @throws IOException
+     */
+    protected void initCatalog(final Map<String, Serializable> params, final boolean create,
+            final DataStoreFactorySpi spi) throws IOException {
+        slicesCatalog = new CoverageSlicesCatalog(params, create, spi);
+//        return slicesCatalog;
     }
 }

@@ -38,7 +38,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,7 +70,6 @@ import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalogSource;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
-import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
@@ -80,6 +78,7 @@ import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.imageio.unidata.UnidataCoverageDescriptor;
 import org.geotools.imageio.unidata.UnidataCoverageDescriptor.UnidataSpatialDomain;
+import org.geotools.imageio.unidata.UnidataImageReader;
 import org.geotools.referencing.operation.transform.IdentityTransform;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -739,8 +738,9 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     @Override
     public GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException,
             UnsupportedOperationException {
-        final CoverageSlicesCatalog catalog = ((NetCDFAccess)access).reader.getCatalog();
-        return new CoverageSlicesCatalogSource(catalog, coverageName);
+        UnidataImageReader unidataReader = (UnidataImageReader) ((NetCDFAccess)access).reader;
+        final CoverageSlicesCatalog catalog = unidataReader.getCatalog();
+        return new CoverageSlicesCatalogSource(catalog, coverageName, unidataReader.getTypeName(coverageName));
     }
 
 //    @Override

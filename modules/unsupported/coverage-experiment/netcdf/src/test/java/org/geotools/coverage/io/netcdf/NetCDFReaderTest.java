@@ -141,7 +141,111 @@ public class NetCDFReaderTest extends Assert {
                 }
             }
         } catch (Throwable t) {
-            // Does nothing
+            throw new RuntimeException(t);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.dispose();
+                } catch (Throwable t) {
+                    // Does nothing
+                }
+            }
+        }
+    }
+    
+    @Test
+    public void NetCDFTestOn4DcoveragesWithDifferentSchemas() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
+        
+        final URL testURL = TestData.url(this, "O3-NO2-noZ.nc");
+        final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
+        // Get format
+        final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
+        final NetCDFReader reader = (NetCDFReader) format.getReader(testURL, hints);
+        
+        assertNotNull(format);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            for (String coverageName : names) {
+
+                final String[] metadataNames = reader.getMetadataNames(coverageName);
+                assertNotNull(metadataNames);
+                assertEquals(metadataNames.length, 10);
+
+                // Parsing metadata values
+                assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
+                final String timeMetadata = reader.getMetadataValue(coverageName, "TIME_DOMAIN");
+                assertEquals( "2012-04-01T00:00:00.000Z/2012-04-01T00:00:00.000Z,2012-04-01T01:00:00.000Z/2012-04-01T01:00:00.000Z",
+                        timeMetadata);
+                assertNotNull(timeMetadata);
+                assertEquals("2012-04-01T00:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MINIMUM"));
+                assertEquals("2012-04-01T01:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MAXIMUM"));
+
+                if (coverageName.equalsIgnoreCase("O3")) {
+                    assertEquals("true", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
+                    final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
+                    assertNotNull(elevationMetadata);
+                    assertEquals("10.0/10.0,450.0/450.0", elevationMetadata);
+                    assertEquals(2, elevationMetadata.split(",").length);
+                    assertEquals("10.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MINIMUM"));
+                    assertEquals("450.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MAXIMUM"));
+                } else {
+                    // Note that This sample doesn't have elevation for NO2
+                    assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
+                    final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
+                    assertNull(elevationMetadata);
+                    
+                }
+
+                // subsetting the envelope
+                final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
+                        .createValue();
+                final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
+                final GeneralEnvelope reducedEnvelope = new GeneralEnvelope(new double[] {
+                        originalEnvelope.getLowerCorner().getOrdinate(0),
+                        originalEnvelope.getLowerCorner().getOrdinate(1) }, new double[] {
+                        originalEnvelope.getMedian().getOrdinate(0),
+                        originalEnvelope.getMedian().getOrdinate(1) });
+                reducedEnvelope.setCoordinateReferenceSystem(reader
+                        .getCoordinateReferenceSystem(coverageName));
+
+                // Selecting bigger gridRange for a zoomed result
+                final Dimension dim = new Dimension();
+                GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
+                dim.setSize(gridRange.getSpan(0) * 4.0, gridRange.getSpan(1) * 2.0);
+                final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
+                rasterArea.setSize(dim);
+                final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
+                gg.setValue(new GridGeometry2D(range, reducedEnvelope));
+
+                final ParameterValue<List> time = ImageMosaicFormat.TIME.createValue();
+                final SimpleDateFormat formatD = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                formatD.setTimeZone(TimeZone.getTimeZone("GMT"));
+                final Date timeD = formatD.parse("2012-04-01T00:00:00.000Z");
+                time.setValue(new ArrayList() {
+                    {
+                        add(timeD);
+                    }
+                });
+
+                final ParameterValue<List> elevation = ImageMosaicFormat.ELEVATION.createValue();
+                elevation.setValue(new ArrayList() {
+                    {
+                        add(450d); // Elevation
+                    }
+                });
+
+                GeneralParameterValue[] values = coverageName.equalsIgnoreCase("O3") ? new GeneralParameterValue[] { gg, time, elevation } : new GeneralParameterValue[] { gg, time};
+                
+                GridCoverage2D coverage = reader.read(coverageName, values);
+                assertNotNull(coverage);
+                if (TestData.isInteractiveTest()) {
+                    coverage.show();
+                } else {
+                    PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
+                }
+            }
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         } finally {
             if (reader != null) {
                 try {
@@ -153,10 +257,10 @@ public class NetCDFReaderTest extends Assert {
         }
     }
 
-    @Ignore
+    @Test
     public void NetCDFGOME2() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
         
-        final URL testURL = null; //DataUtilities.fileToURL(new File("C:/data/dlr/nrt/LATEST.GOME2.NO2.PGL.nc"));
+        final URL testURL = TestData.url(this, "DUMMY.GOME2.NO2.PGL.nc");
         final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
         // Get format
         final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
@@ -181,32 +285,9 @@ public class NetCDFReaderTest extends Assert {
                 assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
                 final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
                 assertNull(elevationMetadata);
-
-                // subsetting the envelope
-                final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
-                        .createValue();
-                final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
-
-                // Selecting bigger gridRange for a zoomed result
-                final Dimension dim = new Dimension();
-                GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
-                dim.setSize(gridRange.getSpan(0) * 0.5, gridRange.getSpan(1) * 0.5);
-                final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
-                rasterArea.setSize(dim);
-                final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
-                gg.setValue(new GridGeometry2D(range, originalEnvelope));
-
-                GeneralParameterValue[] values = new GeneralParameterValue[] { gg};
-                GridCoverage2D coverage = reader.read(coverageName, values);
-                assertNotNull(coverage);
-                if (TestData.isInteractiveTest()) {
-                    coverage.show();
-                } else {
-                    PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
-                }
             }
         } catch (Throwable t) {
-            
+            throw new RuntimeException(t);
         } finally {
             if (reader != null) {
                 try {
