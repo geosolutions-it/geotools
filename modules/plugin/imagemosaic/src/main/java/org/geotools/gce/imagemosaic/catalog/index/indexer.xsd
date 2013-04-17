@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema attributeFormDefault="unqualified"
+	elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="Indexer">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="schemas">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="schema" maxOccurs="unbounded" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="attributes" type="xs:string" />
+									</xs:sequence>
+									<xs:attribute name="name" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="coverages">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="coverage" maxOccurs="unbounded" minOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="schema"
+											type="xs:string" />
+										<xs:element name="origName"
+											type="xs:string" />
+									</xs:sequence>
+									<xs:attribute name="name"
+										type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="datastore">
+					<xs:complexType>
+						<xs:sequence minOccurs="1" maxOccurs="1">
+							<xs:element name="database" type="xs:string" />
+							<xs:element name="parameters">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="parameter" maxOccurs="unbounded" minOccurs="0">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="value" type="xs:string" />
+												</xs:sequence>
+												<xs:attribute name="name" type="xs:string" use="required" />
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="collectors" maxOccurs="1" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="collector">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="SPI" type="xs:string" />
+										<xs:element name="type" type="xs:string" />
+										<xs:element name="value" type="xs:string" />
+										<xs:element name="mapped" type="xs:string" />
+									</xs:sequence>
+									<xs:attribute name="name" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
+

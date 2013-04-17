@@ -141,7 +141,7 @@ public class NetCDFReaderTest extends Assert {
                 }
             }
         } catch (Throwable t) {
-            // Does nothing
+            t.printStackTrace();
         } finally {
             if (reader != null) {
                 try {
@@ -153,10 +153,10 @@ public class NetCDFReaderTest extends Assert {
         }
     }
 
-    @Ignore
+    @Test
     public void NetCDFGOME2() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
         
-        final URL testURL = null; //DataUtilities.fileToURL(new File("C:/data/dlr/nrt/LATEST.GOME2.NO2.PGL.nc"));
+        final URL testURL = TestData.url(this, "DUMMY.GOME2.NO2.PGL.nc");
         final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
         // Get format
         final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
@@ -181,32 +181,9 @@ public class NetCDFReaderTest extends Assert {
                 assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
                 final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
                 assertNull(elevationMetadata);
-
-                // subsetting the envelope
-                final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
-                        .createValue();
-                final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
-
-                // Selecting bigger gridRange for a zoomed result
-                final Dimension dim = new Dimension();
-                GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
-                dim.setSize(gridRange.getSpan(0) * 0.5, gridRange.getSpan(1) * 0.5);
-                final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
-                rasterArea.setSize(dim);
-                final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
-                gg.setValue(new GridGeometry2D(range, originalEnvelope));
-
-                GeneralParameterValue[] values = new GeneralParameterValue[] { gg};
-                GridCoverage2D coverage = reader.read(coverageName, values);
-                assertNotNull(coverage);
-                if (TestData.isInteractiveTest()) {
-                    coverage.show();
-                } else {
-                    PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
-                }
             }
         } catch (Throwable t) {
-            
+            t.printStackTrace();
         } finally {
             if (reader != null) {
                 try {

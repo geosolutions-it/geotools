@@ -22,8 +22,10 @@ import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,6 +68,7 @@ import org.opengis.geometry.BoundingBox;
  */
 public class CoverageSlicesCatalog {
 
+    public static final String SCAN_FOR_TYPENAMES = "ScanTypeNames";
     /** Logger. */
     final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(CoverageSlicesCatalog.class);
 
@@ -75,7 +78,8 @@ public class CoverageSlicesCatalog {
     private DataStore slicesIndexStore;
 
     /** The feature type name */
-    private String typeName;
+    private Set<String> typeNames = new HashSet<String>();
+//    private String typeName;
 
     private String geometryPropertyName;
 
@@ -126,9 +130,27 @@ public class CoverageSlicesCatalog {
             }
 
             // if this is not a new store let's extract basic properties from it
-            if (params.containsKey("TypeName")) {
-                this.typeName = (String) params.get("TypeName");
-
+            String typeName = null;
+            boolean scanForTypeNames = false;
+            
+            // Handle multiple typeNames
+            if(params.containsKey("TypeName")){
+                typeName=(String) params.get("TypeName");
+            }  
+            if (params.containsKey(SCAN_FOR_TYPENAMES)) {
+                scanForTypeNames = (Boolean) params.get(SCAN_FOR_TYPENAMES);
+            }
+            
+            if (scanForTypeNames) {
+                String[] typeNames = slicesIndexStore.getTypeNames();
+                if (typeNames != null) {
+                    for (String tn : typeNames) {
+                        this.typeNames.add(tn);
+                    }
+                }
+            } else if (typeName != null) {
+                addTypeName(typeName, false);
+            }
                 // Oracle trick
 //                if (spi instanceof OracleNGOCIDataStoreFactory
 //                        || spi instanceof OracleNGJNDIDataStoreFactory
@@ -138,8 +160,8 @@ public class CoverageSlicesCatalog {
 //                        this.locationAttribute = this.locationAttribute.toUpperCase();
 //                    }
 //                }
-            }
-            extractBasicProperties();
+//            }
+            extractBasicProperties(typeName);
         } catch (Throwable e) {
             try {
                 if (slicesIndexStore != null)
@@ -169,7 +191,7 @@ public class CoverageSlicesCatalog {
         }
     }
 
-    private void extractBasicProperties() throws IOException {
+    private void extractBasicProperties(String typeName) throws IOException {
 
         if (typeName == null) {
             final String[] typeNames = slicesIndexStore.getTypeNames();
@@ -180,6 +202,7 @@ public class CoverageSlicesCatalog {
 
             if (typeName == null) {
                 typeName = typeNames[0];
+                addTypeName(typeName, false);
                 if (LOGGER.isLoggable(Level.WARNING))
                     LOGGER.warning("BBOXFilterExtractor::extractBasicProperties(): passed typename is null, using: "
                             + typeName);
@@ -197,19 +220,20 @@ public class CoverageSlicesCatalog {
                     if (LOGGER.isLoggable(Level.FINE))
                         LOGGER.fine("BBOXFilterExtractor::extractBasicProperties(): SUCCESS -> type \'"
                                 + typeName + "\' is equalsIgnoreCase() to \'" + type + "\'.");
-                    this.typeName = type;
+                    typeName = type;
+                    addTypeName(typeName, false);
                     break;
                 }
             }
         }
 
-        final SimpleFeatureSource featureSource = slicesIndexStore.getFeatureSource(this.typeName);
+        final SimpleFeatureSource featureSource = slicesIndexStore.getFeatureSource(typeName);
         if (featureSource != null){
-            bounds = featureSource.getBounds();
+//            bounds = featureSource.getBounds();
         } else {
             throw new IOException(
                     "BBOXFilterExtractor::extractBasicProperties(): unable to get a featureSource for the qualified name"
-                            + this.typeName);
+                            + typeName);
         }
         
         final FeatureType schema = featureSource.getSchema();
@@ -225,6 +249,20 @@ public class CoverageSlicesCatalog {
         }
 
     }
+    
+    private void addTypeName(String typeName, final boolean check) {
+          if (check && this.typeNames.contains(typeName)) {
+              throw new IllegalArgumentException("This typeName already exists: " + typeName);
+          }
+          this.typeNames.add(typeName);    
+  }
+    
+    public String[] getTypeNames() {
+        if (this.typeNames != null && !this.typeNames.isEmpty()) {
+            return (String[]) this.typeNames.toArray(new String[]{});
+        }
+        return null;
+    }
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
@@ -235,7 +273,7 @@ public class CoverageSlicesCatalog {
      * @return Collection of {@link Feature} that intersect the provided {@link BoundingBox}.
      * @throws IOException
      */
-    public List<CoverageSlice> getGranules(final BoundingBox envelope) throws IOException {
+    public List<CoverageSlice> getGranules(final String typeName, final BoundingBox envelope) throws IOException {
         Utilities.ensureNonNull("envelope", envelope);
         final Query q = new Query(typeName);
         Filter filter = FILTER_FACTORY.bbox(FILTER_FACTORY.property(geometryPropertyName),
@@ -252,7 +290,7 @@ public class CoverageSlicesCatalog {
      * @return List of {@link Feature} that intersect the provided {@link BoundingBox}.
      * @throws IOException
      */
-    public void getGranules(final BoundingBox envelope, final GranuleCatalogVisitor visitor)
+    public void getGranules(final String typeName, final BoundingBox envelope, final GranuleCatalogVisitor visitor)
             throws IOException {
         Utilities.ensureNonNull("envelope", envelope);
         final Query q = new Query(typeName);
@@ -281,14 +319,14 @@ public class CoverageSlicesCatalog {
         }
     }
 
-    public void addGranule(final SimpleFeature granule, final Transaction transaction)
+    public void addGranule(final String typeName, final SimpleFeature granule, final Transaction transaction)
             throws IOException {
         final DefaultFeatureCollection collection= new DefaultFeatureCollection();
         collection.add(granule);
-        addGranules(collection, transaction);
+        addGranules(typeName, collection, transaction);
     }
 
-    public void addGranules(final SimpleFeatureCollection granules, final Transaction transaction)
+    public void addGranules(final String typeName, final SimpleFeatureCollection granules, final Transaction transaction)
             throws IOException {
         Utilities.ensureNonNull("granuleMetadata", granules);
         final Lock lock = rwLock.writeLock();
@@ -303,7 +341,7 @@ public class CoverageSlicesCatalog {
             store.addFeatures(granules);
 
             // update bounds
-            bounds = null;
+//            bounds = null;
         } finally {
             lock.unlock();
         }
@@ -316,11 +354,12 @@ public class CoverageSlicesCatalog {
         try {
             lock.lock();
             checkStore();
-
+            String typeName = q.getTypeName();
+            
             //
             // Load tiles informations, especially the bounds, which will be reused
             //
-            final SimpleFeatureSource featureSource = slicesIndexStore.getFeatureSource(this.typeName);
+            final SimpleFeatureSource featureSource = slicesIndexStore.getFeatureSource(typeName);
             if (featureSource == null) {
                 throw new NullPointerException(
                         "The provided SimpleFeatureSource is null, it's impossible to create an index!");
@@ -386,11 +425,11 @@ public class CoverageSlicesCatalog {
         return returnValue;
     }
 
-    public Collection<CoverageSlice> getGranules() throws IOException {
-        return getGranules(getBounds());
+    public Collection<CoverageSlice> getGranules(final String typeName) throws IOException {
+        return getGranules(typeName, getBounds(typeName));
     }
 
-    public ReferencedEnvelope getBounds() {
+    public ReferencedEnvelope getBounds(final String typeName) {
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();
@@ -428,7 +467,7 @@ public class CoverageSlicesCatalog {
 //                    this.locationAttribute = this.locationAttribute.toUpperCase();
 //                }
 //            }
-            extractBasicProperties();
+            extractBasicProperties(typeName);
         } finally {
             lock.unlock();
         }
@@ -438,12 +477,13 @@ public class CoverageSlicesCatalog {
     public void createType(SimpleFeatureType featureType) throws IOException {
         Utilities.ensureNonNull("featureType", featureType);
         final Lock lock = rwLock.writeLock();
+        String typeName = null;
         try {
             lock.lock();
             checkStore();
 
             slicesIndexStore.createSchema(featureType);
-            this.typeName = featureType.getTypeName();
+            typeName = featureType.getTypeName();
             // Oracle trick
 //            if (spi instanceof OracleNGOCIDataStoreFactory
 //                    || spi instanceof OracleNGJNDIDataStoreFactory
@@ -453,7 +493,10 @@ public class CoverageSlicesCatalog {
 //                    this.locationAttribute = this.locationAttribute.toUpperCase();
 //                }
 //            }
-            extractBasicProperties();
+            if (typeName != null) {
+                addTypeName(typeName, true);
+            }
+            extractBasicProperties(typeName);
         } finally {
             lock.unlock();
         }
@@ -465,12 +508,13 @@ public class CoverageSlicesCatalog {
         Utilities.ensureNonNull("typeSpec", typeSpec);
         Utilities.ensureNonNull("identification", identification);
         final Lock lock = rwLock.writeLock();
+        String typeName = null;
         try {
             lock.lock();
             checkStore();
             final SimpleFeatureType featureType = DataUtilities.createType(identification, typeSpec);
             slicesIndexStore.createSchema(featureType);
-            this.typeName = featureType.getTypeName();
+            typeName = featureType.getTypeName();
             // Oracle trick
 //            if (spi instanceof OracleNGOCIDataStoreFactory
 //                    || spi instanceof OracleNGJNDIDataStoreFactory
@@ -480,14 +524,14 @@ public class CoverageSlicesCatalog {
 //                    this.locationAttribute = this.locationAttribute.toUpperCase();
 //                }
 //            }
-            extractBasicProperties();
+            extractBasicProperties(typeName);
         } finally {
             lock.unlock();
         }
 
     }
 
-    public SimpleFeatureType getSchema() throws IOException {
+    public SimpleFeatureType getSchema(final String typeName) throws IOException {
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();
@@ -522,7 +566,7 @@ public class CoverageSlicesCatalog {
 
     }
 
-    public QueryCapabilities getQueryCapabilities() {
+    public QueryCapabilities getQueryCapabilities(final String typeName) {
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();

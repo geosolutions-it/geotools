@@ -23,14 +23,17 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
 
     private CoverageSlicesCatalog innerCatalog;
     
+    protected String typeName;
+    
     private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
     
 //    private String sourceName;
     /** This filter is created to extract the portion of catalog related to the specified name */
     private final Filter filterName;
     
-    public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String coverageName) {
+    public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String coverageName, String typeName) {
         this.innerCatalog = innerCatalog;
+        this.typeName = typeName;
 //        this.sourceName = sourceName;
         List<Filter> filters = new ArrayList<Filter>(); 
         filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
@@ -44,8 +47,11 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
         
         // Filtering by coverageName
         if (q == null) {
-            q = new Query();
+            q = new Query(typeName);
+        } else {
+            q.setTypeName(typeName);
         }
+        
         Filter filter = q.getFilter();
         if (filter != null) {
             filter = FF.and(filter, filterName);
@@ -54,7 +60,7 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
         }
         q.setFilter(filter);
         List<CoverageSlice> granules = innerCatalog.getGranules(q);
-        SimpleFeatureCollection collection = new ListFeatureCollection(innerCatalog.getSchema());
+        SimpleFeatureCollection collection = new ListFeatureCollection(innerCatalog.getSchema(typeName));
         for (CoverageSlice granule: granules) {
             ((ListFeatureCollection)collection).add(granule.getOriginator());
         }
@@ -76,7 +82,7 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
 
     @Override
     public SimpleFeatureType getSchema() throws IOException {
-        return innerCatalog.getSchema();
+        return innerCatalog.getSchema(typeName);
     }
 
     @Override
