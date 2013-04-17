@@ -47,6 +47,7 @@ import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.feature.type.SchemaImpl;
 import org.geotools.gml.producer.FeatureTransformer;
+import org.geotools.gml3.GMLConfiguration;
 import org.geotools.gtxml.GTXML;
 import org.geotools.referencing.CRS;
 import org.geotools.xml.Configuration;
@@ -115,6 +116,8 @@ public class GML {
     private boolean legacy;
 
     private CoordinateReferenceSystem crs;
+    
+    private boolean featureBounding = true;
 
     /**
      * Construct a GML utility class to work with the indicated version of GML.
@@ -290,13 +293,21 @@ public class GML {
         if (version == Version.GML2) {
             if (legacy) {
                 encodeLegacyGML2(out, collection);
+                return;
             } else {
                 throw new IllegalStateException(
                         "Cannot encode a feature collection using GML2 (only WFS)");
             }
         }
+        
         if (version == Version.WFS1_0) {
-            Encoder e = new Encoder(new org.geotools.wfs.v1_0.WFSConfiguration());
+            org.geotools.wfs.v1_0.WFSConfiguration config = new org.geotools.wfs.v1_0.WFSConfiguration();
+            if(!featureBounding) {
+                config.getProperties().add( GMLConfiguration.NO_FEATURE_BOUNDS);
+            } else {
+                config.getProperties().remove( GMLConfiguration.NO_FEATURE_BOUNDS );
+            }
+            Encoder e = new Encoder(config);
             e.getNamespaces().declarePrefix(prefix, namespace);
             e.setIndenting(true);
 
@@ -307,7 +318,13 @@ public class GML {
             e.encode(featureCollectionType, org.geotools.wfs.WFS.FeatureCollection, out);
         }
         if (version == Version.WFS1_1) {
-            Encoder e = new Encoder(new org.geotools.wfs.v1_1.WFSConfiguration());
+            org.geotools.wfs.v1_1.WFSConfiguration config = new org.geotools.wfs.v1_1.WFSConfiguration();
+            if(!featureBounding) {
+                config.getProperties().add( GMLConfiguration.NO_FEATURE_BOUNDS);
+            } else {
+                config.getProperties().remove( GMLConfiguration.NO_FEATURE_BOUNDS );
+            }
+            Encoder e = new Encoder(config);
             e.getNamespaces().declarePrefix(prefix, namespace);
             e.setIndenting(true);
 
@@ -350,7 +367,8 @@ public class GML {
         transform.setCollectionNamespace(null);
 
         // other configuration
-        transform.setCollectionBounding(true);
+        transform.setCollectionBounding(featureBounding);
+        transform.setFeatureBounding(featureBounding);
         transform.setEncoding(encoding);
 
         // configure additional feature namespace lookup
@@ -859,5 +877,21 @@ public class GML {
         xsd.getContents().add(definition);
 
         return definition;
+    }
+
+    /**
+     * Returns whether feature/collection bounds are encoded (true by default)
+     * @return
+     */
+    public boolean isFeatureBounding() {
+        return featureBounding;
+    }
+
+    /**
+     * Sets whether feature/collection bounds are encoded
+     * @param featureBounding
+     */
+    public void setFeatureBounding(boolean featureBounding) {
+        this.featureBounding = featureBounding;
     }
 }

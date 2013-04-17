@@ -1,16 +1,16 @@
 package org.geotools;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilePermission;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.security.Permission;
-import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -23,23 +23,18 @@ import org.geotools.data.DataUtilities;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.feature.DefaultFeatureCollection;
-import org.geotools.feature.FeatureCollections;
 import org.geotools.feature.NameImpl;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.WKTReader2;
-import org.geotools.gtxml.GTXML;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.test.TestData;
-import org.geotools.wfs.v1_1.WFSConfiguration;
-import org.geotools.xml.Configuration;
 import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.FeatureType;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 
 /**
@@ -154,16 +149,44 @@ public class GMLTest {
         collection.add(SimpleFeatureBuilder.build(TYPE, new Object[] { wkt.read("POINT (4 4)"),
                 "name2" }, null));
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
         GML encode = new GML(Version.WFS1_0);
         encode.setNamespace("geotools", "http://geotools.org");
 
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         encode.encode(out, collection);
-
         out.close();
         String gml = out.toString();
         assertTrue(gml.indexOf("<gml:Point>") != -1);
+    }
+    
+    @Test
+    public void testEncodeWFS1_0FeatureCollectionNoFeatureBounds() throws Exception {
+        SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
+        tb.setName("feature");
+        tb.setNamespaceURI("http://geotools.org");
+        tb.add("geometry", LineString.class);
+        tb.add("name", String.class);
+
+        SimpleFeatureType TYPE = tb.buildFeatureType();
+
+        DefaultFeatureCollection collection = new DefaultFeatureCollection();
+        WKTReader2 wkt = new WKTReader2();
+        collection.add(SimpleFeatureBuilder.build(TYPE, new Object[] { wkt.read("LINESTRING (1 2, 2 3)"),
+                "name1" }, null));
+        collection.add(SimpleFeatureBuilder.build(TYPE, new Object[] { wkt.read("LINESTRING (4 4, 5 5)"),
+                "name2" }, null));
+
+        GML encode = new GML(Version.WFS1_0);
+        encode.setNamespace("geotools", "http://geotools.org");
+        encode.setFeatureBounding(false);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        encode.encode(out, collection);
+        out.close();
+        String gml = out.toString();
+        System.out.println(gml);
+        assertTrue(gml.indexOf("<gml:LineString>") != -1);
+        int idxStart = gml.indexOf("<gml:featureMember>");
+        assertTrue(gml.indexOf("<gml:boundedBy>", idxStart) == -1);
     }
 
     @Test
