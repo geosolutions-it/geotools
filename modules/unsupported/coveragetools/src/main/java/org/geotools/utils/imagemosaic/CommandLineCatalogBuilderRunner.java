@@ -25,10 +25,10 @@ import java.util.logging.Logger;
 
 import org.geotools.console.CommandLine;
 import org.geotools.console.Option;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
+import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.Utils;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ExceptionEvent;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder.ProcessingEvent;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.utils.progress.ProcessingEventListener;
 
@@ -147,12 +147,12 @@ public class CommandLineCatalogBuilderRunner extends CommandLine {
         configuration.setIndexingDirectories(dirs);
         
         // prepare and run the index builder
-        final CatalogBuilder builder = new CatalogBuilder(configuration);
+        final ImageMosaicWalker builder = new ImageMosaicWalker(configuration);
      // this is going to help us with catching exceptions and logging them
         final Queue<Throwable> exceptions = new LinkedList<Throwable>();
         try {
 
-                final CatalogBuilder.ProcessingEventListener listener = new CatalogBuilder.ProcessingEventListener() {
+                final ImageMosaicWalker.ProcessingEventListener listener = new ImageMosaicWalker.ProcessingEventListener() {
 
                         @Override
                         public void exceptionOccurred(ExceptionEvent event) {

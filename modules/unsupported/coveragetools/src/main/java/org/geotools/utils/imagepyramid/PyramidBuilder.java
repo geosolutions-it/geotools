@@ -41,7 +41,6 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker;
 import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.utils.CoverageToolsConstants;
