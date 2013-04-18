@@ -23,6 +23,7 @@ import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.data.Query;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.GranuleDescriptor;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.coverage.FeatureUtilities;
@@ -44,14 +45,15 @@ public class GranuleCatalogSource implements GranuleSource {
 
     protected String typeName;
     
-//    private Filter filterName;
-
-    public GranuleCatalogSource(GranuleCatalog catalog, final String typeName) {
+    protected Hints hints;
+    
+    public GranuleCatalogSource(GranuleCatalog catalog, final String typeName, final Hints hints) {
         super();
         //TODO: once we allow to create different catalogs (based on different featureTypes) 
         // we can stop filtering by name 
         this.catalog = catalog;
         this.typeName = typeName;
+        this.hints = hints;
 //        List<Filter> filters = new ArrayList<Filter>(); 
 //        filters.add(FF.equal(FF.property("coverage"),
 //                FF.literal(coverageName), true));
@@ -84,6 +86,9 @@ public class GranuleCatalogSource implements GranuleSource {
             q = new Query();
         } else  {
             q = new Query(q);
+        }
+        if (hints != null) {
+            q.setHints(hints);
         }
         if(q.getTypeName() == null) {
             q.setTypeName(typeName);

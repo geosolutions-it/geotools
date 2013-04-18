@@ -1206,16 +1206,16 @@ public class RasterManager {
         }
     }
     
-    public GranuleSource getGranuleSource(final boolean readOnly) {
+    public GranuleSource getGranuleSource(final boolean readOnly, final Hints hints) {
         synchronized (this) {
             if (readOnly) {
                 if (granuleSource == null) {
-                    granuleSource = new GranuleCatalogSource(granuleCatalog, typeName);
+                    granuleSource = new GranuleCatalogSource(granuleCatalog, typeName, hints);
                 }
                 return granuleSource;
             } else {
                 if (granuleStore == null) {
-                    granuleStore = new GranuleCatalogStore(granuleCatalog, typeName);
+                    granuleStore = new GranuleCatalogStore(granuleCatalog, typeName, hints);
                 }
                 return granuleStore;
             }

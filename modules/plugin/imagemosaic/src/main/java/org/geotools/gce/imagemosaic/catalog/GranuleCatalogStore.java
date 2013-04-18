@@ -23,6 +23,7 @@ import org.geotools.data.Query;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.factory.Hints;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 
@@ -36,8 +37,8 @@ public class GranuleCatalogStore extends GranuleCatalogSource implements Granule
     
     private Transaction transaction;
     
-    public GranuleCatalogStore(GranuleCatalog catalog, final String typeName) {
-        super(catalog, typeName);
+    public GranuleCatalogStore(GranuleCatalog catalog, final String typeName, final Hints hints) {
+        super(catalog, typeName, hints);
     }
 
     @Override

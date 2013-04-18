@@ -522,7 +522,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
                                                                 pathType,
                                                                 locationAttribute,
                                                                 parentLocation,
-                                                                heterogeneous);
+                                                                heterogeneous, 
+                                                                q.getHints());
                                                 granuleDescriptorsCache.put(featureId, granule);
                                             }
   

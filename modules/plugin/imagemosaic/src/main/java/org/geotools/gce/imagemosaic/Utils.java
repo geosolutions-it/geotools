@@ -177,6 +177,7 @@ public class Utils {
         public final static String SUGGESTED_SPI = "SuggestedSPI";
         public final static String EXP_RGB = "ExpandToRGB";
         public final static String ABSOLUTE_PATH = "AbsolutePath";
+        public final static String AUXILIARY_FILE = "AuxiliaryFile";
         public final static String NAME = "Name";
         public final static String FOOTPRINT_MANAGEMENT = "FootprintManagement";
         public final static String HETEROGENEOUS = "Heterogeneous";
@@ -194,7 +195,7 @@ public class Utils {
         public static final String SCHEMA = "Schema";
         public static final String RESOLUTION_LEVELS = "ResolutionLevels";
         public static final String PROPERTY_COLLECTORS = "PropertyCollectors";
-        public final static String CACHING= "Caching";        
+        public final static String CACHING= "Caching";
     }
         /**
      * Extracts a bbox from a filter in case there is at least one.

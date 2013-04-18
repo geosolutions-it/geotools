@@ -795,7 +795,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         if (manager == null) {
             // Consider creating a new GranuleStore
         } else {
-            return manager.getGranuleSource(readOnly);  
+            return manager.getGranuleSource(readOnly, getHints());
         }
         return null;
     }

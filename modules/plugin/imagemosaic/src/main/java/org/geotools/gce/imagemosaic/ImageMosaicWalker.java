@@ -323,9 +323,9 @@ public class ImageMosaicWalker implements Runnable {
                 //
                 final AbstractGridFormat format;
                 final Hints configurationHints = runConfiguration.getHints();
-                if (runConfiguration.getIndexer() != null) {
-                    configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
-                }
+//                if (runConfiguration.getIndexer() != null) {
+//                    configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
+//                }
                 
                 if (cachedFormat == null) {
                     // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
@@ -914,6 +914,7 @@ public class ImageMosaicWalker implements Runnable {
         // look for and indexer.properties file
         parent = new File(configuration.getRootMosaicDirectory());
         indexerFile = new File(parent, Utils.INDEXER_XML);
+        Hints hints = configuration.getHints();
         if (Utils.checkFileReadable(indexerFile)) {
             try {
                 Indexer indexer = (Indexer) Utils.UNMARSHALLER.unmarshal(indexerFile);
@@ -981,16 +982,29 @@ public class ImageMosaicWalker implements Runnable {
                     // Overriding root mosaic directory
                     configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
                 }
+                
+                if (props.containsKey(Prop.AUXILIARY_FILE)) {
+                    String ancillaryFile = configuration.getRootMosaicDirectory() + File.separatorChar + 
+                            props.getProperty(Prop.AUXILIARY_FILE);
+                    if (hints != null) {
+                        hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
+                    } else {
+                        hints = new Hints(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
+                        configuration.setHints(hints);
+                    }
+                }
             }
         }
 
-        Hints hints = configuration.getHints();
         if (hints != null && hints.containsKey(Utils.MOSAIC_READER)) {
             Object reader = hints.get(Utils.MOSAIC_READER);
             if (reader instanceof ImageMosaicReader) {
                 parentReader = (ImageMosaicReader) reader;
+                Hints readerHints = parentReader.getHints();
+                readerHints.add(hints);
             }
         }
+        
 
         // check config
         configuration.check();
