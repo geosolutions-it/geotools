@@ -66,6 +66,10 @@ import javax.media.jai.RasterFactory;
 import javax.media.jai.TileCache;
 import javax.media.jai.TileScheduler;
 import javax.media.jai.remote.SerializableRenderedImage;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
@@ -113,12 +117,22 @@ public class Utils {
     final private static double RESOLUTION_TOLERANCE_FACTOR = 1E-2;
 
     public final static Key EXCLUDE_MOSAIC = new Key(Boolean.class);
-    
+
+    public final static Key AUXILIARY_FILES_PATH = new Key(String.class);
+
     public final static Key MOSAIC_READER = new Key(ImageMosaicReader.class);
 
     public static final String RANGE_SPLITTER_CHAR = ";";
 
     public final static String INDEXER_PROPERTIES = "indexer.properties";
+
+    public final static String INDEXER_XML = "indexer.xml";
+
+    public static Marshaller MARSHALLER;
+
+    public static Unmarshaller UNMARSHALLER;
+
+    static final String DEFAULT = "default";
 
     /** EHCache instance to cache histograms */ 
     private static Cache ehcache;
@@ -131,13 +145,27 @@ public class Utils {
      * mosaicking op) when possible (As an instance when mosaicking a single granule) 
      */
     final static boolean OPTIMIZE_CROP; 
-        
+
+    /**
+     * Logger.
+     */
+    private final static Logger LOGGER = org.geotools.util.logging.Logging
+                    .getLogger(Utils.class.toString());
+
     static {
         final String prop = System.getProperty("org.geotools.imagemosaic.optimizecrop");
         if (prop != null && prop.equalsIgnoreCase("FALSE")){
             OPTIMIZE_CROP = false;
         } else {
             OPTIMIZE_CROP = true;
+        }
+        JAXBContext jc;
+        try {
+            jc = JAXBContext.newInstance("org.geotools.gce.imagemosaic.catalog.index");
+            MARSHALLER = jc.createMarshaller();
+            UNMARSHALLER = jc.createUnmarshaller();
+        } catch (JAXBException e) {
+            LOGGER.log(Level.FINER, e.getMessage(), e);
         }
     }
     
@@ -155,9 +183,10 @@ public class Utils {
         public static final String TIME_ATTRIBUTE = "TimeAttribute";
         public static final String ELEVATION_ATTRIBUTE = "ElevationAttribute";
         public static final String ADDITIONAL_DOMAIN_ATTRIBUTES = "AdditionalDomainAttributes";
-        public final static String TYPENAME= "TypeName";
-        public final static String PATH_TYPE=  "PathType";
-        public final static String PARENT_LOCATION=  "ParentLocation";
+        public final static String TYPENAME = "TypeName";
+        public final static String PATH_TYPE = "PathType";
+        public final static String PARENT_LOCATION = "ParentLocation";
+        public final static String ROOT_MOSAIC_DIR = "RootMosaicDirectory";
         
         //Indexer Properties specific properties
         public  static final String RECURSIVE = "Recursive";
@@ -195,11 +224,7 @@ public class Utils {
     	}
     	
     }
-        /**
-	 * Logger.
-	 */
-	private final static Logger LOGGER = org.geotools.util.logging.Logging
-			.getLogger(Utils.class.toString());
+
 	/**
 	 * Default wildcard for creating mosaics.
 	 */
@@ -1096,7 +1121,7 @@ public class Utils {
                                 }
                             
                                 // actual creation
-                                createMosaic(locationPath, defaultIndexName,DEFAULT_WILCARD, DEFAULT_PATH_BEHAVIOR,hints);
+                                createMosaic(locationPath, defaultIndexName, DEFAULT_WILCARD, DEFAULT_PATH_BEHAVIOR, hints);
 
                                 // check that the mosaic properties file was created
                                 final File propertiesFile = new File(locationPath,

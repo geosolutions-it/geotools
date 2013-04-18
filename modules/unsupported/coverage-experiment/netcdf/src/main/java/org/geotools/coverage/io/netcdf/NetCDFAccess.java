@@ -43,6 +43,7 @@ import org.geotools.data.Parameter;
 import org.geotools.data.ServiceInfo;
 import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
+import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.netcdf.NetCDFImageReader;
 import org.geotools.util.NullProgressListener;
@@ -111,6 +112,11 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
         try {
             reader = (NetCDFImageReader) NetCDFDriver.SPI.createReaderInstance();
             reader.setInput(this.source);
+            if (hints != null && hints.containsKey(Utils.AUXILIARY_FILES_PATH)) {
+                String filePath = (String) hints.get(Utils.AUXILIARY_FILES_PATH);
+                reader.setAuxiliaryFilesPath(filePath);
+            }
+
             namePrefix = FilenameUtils.getBaseName(sourceFile.getCanonicalPath()) + "_";
 
             if (names == null) {

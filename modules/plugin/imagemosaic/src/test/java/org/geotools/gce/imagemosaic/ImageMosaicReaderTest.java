@@ -26,10 +26,14 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -37,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
@@ -65,6 +70,7 @@ import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.factory.Hints;
+import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
@@ -1825,7 +1831,113 @@ public class ImageMosaicReaderTest extends Assert{
             reader.dispose();
         }
     }
+    
+    @Test
+    public void testHarvestWithExternalMosaicDir() throws Exception {
 
+        File source = DataUtilities.urlToFile(timeURL);
+        File directory1 = new File("./target/externalindex");
+        File directory2 = new File("./target/singleHarvest2");
+        if (directory1.exists()) {
+            FileUtils.deleteDirectory(directory1);
+        }
+        FileUtils.copyDirectory(source, directory1);
+        // remove all files besides month 2 and 5
+        for (File file : FileUtils.listFiles(directory1, new RegexFileFilter(
+                "world\\.20040[^25].*\\.tiff"), null)) {
+            assertTrue(file.delete());
+        }
+        // remove all mosaic related files
+        for (File file : FileUtils.listFiles(directory1, new RegexFileFilter("time_geotiff.*"),
+                null)) {
+            assertTrue(file.delete());
+        }
+
+        // Editing indexer RootMosaicDirectory path
+        InputStream stream = null;
+        OutputStream outStream = null;
+        try {
+
+            final String indexerPath = directory1.getCanonicalPath() + "/indexer.properties";
+            stream = new FileInputStream(indexerPath);
+            String path = directory1.getCanonicalPath();
+            path = path.replace("\\", "/");
+            Properties prop = new Properties();
+            prop.load(stream);
+            
+            outStream = new FileOutputStream(indexerPath);
+            prop.setProperty(Prop.ROOT_MOSAIC_DIR, path);
+            prop.store(outStream, null);
+        } finally {
+            if (stream != null) {
+                stream.close();
+            }
+            if (outStream != null) {
+                outStream.close();
+            }
+        }
+        // move month 5 to another dir, we'll harvet it later
+        String monthFiveName = "world.200405.3x5400x2700.tiff";
+        File monthFive = new File(directory1, monthFiveName);
+        if (directory2.exists()) {
+            FileUtils.deleteDirectory(directory2);
+        }
+        directory2.mkdirs();
+        File renamed = new File(directory2, monthFiveName);
+        assertTrue(monthFive.renameTo(renamed));
+
+        // ok, let's create a mosaic with a single granule and check its times
+        URL harvestSingleURL = DataUtilities.fileToURL(directory1);
+        final AbstractGridFormat format = TestUtils.getFormat(harvestSingleURL);
+        ImageMosaicReader reader = TestUtils.getReader(harvestSingleURL, format);
+        try {
+            String[] metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+
+            // now go and harvest the other file
+            List<HarvestedFile> summary = reader.harvest(null, renamed, null);
+            assertEquals(1, summary.size());
+            HarvestedFile hf = summary.get(0);
+            assertEquals(renamed.getCanonicalFile(), hf.getFile());
+            assertTrue(hf.success());
+
+            // the harvest put the file in the same coverage
+            assertEquals(1, reader.getGridCoverageNames().length);
+            metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z,2004-05-01T00:00:00.000Z",
+                    reader.getMetadataValue(metadataNames[0]));
+
+            // check the granule catalog
+            String coverageName = reader.getGridCoverageNames()[0];
+            GranuleSource granules = reader.getGranules(coverageName, true);
+            assertEquals(2, granules.getCount(Query.ALL));
+            Query q = new Query(Query.ALL);
+            SimpleFeatureIterator fi = granules.getGranules(q).features();
+            try {
+                assertTrue(fi.hasNext());
+                SimpleFeature f = fi.next();
+                assertEquals("world.200402.3x5400x2700.tiff", f.getAttribute("location"));
+                assertEquals("2004-02-01T00:00:00.000Z",
+                        ConvertersHack.convert(f.getAttribute("time"), String.class));
+                f = fi.next();
+                String expected = "../singleHarvest2/world.200405.3x5400x2700.tiff".replace('/',
+                        File.separatorChar);
+                assertEquals(expected, f.getAttribute("location"));
+                assertEquals("2004-05-01T00:00:00.000Z",
+                        ConvertersHack.convert(f.getAttribute("time"), String.class));
+            } finally {
+                fi.close();
+            }
+
+        } finally {
+            reader.dispose();
+        }
+    }
+    
     @AfterClass
 	public static void close(){
 		System.clearProperty("org.geotools.referencing.forceXY");

@@ -99,7 +99,7 @@ public class CoverageSlicesCatalog {
 
             this.parentLocation = (String) params.get("ParentLocation");
 
-            // H2 workadound
+            // H2 workaround
             if (spi instanceof H2DataStoreFactory || spi instanceof H2JNDIDataStoreFactory) {
                 if (params.containsKey(H2DataStoreFactory.DATABASE.key)) {
                     String dbname = (String) params.get(H2DataStoreFactory.DATABASE.key);

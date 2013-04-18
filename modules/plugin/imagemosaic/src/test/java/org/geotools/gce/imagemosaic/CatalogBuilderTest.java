@@ -38,7 +38,6 @@ import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEventListener;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
-import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilder;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.test.TestData;

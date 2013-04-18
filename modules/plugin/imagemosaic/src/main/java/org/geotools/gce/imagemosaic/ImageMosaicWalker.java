@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  * 
- *    (C) 2008, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2013, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -16,6 +16,7 @@
  */
 package org.geotools.gce.imagemosaic;
 
+import java.awt.RenderingHints;
 import java.awt.color.ColorSpace;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
@@ -45,6 +46,7 @@ import java.util.logging.Logger;
 import javax.imageio.spi.ImageReaderSpi;
 import javax.media.jai.ImageLayout;
 import javax.swing.SwingUtilities;
+import javax.xml.bind.JAXBException;
 
 import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
@@ -69,6 +71,7 @@ import org.geotools.gce.image.WorldImageFormat;
 import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.gce.imagemosaic.catalogbuilder.MosaicBeanBuilder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
@@ -319,6 +322,11 @@ public class ImageMosaicWalker implements Runnable {
                 // Getting a coverage reader for this coverage.
                 //
                 final AbstractGridFormat format;
+                final Hints configurationHints = runConfiguration.getHints();
+                if (runConfiguration.getIndexer() != null) {
+                    configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
+                }
+                
                 if (cachedFormat == null) {
                     // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
                     format = (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed, excludeMosaicHints);
@@ -338,8 +346,7 @@ public class ImageMosaicWalker implements Runnable {
                     return;
                 }
                 cachedFormat = format;
-                coverageReader = (GridCoverage2DReader) format.getReader(
-                        fileBeingProcessed, runConfiguration.getHints());
+                coverageReader = (GridCoverage2DReader) format.getReader(fileBeingProcessed, configurationHints);
                 
                 // Getting available coverageNames from the reader
                 String [] coverageNames = coverageReader.getGridCoverageNames();
@@ -783,10 +790,10 @@ public class ImageMosaicWalker implements Runnable {
 
     private Hints excludeMosaicHints = new Hints(Utils.EXCLUDE_MOSAIC, true);
 
-    private File indexerProperties;
+    private File indexerFile;
 
     private File parent;
-    
+
     private IOFileFilter fileFilter;
 
     /**
@@ -904,61 +911,77 @@ public class ImageMosaicWalker implements Runnable {
         Utilities.ensureNonNull("runConfiguration", configuration);
         Utilities.ensureNonNull("root location", configuration.getRootMosaicDirectory());
 
-        // look for and indexed.properties file
+        // look for and indexer.properties file
         parent = new File(configuration.getRootMosaicDirectory());
-        indexerProperties = new File(parent, Utils.INDEXER_PROPERTIES);
-        if (Utils.checkFileReadable(indexerProperties)) {
-            // load it and parse it
-            final Properties props = Utils.loadPropertiesFromURL(DataUtilities
-                    .fileToURL(indexerProperties));
-
-            // name
-            if (props.containsKey(Prop.NAME))
-                configuration.setIndexName(props.getProperty(Prop.NAME));
-
-            // absolute
-            if (props.containsKey(Prop.ABSOLUTE_PATH))
-                configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
-
-            // recursive
-            if (props.containsKey(Prop.RECURSIVE))
-                configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
-
-            // wildcard
-            if (props.containsKey(Prop.WILDCARD))
-                configuration.setWildcard(props.getProperty(Prop.WILDCARD));
-
-            // schema
-            if (props.containsKey(Prop.SCHEMA))
-                configuration.setSchema(props.getProperty(Prop.SCHEMA));
-
-            // time attr
-            if (props.containsKey(Prop.TIME_ATTRIBUTE))
-                configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
-
-            // elevation attr
-            if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
-                configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
-
-            // Additional domain attr
-            if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
-                configuration.setAdditionalDomainAttribute(props
-                        .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
-
-            // imposed BBOX
-            if (props.containsKey(Prop.ENVELOPE2D))
-                configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
-
-            // imposed Pyramid Layout
-            if (props.containsKey(Prop.RESOLUTION_LEVELS))
-                configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
-
-            // collectors
-            if (props.containsKey(Prop.PROPERTY_COLLECTORS))
-                configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
-
-            if (props.containsKey(Prop.CACHING))
-                configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
+        indexerFile = new File(parent, Utils.INDEXER_XML);
+        if (Utils.checkFileReadable(indexerFile)) {
+            try {
+                Indexer indexer = (Indexer) Utils.UNMARSHALLER.unmarshal(indexerFile);
+                configuration.setIndexer(indexer);
+            } catch (JAXBException e) {
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
+            }
+        } else {
+            // Backward compatible with old indexing
+            indexerFile = new File(parent, Utils.INDEXER_PROPERTIES);
+            if (Utils.checkFileReadable(indexerFile)) {
+                // load it and parse it
+                final Properties props = Utils.loadPropertiesFromURL(DataUtilities
+                        .fileToURL(indexerFile));
+    
+                // name
+                if (props.containsKey(Prop.NAME))
+                    configuration.setIndexName(props.getProperty(Prop.NAME));
+    
+                // absolute
+                if (props.containsKey(Prop.ABSOLUTE_PATH))
+                    configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
+    
+                // recursive
+                if (props.containsKey(Prop.RECURSIVE))
+                    configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
+    
+                // wildcard
+                if (props.containsKey(Prop.WILDCARD))
+                    configuration.setWildcard(props.getProperty(Prop.WILDCARD));
+    
+                // schema
+                if (props.containsKey(Prop.SCHEMA))
+                    configuration.setSchema(props.getProperty(Prop.SCHEMA));
+    
+                // time attr
+                if (props.containsKey(Prop.TIME_ATTRIBUTE))
+                    configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
+    
+                // elevation attr
+                if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
+                    configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
+    
+                // Additional domain attr
+                if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
+                    configuration.setAdditionalDomainAttribute(props
+                            .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
+    
+                // imposed BBOX
+                if (props.containsKey(Prop.ENVELOPE2D))
+                    configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
+    
+                // imposed Pyramid Layout
+                if (props.containsKey(Prop.RESOLUTION_LEVELS))
+                    configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
+    
+                // collectors
+                if (props.containsKey(Prop.PROPERTY_COLLECTORS))
+                    configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
+    
+                if (props.containsKey(Prop.CACHING))
+                    configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
+                
+                if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
+                    // Overriding root mosaic directory
+                    configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
+                }
+            }
         }
 
         Hints hints = configuration.getHints();
@@ -1315,7 +1338,7 @@ public class ImageMosaicWalker implements Runnable {
                     final String source = 
                             runConfiguration.getRootMosaicDirectory() + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
                     
-                    final File mosaicFile = new File(indexerProperties.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
+                    final File mosaicFile = new File(indexerFile.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
                     FileUtils.copyFile(new File(source) , mosaicFile);
                 }
 

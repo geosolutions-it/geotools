@@ -148,7 +148,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
 
         // getting access to the source
         try {
-            access = (NetCDFAccess) DRIVER.process(DriverCapabilities.CONNECT, sourceURL, null, null, null);
+            access = (NetCDFAccess) DRIVER.process(DriverCapabilities.CONNECT, sourceURL, null, uHints, null);
         } catch (IOException e) {
             throw new DataSourceException("Unable to connect", e);
         }

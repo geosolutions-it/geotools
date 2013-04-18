@@ -4,7 +4,7 @@
 	<xs:element name="Indexer">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element name="schemas">
+				<xs:element name="schemas" maxOccurs="1" minOccurs="0">
 					<xs:complexType>
 						<xs:sequence>
 							<xs:element name="schema" maxOccurs="unbounded" minOccurs="0">
@@ -18,7 +18,7 @@
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>
-				<xs:element name="coverages">
+				<xs:element name="coverages" maxOccurs="1" minOccurs="0">
 					<xs:complexType>
 						<xs:sequence>
 							<xs:element name="coverage" maxOccurs="unbounded" minOccurs="1">
@@ -28,6 +28,20 @@
 											type="xs:string" />
 										<xs:element name="origName"
 											type="xs:string" />
+										<xs:element name="domains">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="domain" maxOccurs="unbounded" minOccurs="0">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="attributes" type="xs:string" />
+															</xs:sequence>
+															<xs:attribute name="name" type="xs:string" use="required" />
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
 									</xs:sequence>
 									<xs:attribute name="name"
 										type="xs:string" use="required" />
@@ -39,21 +53,9 @@
 				</xs:element>
 				<xs:element name="datastore">
 					<xs:complexType>
-						<xs:sequence minOccurs="1" maxOccurs="1">
+						<xs:sequence minOccurs="0" maxOccurs="1">
 							<xs:element name="database" type="xs:string" />
-							<xs:element name="parameters">
-								<xs:complexType>
-									<xs:sequence>
-										<xs:element name="parameter" maxOccurs="unbounded" minOccurs="0">
-											<xs:complexType>
-												<xs:sequence>
-													<xs:element name="value" type="xs:string" />
-												</xs:sequence>
-												<xs:attribute name="name" type="xs:string" use="required" />
-											</xs:complexType>
-										</xs:element>
-									</xs:sequence>
-								</xs:complexType>
+							<xs:element name="parameters" maxOccurs="1" minOccurs="0" type="parametersType">
 							</xs:element>
 						</xs:sequence>
 					</xs:complexType>
@@ -75,8 +77,23 @@
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>
+				<xs:element name="parameters" maxOccurs="1" minOccurs="0" type="parametersType">
+				</xs:element>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
+    <xs:complexType name="parametersType">
+	<xs:sequence>
+		<xs:element name="parameter" maxOccurs="unbounded"
+			minOccurs="0">
+			<xs:complexType>
+				<xs:sequence>
+					<xs:element name="value" type="xs:string" />
+				</xs:sequence>
+				<xs:attribute name="name" type="xs:string" use="required" />
+			</xs:complexType>
+		</xs:element>
+	</xs:sequence>
+</xs:complexType>
 </xs:schema>
 

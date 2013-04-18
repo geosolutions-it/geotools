@@ -24,6 +24,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.geotools.console.Option;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.Utils;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer;
 import org.geotools.util.Utilities;
 
 /**
@@ -52,6 +53,8 @@ public class CatalogBuilderConfiguration {
 	
 	private boolean caching = Utils.DEFAULT_CONFIGURATION_CACHING;
 
+	private Indexer indexer;
+	
 	/**
 	 * Index file name. Default is index.
 	 */
@@ -178,7 +181,15 @@ public class CatalogBuilderConfiguration {
 		return timeAttribute;
 	}
 
-	public void setTimeAttribute(String timeAttribute) {
+	public Indexer getIndexer() {
+        return indexer;
+    }
+
+    public void setIndexer(Indexer indexer) {
+        this.indexer = indexer;
+    }
+
+    public void setTimeAttribute(String timeAttribute) {
 		this.timeAttribute = timeAttribute;
 	}
 

@@ -993,7 +993,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         final Rectangle srcRegion = new Rectangle();
         final Rectangle destRegion = new Rectangle();
         computeRegions(param, width, height, null, srcRegion, destRegion);
-         flipVertically(param, height, srcRegion);
+        flipVertically(param, height, srcRegion);
         int destWidth = destRegion.x + destRegion.width;
         int destHeight = destRegion.y + destRegion.height;
     
