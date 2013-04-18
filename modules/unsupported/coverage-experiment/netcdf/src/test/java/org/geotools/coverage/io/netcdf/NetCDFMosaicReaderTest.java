@@ -466,98 +466,107 @@ public class NetCDFMosaicReaderTest extends Assert {
     }
     
     @Test
-    @Ignore
-    public void testHarvestGome2() throws IOException {
-        // prepare a "mosaic" with just one NetCDF
-        File nc1 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/DUMMY.GOME2.NO2.PGL.nc");
-        File mosaic = new File("./target/nc_harvest");
-        if(mosaic.exists()) {
-            FileUtils.deleteDirectory(mosaic);
-        }
-        assertTrue(mosaic.mkdirs());
-        FileUtils.copyFileToDirectory(nc1, mosaic);
-        
-        File xml = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/.DUMMY.GOME2.NO2.PGL/GOME2.NO2.xml");
-        FileUtils.copyFileToDirectory(xml, mosaic);
-        
-        // The indexer
-        String indexer = "TimeAttribute=time\n" + 
-                "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date,elevation:Double\n";
-        indexer+=Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
-        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
-        
-        // the datastore.properties file is also mandatory...
-        File dsp = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
-        FileUtils.copyFileToDirectory(dsp, mosaic);
-        
-        // have the reader harvest it
-        ImageMosaicFormat format = new ImageMosaicFormat();
-        ImageMosaicReader reader = format.getReader(mosaic);
-        SimpleFeatureIterator it = null;
-        assertNotNull(reader);
-        try {
-            String[] names = reader.getGridCoverageNames();
-            assertEquals(1, names.length);
-            assertEquals("NO2", names[0]);
-            
-            // check we have the two granules we expect
-            GranuleSource source = reader.getGranules("NO2", true);
-            FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
-            Query q = new Query(Query.ALL);
-            q.setSortBy(new SortBy[] {ff.sort("time", SortOrder.ASCENDING)});
-            SimpleFeatureCollection granules = source.getGranules(q);
-            assertEquals(1, granules.size());
-            it = granules.features();
-            assertTrue(it.hasNext());
-            SimpleFeature f = it.next();
-            assertEquals("DUMMY.GOME2.NO2.PGL.nc", f.getAttribute("location"));
-            assertEquals(0, f.getAttribute("imageindex"));
-//            assertEquals("2013-03-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
-//            assertTrue(it.hasNext());
-//            f = it.next();
-//            assertEquals("polyphemus_20130301_test.nc", f.getAttribute("location"));
-//            assertEquals(1, f.getAttribute("imageindex"));
-//            assertEquals("2013-03-01T01:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
-//            it.close();
-//            
-//            // now add another netcdf and harvest it
-//            File nc2 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_NO2.nc");
-//            FileUtils.copyFileToDirectory(nc2, mosaic);
-//            File fileToHarvest = new File(mosaic, "polyphemus_20130301_NO2.nc");
-//            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
-//            assertEquals(1, harvestSummary.size());
-//            HarvestedFile hf = harvestSummary.get(0);
-//            assertEquals("polyphemus_20130301_NO2.nc", hf.getFile().getName());
-//            assertTrue(hf.success());
-//            // check we have two coverages now
-//            names = reader.getGridCoverageNames();
-//            Arrays.sort(names);
-//            assertEquals(1, names.length);
-//            assertEquals("NO2", names[0]);
-//            assertEquals("O3", names[1]);
-//            
-//            // test the newly ingested granules, which are in a separate coverage
-//            q.setTypeName("NO2");
-//            granules = source.getGranules(q);
-//            assertEquals(2, granules.size());
-//            it = granules.features();
-//            f = it.next();
-//            assertEquals("polyphemus_20130301_NO2.nc", f.getAttribute("location"));
-//            assertEquals(0, f.getAttribute("imageindex"));
-//            assertEquals("2013-03-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
-//            assertTrue(it.hasNext());
-//            f = it.next();
-//            assertEquals("polyphemus_20130301_NO2.nc", f.getAttribute("location"));
-//            assertEquals(1, f.getAttribute("imageindex"));
-//            assertEquals("2013-03-01T01:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
-            it.close();
-        } finally {
-            if(it != null) {
-                it.close();
-            }
-            reader.dispose();
-        }
-    }
+//  @Ignore
+  public void testHarvest3Gome() throws IOException {
+      // prepare a "mosaic" with just one NetCDF
+      File nc1 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.NO2.DUMMY.nc");
+      File mosaic = new File("./target/nc_harvest");
+      if(mosaic.exists()) {
+          FileUtils.deleteDirectory(mosaic);
+      }
+      assertTrue(mosaic.mkdirs());
+      FileUtils.copyFileToDirectory(nc1, mosaic);
+      
+      File xml = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/.DUMMY.GOME2.NO2.PGL/GOME2.NO2.xml");
+      FileUtils.copyFileToDirectory(xml, mosaic);
+      
+      // The indexer
+      String indexer = "TimeAttribute=time\n" + 
+              "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
+              +"PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
+      indexer+=Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
+      FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+      
+      String timeregex ="regex=[0-9]{8}";
+      FileUtils.writeStringToFile(new File(mosaic, "timeregex.properties"), timeregex);
+      
+      // the datastore.properties file is also mandatory...
+      File dsp = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+      FileUtils.copyFileToDirectory(dsp, mosaic);
+      
+      // have the reader harvest it
+      ImageMosaicFormat format = new ImageMosaicFormat();
+      ImageMosaicReader reader = format.getReader(mosaic);
+      SimpleFeatureIterator it = null;
+      assertNotNull(reader);
+      try {
+          String[] names = reader.getGridCoverageNames();
+          assertEquals(1, names.length);
+          assertEquals("NO2", names[0]);
+          
+          // check we have the two granules we expect
+          GranuleSource source = reader.getGranules("NO2", true);
+          FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
+          Query q = new Query(Query.ALL);
+          q.setSortBy(new SortBy[] {ff.sort("time", SortOrder.DESCENDING)});
+          SimpleFeatureCollection granules = source.getGranules(q);
+          assertEquals(1, granules.size());
+          it = granules.features();
+          assertTrue(it.hasNext());
+          SimpleFeature f = it.next();
+          assertEquals("20130101.METOPA.GOME2.NO2.DUMMY.nc", f.getAttribute("location"));
+          assertEquals(0, f.getAttribute("imageindex"));
+          assertEquals("2013-01-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+          it.close();
+          
+       // now add another netcdf and harvest it
+          File nc2 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130116.METOPA.GOME2.NO2.DUMMY.nc");
+          FileUtils.copyFileToDirectory(nc2, mosaic);
+          File fileToHarvest = new File(mosaic, "20130116.METOPA.GOME2.NO2.DUMMY.nc");
+          List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+          assertEquals(1, harvestSummary.size());
+          HarvestedFile hf = harvestSummary.get(0);
+          assertEquals("20130116.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
+          assertTrue(hf.success());
+          assertEquals(1, reader.getGridCoverageNames().length);
+          
+          File nc3 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130108.METOPA.GOME2.NO2.DUMMY.nc");
+          FileUtils.copyFileToDirectory(nc3, mosaic);
+          fileToHarvest = new File(mosaic, "20130108.METOPA.GOME2.NO2.DUMMY.nc");
+          harvestSummary = reader.harvest(null, fileToHarvest, null);
+          assertEquals(1, harvestSummary.size());
+          hf = harvestSummary.get(0);
+          assertEquals("20130108.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
+          assertTrue(hf.success());
+          assertEquals(1, reader.getGridCoverageNames().length);
+
+          
+          // check that we have 2 times now
+          granules = source.getGranules(q);
+          assertEquals(3, granules.size());
+          it = granules.features();
+          f = it.next();
+          assertEquals("20130116.METOPA.GOME2.NO2.DUMMY.nc", f.getAttribute("location"));
+          assertEquals(0, f.getAttribute("imageindex"));
+          assertEquals("2013-01-16T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+          assertTrue(it.hasNext());
+          f = it.next();
+          assertEquals("20130108.METOPA.GOME2.NO2.DUMMY.nc", f.getAttribute("location"));
+          assertEquals(0, f.getAttribute("imageindex"));
+          assertEquals("2013-01-08T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+          f = it.next();
+          assertEquals("20130101.METOPA.GOME2.NO2.DUMMY.nc", f.getAttribute("location"));
+          assertEquals(0, f.getAttribute("imageindex"));
+          assertEquals("2013-01-01T00:00:00.000Z", ConvertersHack.convert(f.getAttribute("time"), String.class));
+          
+          it.close();
+      } finally {
+          if(it != null) {
+              it.close();
+          }
+          reader.dispose();
+      }
+  }
 
     private Date parseTimeStamp(String timeStamp) throws ParseException {
         final SimpleDateFormat formatD = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
