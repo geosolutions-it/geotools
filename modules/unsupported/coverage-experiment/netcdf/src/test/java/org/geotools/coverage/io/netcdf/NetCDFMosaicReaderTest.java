@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.media.jai.PlanarImage;
 import javax.swing.JFrame;
 
 import junit.framework.JUnit4TestAdapter;
@@ -54,7 +55,11 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.gce.imagemosaic.ImageMosaicReader;
 import org.geotools.gce.imagemosaic.Utils.Prop;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
+import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.resources.image.ImageUtilities;
 import org.geotools.test.TestData;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -573,6 +578,69 @@ public class NetCDFMosaicReaderTest extends Assert {
         } finally {
             if (it != null) {
                 it.close();
+            }
+            reader.dispose();
+        }
+    }
+    
+    @Test
+    public void testReadCoverageGome() throws IOException {
+        // prepare a "mosaic" with just one NetCDF
+        File nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.NO2.DUMMY.nc");
+        File mosaic = new File("./target/nc_harvest");
+        if (mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+
+        File xml = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/.DUMMY.GOME2.NO2.PGL/GOME2.NO2.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+
+        // The indexer
+        String indexer = "TimeAttribute=time\n"
+                + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
+                + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
+        indexer += Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
+        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+
+        String timeregex = "regex=[0-9]{8}";
+        FileUtils.writeStringToFile(new File(mosaic, "timeregex.properties"), timeregex);
+
+        // the datastore.properties file is also mandatory...
+        File dsp = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+
+        // have the reader harvest it
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        GridCoverage2D coverage = null;
+        assertNotNull(reader);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            assertEquals(1, names.length);
+            assertEquals("NO2", names[0]);
+            
+            GranuleSource source = reader.getGranules("NO2", true);
+            SimpleFeatureCollection granules = source.getGranules(Query.ALL);
+            assertEquals(1, granules.size());
+            
+            assertTrue(CRS.equalsIgnoreMetadata(DefaultGeographicCRS.WGS84, reader.getCoordinateReferenceSystem()));
+            GeneralEnvelope envelope = reader.getOriginalEnvelope("NO2");
+            assertEquals(-180, envelope.getMinimum(0), 0d);
+            assertEquals(180, envelope.getMaximum(0), 0d);
+            assertEquals(-90, envelope.getMinimum(1), 0d);
+            assertEquals(90, envelope.getMaximum(1), 0d);
+
+            // check we can read a coverage out of it
+            coverage = reader.read(null);
+        } finally {
+            if(coverage != null) {
+                ImageUtilities.disposePlanarImageChain((PlanarImage) coverage.getRenderedImage());
+                coverage.dispose(true);
             }
             reader.dispose();
         }

@@ -63,6 +63,7 @@ import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogSource;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogStore;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
+import org.geotools.gce.imagemosaic.catalog.HintedGranuleCatalog;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.parameter.DefaultParameterDescriptor;
@@ -850,12 +851,13 @@ public class RasterManager {
             this.expandMe = parentReader.expandMe;
             this.heterogeneousGranules = parentReader.heterogeneousGranules;
             this.configuration = configuration;
-
+            hints = parentReader.getHints();
+            
             // take ownership of the index : TODO: REMOVE THAT ONCE DEALING WITH MORE CATALOGS/RASTERMANAGERS
-            granuleCatalog = parentReader.granuleCatalog;
+            granuleCatalog = new HintedGranuleCatalog(parentReader.granuleCatalog, hints);
 //            parentReader.granuleCatalog = null;
 
-            hints = parentReader.getHints();
+            
             this.coverageFactory = parentReader.getGridCoverageFactory();
             this.coverageIdentifier = configuration != null ? configuration.getName() : ImageMosaicReader.UNSPECIFIED;
             this.pathType = parentReader.pathType;
