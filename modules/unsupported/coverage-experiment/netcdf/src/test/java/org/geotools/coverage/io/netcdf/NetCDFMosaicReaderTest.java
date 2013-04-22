@@ -637,6 +637,13 @@ public class NetCDFMosaicReaderTest extends Assert {
 
             // check we can read a coverage out of it
             coverage = reader.read(null);
+            reader.dispose();
+
+            // Checking we can read again from the coverage once it has been configured.
+            reader = format.getReader(mosaic);
+            coverage = reader.read(null);
+            assertNotNull(coverage);
+            
         } finally {
             if(coverage != null) {
                 ImageUtilities.disposePlanarImageChain((PlanarImage) coverage.getRenderedImage());
@@ -644,6 +651,9 @@ public class NetCDFMosaicReaderTest extends Assert {
             }
             reader.dispose();
         }
+        
+       
+        
     }
 
     private Date parseTimeStamp(String timeStamp) throws ParseException {

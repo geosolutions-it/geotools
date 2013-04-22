@@ -161,7 +161,12 @@ public class CoverageSlicesCatalog {
 //                    }
 //                }
 //            }
-            extractBasicProperties(typeName);
+            
+            if (this.typeNames.size() > 0) {
+                extractBasicProperties(typeNames.iterator().next());
+            } else {
+                extractBasicProperties(typeName);
+            }
         } catch (Throwable e) {
             try {
                 if (slicesIndexStore != null)
@@ -228,9 +233,7 @@ public class CoverageSlicesCatalog {
         }
 
         final SimpleFeatureSource featureSource = slicesIndexStore.getFeatureSource(typeName);
-        if (featureSource != null){
-//            bounds = featureSource.getBounds();
-        } else {
+        if (featureSource == null){
             throw new IOException(
                     "BBOXFilterExtractor::extractBasicProperties(): unable to get a featureSource for the qualified name"
                             + typeName);
@@ -524,6 +527,9 @@ public class CoverageSlicesCatalog {
 //                    this.locationAttribute = this.locationAttribute.toUpperCase();
 //                }
 //            }
+            if (typeName != null) {
+                addTypeName(typeName, true);
+            }
             extractBasicProperties(typeName);
         } finally {
             lock.unlock();
