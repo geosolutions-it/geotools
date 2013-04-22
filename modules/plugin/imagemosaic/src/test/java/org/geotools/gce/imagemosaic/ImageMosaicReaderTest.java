@@ -1938,6 +1938,69 @@ public class ImageMosaicReaderTest extends Assert{
         }
     }
     
+    @Test
+    public void testSetupExternalMosaicDir() throws Exception {
+        File source = DataUtilities.urlToFile(timeURL);
+        File data = new File("./target/externaldata");
+        File mosaic = new File("./target/mosaicexternal");
+        if (data.exists()) {
+            FileUtils.deleteDirectory(data);
+        }
+        FileUtils.copyDirectory(source, data);
+        if (mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        mosaic.mkdirs();
+        // get rid of pre-configured data
+        for (File file : FileUtils.listFiles(data, new RegexFileFilter("time_geotiff.*"),
+                null)) {
+            assertTrue(file.delete());
+        }
+        // move the indexer config files into the mosaic direcotry
+        for (File file : FileUtils.listFiles(data, new RegexFileFilter(".*\\.properties"),
+                null)) {
+            File moved = new File(mosaic, file.getName());
+            assertTrue(file.renameTo(moved));
+        }
+
+        // Editing indexer RootMosaicDirectory path
+        InputStream stream = null;
+        OutputStream outStream = null;
+        try {
+            final File indexer = new File(mosaic, "indexer.properties");
+            stream = new FileInputStream(indexer);
+            Properties prop = new Properties();
+            prop.load(stream);
+            
+            outStream = new FileOutputStream(indexer);
+            prop.setProperty(Prop.INDEXING_DIRECTORIES, data.getCanonicalPath());
+            prop.store(outStream, null);
+        } finally {
+            if (stream != null) {
+                stream.close();
+            }
+            if (outStream != null) {
+                outStream.close();
+            }
+        }
+
+        // ok, let's create the mosaic and check it harvested the data in the "data" directory
+        URL mosaicURL = DataUtilities.fileToURL(mosaic);
+        final AbstractGridFormat format = TestUtils.getFormat(mosaicURL);
+        ImageMosaicReader reader = TestUtils.getReader(mosaicURL, format);
+        try {
+            String[] metadataNames = reader.getMetadataNames();
+            assertNotNull(metadataNames);
+            assertEquals(metadataNames.length,10);
+            assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+            assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
+            assertEquals("2004-05-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+            assertEquals("2004-02-01T00:00:00.000Z,2004-03-01T00:00:00.000Z,2004-04-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));     
+        } finally {
+            reader.dispose();
+        }
+    }
+    
     @AfterClass
 	public static void close(){
 		System.clearProperty("org.geotools.referencing.forceXY");

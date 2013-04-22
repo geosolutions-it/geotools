@@ -991,6 +991,14 @@ public class ImageMosaicWalker implements Runnable {
                     configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
                 }
                 
+                if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
+                    // Setting the list of indexing directories
+                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
+                    String[] directories = directoriesCsv.split("\\s*,\\s*");
+                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
+                    configuration.setIndexingDirectories(list);
+                }
+                
                 if (props.containsKey(Prop.AUXILIARY_FILE)) {
                     String ancillaryFile = configuration.getRootMosaicDirectory() + File.separatorChar + 
                             props.getProperty(Prop.AUXILIARY_FILE);

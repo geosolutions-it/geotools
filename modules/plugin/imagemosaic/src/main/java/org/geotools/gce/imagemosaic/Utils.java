@@ -188,6 +188,7 @@ public class Utils {
         public final static String PATH_TYPE = "PathType";
         public final static String PARENT_LOCATION = "ParentLocation";
         public final static String ROOT_MOSAIC_DIR = "RootMosaicDirectory";
+        public final static String INDEXING_DIRECTORIES = "IndexingDirectories";
         
         //Indexer Properties specific properties
         public  static final String RECURSIVE = "Recursive";
