@@ -206,7 +206,11 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 	                } else if (typeName != null) {
                             addTypeName(typeName, false);
 	                }
-			extractBasicProperties(typeName);
+	                if (this.typeNames.size() > 0) {
+	                    extractBasicProperties(typeNames.iterator().next());
+	                } else {
+	                    extractBasicProperties(typeName);
+	                }
 		}
 		catch (Throwable e) {
 			try {

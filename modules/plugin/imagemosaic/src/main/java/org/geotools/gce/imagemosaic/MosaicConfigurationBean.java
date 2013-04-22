@@ -92,9 +92,11 @@ public class MosaicConfigurationBean {
         private ColorModel colorModel;
         
         private byte [][] palette;
-	
+        
 	/** Imposed envelope for this mosaic. If not present we need to compute from catalogue.*/
 	private ReferencedEnvelope envelope;
+	
+	private String auxiliaryFilePath;
 	
 	private CatalogConfigurationBean catalogConfigurationBean;
 
@@ -202,6 +204,14 @@ public class MosaicConfigurationBean {
 
     public void setCatalogConfigurationBean(CatalogConfigurationBean catalogConfigurationBean) {
         this.catalogConfigurationBean = catalogConfigurationBean;
+    }
+
+    public String getAuxiliaryFilePath() {
+        return auxiliaryFilePath;
+    }
+
+    public void setAuxiliaryFilePath(String auxiliaryFilePath) {
+        this.auxiliaryFilePath = auxiliaryFilePath;
     }
 
     @Override

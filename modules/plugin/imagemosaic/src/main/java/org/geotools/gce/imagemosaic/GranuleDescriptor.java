@@ -347,8 +347,8 @@ public class GranuleDescriptor {
 			
 			if(reader == null)
 				throw new IllegalArgumentException("Unable to get an ImageReader for the provided file "+granuleUrl.toString());
-			customizeReaderInitialization(reader, hints);
-			reader.setInput(inStream);
+			boolean ignoreMetadata = customizeReaderInitialization(reader, hints);
+			reader.setInput(inStream, false, ignoreMetadata);
 			//get selected level and base level dimensions
 			final Rectangle originalDimension = Utils.getDimension(0, reader);
 			
@@ -428,7 +428,7 @@ public class GranuleDescriptor {
 		}
 	}
 	
-	private void customizeReaderInitialization(ImageReader reader, Hints hints) {
+	private boolean customizeReaderInitialization(ImageReader reader, Hints hints) {
             String classString = reader.getClass().getName();
             // Special Management for NetCDF readers to set external Auxiliary File
             if (hints != null && hints.containsKey(Utils.AUXILIARY_FILES_PATH)) {
@@ -436,6 +436,7 @@ public class GranuleDescriptor {
                     try {
                         String auxiliaryFilePath = (String) hints.get(Utils.AUXILIARY_FILES_PATH);
                         MethodUtils.invokeMethod(reader, "setAuxiliaryFilesPath", auxiliaryFilePath);
+                        return true;
                     } catch (NoSuchMethodException e) {
                         throw new RuntimeException(e);
                     } catch (IllegalAccessException e) {
@@ -445,6 +446,7 @@ public class GranuleDescriptor {
                     }
                 }
             }
+            return false;
         
     }
 
@@ -676,6 +678,7 @@ public class GranuleDescriptor {
 				return null;
 			}
 			// set input
+			customizeReaderInitialization(reader, hints);
 			reader.setInput(inStream);
 			
 			// Checking for heterogeneous granules
@@ -1023,8 +1026,9 @@ public class GranuleDescriptor {
 				else
 					reader=cachedReaderSPI.createReaderInstance();
 				if(reader==null)
-					throw new IllegalArgumentException("Unable to get an ImageReader for the provided file "+granuleUrl.toString());					
-				reader.setInput(inStream);
+					throw new IllegalArgumentException("Unable to get an ImageReader for the provided file "+granuleUrl.toString());
+				final boolean ignoreMetadata = customizeReaderInitialization(reader, null);
+				reader.setInput(inStream, false, ignoreMetadata);
 				
 				// call internal method which will close everything
 				return getLevel(index, reader);

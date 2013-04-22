@@ -400,6 +400,11 @@ public class Utils {
 				
 		}
 		
+		if (!ignoreSome
+                        || !ignorePropertiesSet.contains(Prop.AUXILIARY_FILE)) {
+                    retValue.setAuxiliaryFilePath(properties.getProperty(Prop.AUXILIARY_FILE));
+        }
+		
 		//
 		// resolutions levels
 		//              
@@ -547,7 +552,7 @@ public class Utils {
 		    catalogConfigurationBean.setLocationAttribute(properties.getProperty(
 					Prop.LOCATION_ATTRIBUTE, Utils.DEFAULT_LOCATION_ATTRIBUTE).trim());
 		}
-
+		
 		// return value
 		return retValue;
 	}

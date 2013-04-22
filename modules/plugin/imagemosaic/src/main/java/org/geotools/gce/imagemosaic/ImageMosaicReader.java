@@ -203,12 +203,13 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
             initReaderFromDescriptor((ImageMosaicDescriptor) source, uHints);
         } else {
             try {
-                if (uHints != null) {
-                    uHints.add(new Hints(Utils.MOSAIC_READER, this));
-                } else {
-                    uHints = new Hints(Utils.MOSAIC_READER, this);
-                }
-                initReaderFromURL(source, uHints);
+                
+             // Cloning the hints
+                Hints localHints = new Hints(uHints);
+                if (localHints != null) {
+                    localHints.add(new Hints(Utils.MOSAIC_READER, this));
+                } 
+                initReaderFromURL(source, localHints);
             } catch (Exception e) {
                 throw new DataSourceException(e);
             }

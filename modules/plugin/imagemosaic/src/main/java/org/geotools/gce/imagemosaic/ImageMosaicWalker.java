@@ -428,6 +428,14 @@ public class ImageMosaicWalker implements Runnable {
                         configBuilder.setElevationAttribute(runConfiguration.getElevationAttribute());
                         configBuilder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
 
+                        final Hints runHints = runConfiguration.getHints();
+                        if (runHints != null && runHints.containsKey(Utils.AUXILIARY_FILES_PATH)) {
+                            String auxiliaryFilePath = (String) runHints.get(Utils.AUXILIARY_FILES_PATH);
+                            if (auxiliaryFilePath != null && auxiliaryFilePath.trim().length() > 0) {
+                                configBuilder.setAuxiliaryFilePath(auxiliaryFilePath);
+                            }
+                        }
+
                         final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
                         catalogConfigurationBean.setCaching(runConfiguration.isCaching());
                         catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
@@ -1470,6 +1478,10 @@ public class ImageMosaicWalker implements Runnable {
                             + imposedBBox.getMaxX() + "," + imposedBBox.getMaxY());
         }
         properties.setProperty(Utils.Prop.CACHING, Boolean.toString(catalogConfigurationBean.isCaching()));
+        if (mosaicConfiguration.getAuxiliaryFilePath() != null) {
+            properties.setProperty(Utils.Prop.AUXILIARY_FILE, mosaicConfiguration.getAuxiliaryFilePath());
+        }
+
         OutputStream outStream = null;
         try {
             outStream = new BufferedOutputStream(new FileOutputStream(

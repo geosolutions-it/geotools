@@ -17,6 +17,7 @@
 package org.geotools.gce.imagemosaic;
 
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
@@ -852,6 +853,9 @@ public class RasterManager {
             this.heterogeneousGranules = parentReader.heterogeneousGranules;
             this.configuration = configuration;
             hints = parentReader.getHints();
+            if (configuration != null && configuration.getAuxiliaryFilePath() != null) {
+                hints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, configuration.getAuxiliaryFilePath()));
+            }
             
             // take ownership of the index : TODO: REMOVE THAT ONCE DEALING WITH MORE CATALOGS/RASTERMANAGERS
             granuleCatalog = new HintedGranuleCatalog(parentReader.granuleCatalog, hints);
