@@ -1,7 +1,7 @@
 /*
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
- * 
+ *
  *    (C) 2013, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
@@ -53,43 +53,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Indexer.Coverages.Coverage.Domains }
+     * Create an instance of {@link Indexer.Datastore }
      * 
      */
-    public Indexer.Coverages.Coverage.Domains createIndexerCoveragesCoverageDomains() {
-        return new Indexer.Coverages.Coverage.Domains();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Coverages }
-     * 
-     */
-    public Indexer.Coverages createIndexerCoverages() {
-        return new Indexer.Coverages();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Schemas.Schema }
-     * 
-     */
-    public Indexer.Schemas.Schema createIndexerSchemasSchema() {
-        return new Indexer.Schemas.Schema();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Coverages.Coverage.Domains.Domain }
-     * 
-     */
-    public Indexer.Coverages.Coverage.Domains.Domain createIndexerCoveragesCoverageDomainsDomain() {
-        return new Indexer.Coverages.Coverage.Domains.Domain();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Coverages.Coverage }
-     * 
-     */
-    public Indexer.Coverages.Coverage createIndexerCoveragesCoverage() {
-        return new Indexer.Coverages.Coverage();
+    public Indexer.Datastore createIndexerDatastore() {
+        return new Indexer.Datastore();
     }
 
     /**
@@ -101,27 +69,59 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Indexer.Schemas }
+     * Create an instance of {@link SchemasType }
      * 
      */
-    public Indexer.Schemas createIndexerSchemas() {
-        return new Indexer.Schemas();
+    public SchemasType createSchemasType() {
+        return new SchemasType();
     }
 
     /**
-     * Create an instance of {@link Indexer.Datastore }
+     * Create an instance of {@link SchemaType }
      * 
      */
-    public Indexer.Datastore createIndexerDatastore() {
-        return new Indexer.Datastore();
+    public SchemaType createSchemaType() {
+        return new SchemaType();
     }
 
     /**
-     * Create an instance of {@link ParametersType.Parameter }
+     * Create an instance of {@link Indexer.Coverages.Coverage.Domains.Domain }
      * 
      */
-    public ParametersType.Parameter createParametersTypeParameter() {
-        return new ParametersType.Parameter();
+    public Indexer.Coverages.Coverage.Domains.Domain createIndexerCoveragesCoverageDomainsDomain() {
+        return new Indexer.Coverages.Coverage.Domains.Domain();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Coverages }
+     * 
+     */
+    public Indexer.Coverages createIndexerCoverages() {
+        return new Indexer.Coverages();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Coverages.Coverage }
+     * 
+     */
+    public Indexer.Coverages.Coverage createIndexerCoveragesCoverage() {
+        return new Indexer.Coverages.Coverage();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Collectors }
+     * 
+     */
+    public Indexer.Collectors createIndexerCollectors() {
+        return new Indexer.Collectors();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Coverages.Coverage.Domains }
+     * 
+     */
+    public Indexer.Coverages.Coverage.Domains createIndexerCoveragesCoverageDomains() {
+        return new Indexer.Coverages.Coverage.Domains();
     }
 
     /**
@@ -133,11 +133,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Indexer.Collectors }
+     * Create an instance of {@link ParametersType.Parameter }
      * 
      */
-    public Indexer.Collectors createIndexerCollectors() {
-        return new Indexer.Collectors();
+    public ParametersType.Parameter createParametersTypeParameter() {
+        return new ParametersType.Parameter();
     }
 
 }

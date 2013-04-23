@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageReader;
 
@@ -66,6 +67,8 @@ public abstract class PropertiesCollector  {
 	}		
 	
 	abstract public void setProperties(final SimpleFeature feature);
+	
+	abstract public void setProperties(final Map<String,Object> map);
 	
 	public void reset(){
 		matches= new ArrayList<String>();

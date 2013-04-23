@@ -1,7 +1,7 @@
 /*
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
- * 
+ *
  *    (C) 2013, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
@@ -36,28 +36,7 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="schemas" minOccurs="0">
- *           &lt;complexType>
- *             &lt;complexContent>
- *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *                 &lt;sequence>
- *                   &lt;element name="schema" maxOccurs="unbounded" minOccurs="0">
- *                     &lt;complexType>
- *                       &lt;complexContent>
- *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *                           &lt;sequence>
- *                             &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
- *                           &lt;/sequence>
- *                           &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
- *                         &lt;/restriction>
- *                       &lt;/complexContent>
- *                     &lt;/complexType>
- *                   &lt;/element>
- *                 &lt;/sequence>
- *               &lt;/restriction>
- *             &lt;/complexContent>
- *           &lt;/complexType>
- *         &lt;/element>
+ *         &lt;element name="schemas" type="{}schemasType" minOccurs="0"/>
  *         &lt;element name="coverages" minOccurs="0">
  *           &lt;complexType>
  *             &lt;complexContent>
@@ -68,7 +47,7 @@ import javax.xml.bind.annotation.XmlType;
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                           &lt;sequence>
- *                             &lt;element name="schema" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *                             &lt;element name="schema" type="{}schemaType"/>
  *                             &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *                             &lt;element name="domains">
  *                               &lt;complexType>
@@ -92,8 +71,11 @@ import javax.xml.bind.annotation.XmlType;
  *                                 &lt;/complexContent>
  *                               &lt;/complexType>
  *                             &lt;/element>
+ *                             &lt;choice>
+ *                               &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *                               &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *                             &lt;/choice>
  *                           &lt;/sequence>
- *                           &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                         &lt;/restriction>
  *                       &lt;/complexContent>
  *                     &lt;/complexType>
@@ -120,12 +102,12 @@ import javax.xml.bind.annotation.XmlType;
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                 &lt;sequence>
- *                   &lt;element name="collector">
+ *                   &lt;element name="collector" maxOccurs="unbounded" minOccurs="0">
  *                     &lt;complexType>
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                           &lt;sequence>
- *                             &lt;element name="SPI" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *                             &lt;element name="spi" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *                             &lt;element name="type" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *                             &lt;element name="value" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *                             &lt;element name="mapped" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -160,7 +142,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlRootElement(name = "Indexer")
 public class Indexer {
 
-    protected Indexer.Schemas schemas;
+    protected SchemasType schemas;
     protected Indexer.Coverages coverages;
     @XmlElement(required = true)
     protected Indexer.Datastore datastore;
@@ -172,10 +154,10 @@ public class Indexer {
      * 
      * @return
      *     possible object is
-     *     {@link Indexer.Schemas }
+     *     {@link SchemasType }
      *     
      */
-    public Indexer.Schemas getSchemas() {
+    public SchemasType getSchemas() {
         return schemas;
     }
 
@@ -184,10 +166,10 @@ public class Indexer {
      * 
      * @param value
      *     allowed object is
-     *     {@link Indexer.Schemas }
+     *     {@link SchemasType }
      *     
      */
-    public void setSchemas(Indexer.Schemas value) {
+    public void setSchemas(SchemasType value) {
         this.schemas = value;
     }
 
@@ -298,12 +280,12 @@ public class Indexer {
      *   &lt;complexContent>
      *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *       &lt;sequence>
-     *         &lt;element name="collector">
+     *         &lt;element name="collector" maxOccurs="unbounded" minOccurs="0">
      *           &lt;complexType>
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                 &lt;sequence>
-     *                   &lt;element name="SPI" type="{http://www.w3.org/2001/XMLSchema}string"/>
+     *                   &lt;element name="spi" type="{http://www.w3.org/2001/XMLSchema}string"/>
      *                   &lt;element name="type" type="{http://www.w3.org/2001/XMLSchema}string"/>
      *                   &lt;element name="value" type="{http://www.w3.org/2001/XMLSchema}string"/>
      *                   &lt;element name="mapped" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -327,31 +309,35 @@ public class Indexer {
     })
     public static class Collectors {
 
-        @XmlElement(required = true)
-        protected Indexer.Collectors.Collector collector;
+        protected List<Indexer.Collectors.Collector> collector;
 
         /**
          * Gets the value of the collector property.
          * 
-         * @return
-         *     possible object is
-         *     {@link Indexer.Collectors.Collector }
-         *     
-         */
-        public Indexer.Collectors.Collector getCollector() {
-            return collector;
-        }
-
-        /**
-         * Sets the value of the collector property.
+         * <p>
+         * This accessor method returns a reference to the live list,
+         * not a snapshot. Therefore any modification you make to the
+         * returned list will be present inside the JAXB object.
+         * This is why there is not a <CODE>set</CODE> method for the collector property.
          * 
-         * @param value
-         *     allowed object is
-         *     {@link Indexer.Collectors.Collector }
-         *     
+         * <p>
+         * For example, to add a new item, do as follows:
+         * <pre>
+         *    getCollector().add(newItem);
+         * </pre>
+         * 
+         * 
+         * <p>
+         * Objects of the following type(s) are allowed in the list
+         * {@link Indexer.Collectors.Collector }
+         * 
+         * 
          */
-        public void setCollector(Indexer.Collectors.Collector value) {
-            this.collector = value;
+        public List<Indexer.Collectors.Collector> getCollector() {
+            if (collector == null) {
+                collector = new ArrayList<Indexer.Collectors.Collector>();
+            }
+            return this.collector;
         }
 
 
@@ -365,7 +351,7 @@ public class Indexer {
          *   &lt;complexContent>
          *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
          *       &lt;sequence>
-         *         &lt;element name="SPI" type="{http://www.w3.org/2001/XMLSchema}string"/>
+         *         &lt;element name="spi" type="{http://www.w3.org/2001/XMLSchema}string"/>
          *         &lt;element name="type" type="{http://www.w3.org/2001/XMLSchema}string"/>
          *         &lt;element name="value" type="{http://www.w3.org/2001/XMLSchema}string"/>
          *         &lt;element name="mapped" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -387,7 +373,7 @@ public class Indexer {
         })
         public static class Collector {
 
-            @XmlElement(name = "SPI", required = true)
+            @XmlElement(required = true)
             protected String spi;
             @XmlElement(required = true)
             protected String type;
@@ -406,7 +392,7 @@ public class Indexer {
              *     {@link String }
              *     
              */
-            public String getSPI() {
+            public String getSpi() {
                 return spi;
             }
 
@@ -418,7 +404,7 @@ public class Indexer {
              *     {@link String }
              *     
              */
-            public void setSPI(String value) {
+            public void setSpi(String value) {
                 this.spi = value;
             }
 
@@ -538,7 +524,7 @@ public class Indexer {
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                 &lt;sequence>
-     *                   &lt;element name="schema" type="{http://www.w3.org/2001/XMLSchema}string"/>
+     *                   &lt;element name="schema" type="{}schemaType"/>
      *                   &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
      *                   &lt;element name="domains">
      *                     &lt;complexType>
@@ -562,8 +548,11 @@ public class Indexer {
      *                       &lt;/complexContent>
      *                     &lt;/complexType>
      *                   &lt;/element>
+     *                   &lt;choice>
+     *                     &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
+     *                     &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
+     *                   &lt;/choice>
      *                 &lt;/sequence>
-     *                 &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
      *               &lt;/restriction>
      *             &lt;/complexContent>
      *           &lt;/complexType>
@@ -625,7 +614,7 @@ public class Indexer {
          *   &lt;complexContent>
          *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
          *       &lt;sequence>
-         *         &lt;element name="schema" type="{http://www.w3.org/2001/XMLSchema}string"/>
+         *         &lt;element name="schema" type="{}schemaType"/>
          *         &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
          *         &lt;element name="domains">
          *           &lt;complexType>
@@ -649,8 +638,11 @@ public class Indexer {
          *             &lt;/complexContent>
          *           &lt;/complexType>
          *         &lt;/element>
+         *         &lt;choice>
+         *           &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
+         *           &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
+         *         &lt;/choice>
          *       &lt;/sequence>
-         *       &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
          *     &lt;/restriction>
          *   &lt;/complexContent>
          * &lt;/complexType>
@@ -662,28 +654,30 @@ public class Indexer {
         @XmlType(name = "", propOrder = {
             "schema",
             "origName",
-            "domains"
+            "domains",
+            "name",
+            "nameCollector"
         })
         public static class Coverage {
 
             @XmlElement(required = true)
-            protected String schema;
+            protected SchemaType schema;
             @XmlElement(required = true)
             protected String origName;
             @XmlElement(required = true)
             protected Indexer.Coverages.Coverage.Domains domains;
-            @XmlAttribute(required = true)
             protected String name;
+            protected String nameCollector;
 
             /**
              * Gets the value of the schema property.
              * 
              * @return
              *     possible object is
-             *     {@link String }
+             *     {@link SchemaType }
              *     
              */
-            public String getSchema() {
+            public SchemaType getSchema() {
                 return schema;
             }
 
@@ -692,10 +686,10 @@ public class Indexer {
              * 
              * @param value
              *     allowed object is
-             *     {@link String }
+             *     {@link SchemaType }
              *     
              */
-            public void setSchema(String value) {
+            public void setSchema(SchemaType value) {
                 this.schema = value;
             }
 
@@ -769,6 +763,30 @@ public class Indexer {
              */
             public void setName(String value) {
                 this.name = value;
+            }
+
+            /**
+             * Gets the value of the nameCollector property.
+             * 
+             * @return
+             *     possible object is
+             *     {@link String }
+             *     
+             */
+            public String getNameCollector() {
+                return nameCollector;
+            }
+
+            /**
+             * Sets the value of the nameCollector property.
+             * 
+             * @param value
+             *     allowed object is
+             *     {@link String }
+             *     
+             */
+            public void setNameCollector(String value) {
+                this.nameCollector = value;
             }
 
 
@@ -1004,158 +1022,6 @@ public class Indexer {
          */
         public void setParameters(ParametersType value) {
             this.parameters = value;
-        }
-
-    }
-
-
-    /**
-     * <p>Java class for anonymous complex type.
-     * 
-     * <p>The following schema fragment specifies the expected content contained within this class.
-     * 
-     * <pre>
-     * &lt;complexType>
-     *   &lt;complexContent>
-     *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-     *       &lt;sequence>
-     *         &lt;element name="schema" maxOccurs="unbounded" minOccurs="0">
-     *           &lt;complexType>
-     *             &lt;complexContent>
-     *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-     *                 &lt;sequence>
-     *                   &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-     *                 &lt;/sequence>
-     *                 &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-     *               &lt;/restriction>
-     *             &lt;/complexContent>
-     *           &lt;/complexType>
-     *         &lt;/element>
-     *       &lt;/sequence>
-     *     &lt;/restriction>
-     *   &lt;/complexContent>
-     * &lt;/complexType>
-     * </pre>
-     * 
-     * 
-     */
-    @XmlAccessorType(XmlAccessType.FIELD)
-    @XmlType(name = "", propOrder = {
-        "schema"
-    })
-    public static class Schemas {
-
-        protected List<Indexer.Schemas.Schema> schema;
-
-        /**
-         * Gets the value of the schema property.
-         * 
-         * <p>
-         * This accessor method returns a reference to the live list,
-         * not a snapshot. Therefore any modification you make to the
-         * returned list will be present inside the JAXB object.
-         * This is why there is not a <CODE>set</CODE> method for the schema property.
-         * 
-         * <p>
-         * For example, to add a new item, do as follows:
-         * <pre>
-         *    getSchema().add(newItem);
-         * </pre>
-         * 
-         * 
-         * <p>
-         * Objects of the following type(s) are allowed in the list
-         * {@link Indexer.Schemas.Schema }
-         * 
-         * 
-         */
-        public List<Indexer.Schemas.Schema> getSchema() {
-            if (schema == null) {
-                schema = new ArrayList<Indexer.Schemas.Schema>();
-            }
-            return this.schema;
-        }
-
-
-        /**
-         * <p>Java class for anonymous complex type.
-         * 
-         * <p>The following schema fragment specifies the expected content contained within this class.
-         * 
-         * <pre>
-         * &lt;complexType>
-         *   &lt;complexContent>
-         *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-         *       &lt;sequence>
-         *         &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-         *       &lt;/sequence>
-         *       &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-         *     &lt;/restriction>
-         *   &lt;/complexContent>
-         * &lt;/complexType>
-         * </pre>
-         * 
-         * 
-         */
-        @XmlAccessorType(XmlAccessType.FIELD)
-        @XmlType(name = "", propOrder = {
-            "attributes"
-        })
-        public static class Schema {
-
-            @XmlElement(required = true)
-            protected String attributes;
-            @XmlAttribute(required = true)
-            protected String name;
-
-            /**
-             * Gets the value of the attributes property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
-             */
-            public String getAttributes() {
-                return attributes;
-            }
-
-            /**
-             * Sets the value of the attributes property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
-             */
-            public void setAttributes(String value) {
-                this.attributes = value;
-            }
-
-            /**
-             * Gets the value of the name property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
-             */
-            public String getName() {
-                return name;
-            }
-
-            /**
-             * Sets the value of the name property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
-             */
-            public void setName(String value) {
-                this.name = value;
-            }
-
         }
 
     }

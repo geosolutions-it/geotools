@@ -1347,21 +1347,22 @@ public class ImageMosaicWalker implements Runnable {
                 
                 // We did found some MosaicConfigurations 
                 Set<String> keys = configurations.keySet();
+                final int keySize = keys.size();
+                final boolean useName = keySize > 1;
                 for (String key : keys) {
                     MosaicConfigurationBean mosaicConfiguration = configurations.get(key);
                     RasterManager manager = parentReader.getRasterManager(key);
                     manager.initialize();
 
                     // create sample image if the needed elements are available
-                    // TODO: DR: Create SampleImage
-                    createSampleImage(mosaicConfiguration.getSampleModel(), mosaicConfiguration.getColorModel());
+                    createSampleImage(mosaicConfiguration, useName);
                     fireEvent(Level.INFO, "Creating final properties file ", 99.9);
                     createPropertiesFiles(mosaicConfiguration);
                 }
                 final String base = FilenameUtils.getName(parent.getAbsolutePath());
                 // we create a root properties file if we have more than one coverage, or if the
                 // one coverage does not have the default name
-                if (keys.size() > 1 || (keys.size() > 0 && !base.equals(keys.iterator().next()))) {
+                if ( keySize > 1 || (keySize > 0 && !base.equals(keys.iterator().next()))) {
                     
                     // TODO: DR: Remove that when dealing with Indexer.xml which should allow to know if configurations
                     // are available
@@ -1389,16 +1390,18 @@ public class ImageMosaicWalker implements Runnable {
     /**
      * Store a sample image frmo which we can derive the default SM and CM
      */
-    private void createSampleImage(final SampleModel sm, final ColorModel cm) {
+    private void createSampleImage(final MosaicConfigurationBean mosaicConfiguration, final boolean useName) {
         // create a sample image to store SM and CM
-        if (cm != null && sm != null) {
+        Utilities.ensureNonNull("mosaicConfiguration", mosaicConfiguration);
+        if (mosaicConfiguration.getSampleModel() != null &&  mosaicConfiguration.getColorModel() != null) {
 
             // sample image file
             //TODO: Consider revisit this using different name/folder
-            final File sampleImageFile = new File(runConfiguration.getRootMosaicDirectory()
-                    + "/sample_image");
+            final String baseName = runConfiguration.getRootMosaicDirectory() + "/";
+            final File sampleImageFile = new File(baseName 
+                    + (useName ? mosaicConfiguration.getName() : "" ) + Utils.SAMPLE_IMAGE_NAME);
             try {
-                Utils.storeSampleImage(sampleImageFile, sm, cm);
+                Utils.storeSampleImage(sampleImageFile, mosaicConfiguration.getSampleModel(), mosaicConfiguration.getColorModel());
             } catch (IOException e) {
                 fireEvent(Level.SEVERE, e.getLocalizedMessage(), 0);
             }

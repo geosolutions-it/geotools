@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -25,11 +26,17 @@ import org.geotools.coverage.io.util.Utilities;
 import org.geotools.data.DataUtilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
-import org.geotools.gce.imagemosaic.catalog.index.ObjectFactory;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors.Collector;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages;
-import org.geotools.gce.imagemosaic.catalog.index.Indexer.Schemas;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
-import org.geotools.gce.imagemosaic.catalog.index.Indexer.Schemas.Schema;
+import org.geotools.gce.imagemosaic.catalog.index.ObjectFactory;
+import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
+import org.geotools.gce.imagemosaic.catalog.index.SchemasType;
+import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
+import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
+import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
+import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
 import org.geotools.imageio.unidata.UnidataImageReader.DatastoreProperties;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
@@ -53,6 +60,8 @@ class NetCDFAncillaryManager {
     private static Unmarshaller UNMARSHALLER;
 
     static final String DEFAULT = "default";
+    
+    private static final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder.getPropertiesCollectorSPI();
 
     static {
         JAXBContext jc;
@@ -69,7 +78,7 @@ class NetCDFAncillaryManager {
 
     private static final String INDEX_SUFFIX = ".xml";
 
-    private static final String REF_PREFIX = "ref=";
+    private static final String COVERAGE_NAME = "coverageName";
 
     public NetCDFAncillaryManager(final File file, final String indexFilePath) {
         org.geotools.util.Utilities.ensureNonNull("file", file);
@@ -173,12 +182,25 @@ class NetCDFAncillaryManager {
      * The list of coverages to be put in the coverages summary file
      */
     
-    // TODO: Refactor these mappings in favor of using the Indexer objects
+    // TODO: Refactor these mappings in favor of using the Indexer objects if possible
+    
+    // Map variable names to coverage names
     private Map<String, Name> coveragesMap = null;
+    
+    // Map coverage names to original NetCDF variable (it's the reverse mapping) 
     Map<Name, String> variablesMap = null;
+    
+    // Map coverages to schema typeNames
     Map<String, String> coveragesToSchemaMap = new HashMap<String, String>();
+    
+    // Map schema names to schema attributes string
     Map<String, String> schemaMapping = new HashMap<String, String>();
 
+    /**
+     * An optional PropertiesCollector to extract the coverage name from the file name
+     */
+    private Map<String, PropertiesCollector> collectors = null;
+    
     private File parentDir;
 
     private File destinationDir;
@@ -225,18 +247,22 @@ class NetCDFAncillaryManager {
             throw new IllegalArgumentException("No valid coverages name to be written");
         }
         
+        // Create the main indexer
         Indexer indexer = OBJECT_FACTORY.createIndexer();
         Coverages coverages = OBJECT_FACTORY.createIndexerCoverages();
-        Schemas schemas = OBJECT_FACTORY.createIndexerSchemas();
+        SchemasType schemas = OBJECT_FACTORY.createSchemasType();
         indexer.setCoverages(coverages);
         indexer.setSchemas(schemas);
+        
+        // create schemas reference
         if (schemaMapping.containsKey(DEFAULT)) {
-            Schema schema = OBJECT_FACTORY.createIndexerSchemasSchema();
+            SchemaType schema = OBJECT_FACTORY.createSchemaType();
             schema.setName(DEFAULT);
             schema.setAttributes(schemaMapping.get(DEFAULT));
             schemas.getSchema().add(schema);
         }
         
+        // create coverages
         List<Coverage> coveragesList = coverages.getCoverage();
         Set<String> keys = coveragesMapping.keySet();
         for (String key: keys) {
@@ -246,14 +272,15 @@ class NetCDFAncillaryManager {
             if (coveragesToSchemaMap.containsKey(key)) {
                 String schemaTypeName = coveragesToSchemaMap.get(key);
                 if (schemaTypeName.equalsIgnoreCase(DEFAULT)) {
-                    coverage.setSchema(REF_PREFIX + schemaTypeName);
+                    SchemaType schema = OBJECT_FACTORY.createSchemaType();
+                    schema.setRef(schemaTypeName);
+                    coverage.setSchema(schema);
                 }
             }
         }
         MARSHALLER.marshal(indexer, variablesSummaryFile);
-        
     }
-    
+
     /**
      * Initialize Variables Name list from the summary file.
      */
@@ -294,7 +321,6 @@ class NetCDFAncillaryManager {
                 indexSchema = null;
             }
         }
-        // }
         return indexSchema;
     }
 
@@ -396,44 +422,130 @@ class NetCDFAncillaryManager {
         return new ArrayList<Name>(getCoverages().values());
     }
 
+    /**
+     * Retrieve basic indexer properties by scanning the indexer XML instance.
+     * @throws JAXBException
+     */
     public void initIndexer() throws JAXBException {
         if (indexerFile.exists() && indexerFile.canRead()) {
             if (UNMARSHALLER != null) {
                 indexer = (Indexer) UNMARSHALLER.unmarshal(indexerFile);
                 
                 // Parsing schemas
-                final Schemas schemas = indexer.getSchemas();
+                final SchemasType schemas = indexer.getSchemas();
                 if (schemas != null) {
-                    List<Schema> schemaElements = schemas.getSchema();
-                    for (Schema schemaElement: schemaElements) {
+                    List<SchemaType> schemaElements = schemas.getSchema();
+                    for (SchemaType schemaElement: schemaElements) {
                         schemaMapping.put(schemaElement.getName(), schemaElement.getAttributes());
                     }
                 }
-                
-                // Parsing coverages 
-                final Coverages coverages = indexer.getCoverages();
-                if (coverages != null) {
-                    final List<Coverage> coverageElements = coverages.getCoverage();
-                    for (Coverage coverageElement : coverageElements) {
-                        String coverageSchema = coverageElement.getSchema();
-                        final String coverageName = coverageElement.getName();
-                        String schemaName = coverageName;
-                        if (!coverageSchema.startsWith(REF_PREFIX)) {
-                            schemaMapping.put(coverageName, coverageSchema);
-                        } else {
-                            schemaName = coverageSchema.substring(4, coverageSchema.length());
-                        }
 
-                        final Name name = new NameImpl(coverageName);
-                        coveragesToSchemaMap.put(coverageName, schemaName);
-                        
-                        String origName = coverageElement.getOrigName();
-                        if (origName != null && !origName.isEmpty()) {
-                            origName = origName.trim();
-                        } else {
-                            origName = coverageName;
+                // Parsing properties collectors
+                initPropertiesCollectors();
+
+                // Parsing coverages 
+                initCoverages();
+                
+            }
+        }
+    }
+
+    /**
+     * Init the coverages naming and schema mappings
+     */
+    private void initCoverages() {
+        final Coverages coverages = indexer.getCoverages();
+        if (coverages != null) {
+            final List<Coverage> coverageElements = coverages.getCoverage();
+
+            // Loop over coverages
+            for (Coverage coverageElement : coverageElements) {
+                final SchemaType coverageSchema = coverageElement.getSchema();
+                String coverageName = coverageElement.getName();
+                if (coverageName == null) {
+                    // null coverageName... try to setup it through name collector
+                    coverageName = getCoverageNameFromCollector(coverageElement.getNameCollector());
+                }
+
+                String schemaName = coverageName;
+
+                // in case of coverageSchemaRef not null, link to that reference schema
+                final String coverageSchemaRef = coverageSchema.getRef();
+                if (coverageSchemaRef == null || coverageSchemaRef.trim().length() == 0)  {
+                    schemaMapping.put(coverageName, coverageSchema.getAttributes());
+                } else {
+                    schemaName = coverageSchemaRef;
+                }
+
+                final Name name = new NameImpl(coverageName);
+                coveragesToSchemaMap.put(coverageName, schemaName);
+
+                String origName = coverageElement.getOrigName();
+                if (origName != null && !origName.isEmpty()) {
+                    origName = origName.trim();
+                } else {
+                    origName = coverageName;
+                }
+                addCoverage(origName, name);
+            }
+        }
+    }
+
+    /**
+     * Get the coverageName using the specified nameCollector
+     * 
+     * @param nameCollector The name of the propertiesCollector which will be used to setup 
+     * the coverage name
+     * @return
+     */
+    private String getCoverageNameFromCollector(final String nameCollector) {
+        String coverageName = null;
+        if (collectors != null && collectors.containsKey(nameCollector)) {
+            Map<String, Object> keyValues = new HashMap<String, Object>();
+            PropertiesCollector collector = collectors.get(nameCollector);
+            collector.collect(mainFile);
+            collector.setProperties(keyValues);
+            collector.reset();
+            coverageName = (String) keyValues.get(COVERAGE_NAME);
+        }
+        return coverageName;
+    }
+
+    /**
+     * Initialize the propertiesCollectors machinery
+     */
+    private void initPropertiesCollectors() {
+        final Collectors collectors = indexer.getCollectors();
+        if (collectors != null) {
+            List<Collector> collectorList = collectors.getCollector();
+            if (collectorList != null) {
+                this.collectors = new HashMap<String, PropertiesCollector>();
+                for (Collector collector: collectorList) {
+                    final String collectorName = collector.getName();
+                    final String spiName = collector.getSpi();
+                    final String value = collector.getValue();
+                    final String mapped = collector.getMapped();
+                    PropertiesCollectorSPI selectedSPI = null;
+                    for (PropertiesCollectorSPI spi : pcSPIs) {
+                        if (spi.isAvailable() && spi.getName().equalsIgnoreCase(spiName)) {
+                            selectedSPI = spi;
+                            break;
                         }
-                        addCoverage(origName, name);
+                    }
+                    if (selectedSPI == null) {
+                        if (LOGGER.isLoggable(Level.INFO)) {
+                            LOGGER.info("Unable to find a PropertyCollector for this SPI: " + spiName);
+                        }
+                        continue;
+                    }
+
+                    // property names
+                    final String propertyNames[] = new String[]{mapped != null ? mapped : COVERAGE_NAME};
+
+                    // create the PropertiesCollector
+                    final PropertiesCollector pc = selectedSPI.create(DefaultPropertiesCollectorSPI.REGEX_PREFIX + value,  Arrays.asList(propertyNames));
+                    if (pc != null) {
+                        this.collectors.put(collectorName, pc);
                     }
                 }
             }

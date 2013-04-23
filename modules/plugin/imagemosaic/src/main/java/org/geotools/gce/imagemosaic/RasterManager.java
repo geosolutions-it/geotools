@@ -890,7 +890,7 @@ public class RasterManager {
         extractDecimationPolicy();
         
         // load defaultSM and defaultCM by using the sample_image if it was provided
-        loadSampleImage();   
+        loadSampleImage(configuration);
         
         if (configuration != null) {
             CatalogConfigurationBean catalogBean = configuration.getCatalogConfigurationBean();
@@ -950,8 +950,9 @@ public class RasterManager {
  	/**
 	 * This code tries to load the sample image from which we can extract SM and CM to use when answering to requests
 	 * that falls within a hole in the mosaic.
+ 	 * @param configuration 
 	 */
-	private void loadSampleImage() {
+	private void loadSampleImage(MosaicConfigurationBean configuration) {
 	    if (this.parentReader.sourceURL == null) {
 	        //TODO: I need to define the sampleImage somehow for the ImageMosaicDescriptor case
 	        return;
@@ -965,7 +966,23 @@ public class RasterManager {
 					LOGGER.fine("Unable to find sample image for path "+baseURL);
 				return;
 			}
-			final File sampleImageFile= new File(baseFile.getParent() + "/sample_image");			
+			String baseName = baseFile.getParent() + "/";
+			String fileName = null;
+			File sampleImageFile = null;
+			if (configuration != null) {
+			    String name = configuration.getName();
+			    if (name != null) {
+			        fileName = baseName + name + Utils.SAMPLE_IMAGE_NAME;
+			        sampleImageFile = new File (fileName);
+			        if (!sampleImageFile.exists() || !sampleImageFile.canRead()) {
+			            sampleImageFile = null;
+			        }
+			    }
+			}
+			
+			if (sampleImageFile == null) {
+			    sampleImageFile = new File(baseName + Utils.SAMPLE_IMAGE_NAME);
+			}
 			final RenderedImage sampleImage = Utils.loadSampleImage(sampleImageFile);
 			if(sampleImage!=null){
 				

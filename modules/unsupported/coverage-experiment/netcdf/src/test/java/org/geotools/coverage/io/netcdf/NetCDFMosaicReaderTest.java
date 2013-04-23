@@ -110,7 +110,7 @@ public class NetCDFMosaicReaderTest extends Assert {
     @Ignore
     @SuppressWarnings("rawtypes")
     public void timeAdditionalDimRanges() throws Exception {
-        final String dlrFolder = "C:\\data\\dlr\\samplesDLR\\";
+        final String dlrFolder = "/work/data/DLR/samplesForMosaic";
         final File file = new File(dlrFolder);
         final URL url = DataUtilities.fileToURL(file);
         final Hints hints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode(
@@ -651,9 +651,129 @@ public class NetCDFMosaicReaderTest extends Assert {
             }
             reader.dispose();
         }
+    }
+    
+    @Test
+    public void testReadCoverageGome2Names() throws IOException {
+        // prepare a "mosaic" with just one NetCDF
+        File nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.NO2.DUMMY.nc");
+        File mosaic = new File("./target/nc_gome2");
+        if (mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
         
-       
+        nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.BrO.DUMMY.nc");
+        FileUtils.copyFileToDirectory(nc1, mosaic);
         
+        File xml = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/DUMMYGOME2.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+
+        // The indexer
+        String indexer = "TimeAttribute=time\n"
+                + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
+                + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
+        indexer += Prop.AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
+        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+
+        String timeregex = "regex=[0-9]{8}";
+        FileUtils.writeStringToFile(new File(mosaic, "timeregex.properties"), timeregex);
+
+        // the datastore.properties file is also mandatory...
+        File dsp = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+
+        // have the reader harvest it
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        GridCoverage2D coverage = null;
+        assertNotNull(reader);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            assertEquals(2, names.length);
+            assertEquals("NO2", names[0]);
+            assertEquals("BrO", names[1]);
+            
+            GranuleSource source = reader.getGranules("NO2", true);
+            SimpleFeatureCollection granules = source.getGranules(Query.ALL);
+            assertEquals(1, granules.size());
+            
+            assertTrue(CRS.equalsIgnoreMetadata(DefaultGeographicCRS.WGS84, reader.getCoordinateReferenceSystem("NO2")));
+            GeneralEnvelope envelope = reader.getOriginalEnvelope("NO2");
+            assertEquals(-180, envelope.getMinimum(0), 0d);
+            assertEquals(180, envelope.getMaximum(0), 0d);
+            assertEquals(-90, envelope.getMinimum(1), 0d);
+            assertEquals(90, envelope.getMaximum(1), 0d);
+
+            // check we can read a coverage out of it
+            coverage = reader.read("NO2", null);
+            reader.dispose();
+
+            // Checking we can read again from the coverage (using a different name this time) once it has been configured.
+            reader = format.getReader(mosaic);
+            coverage = reader.read("BrO", null);
+            assertNotNull(coverage);
+            
+        } finally {
+            if(coverage != null) {
+                ImageUtilities.disposePlanarImageChain((PlanarImage) coverage.getRenderedImage());
+                coverage.dispose(true);
+            }
+            reader.dispose();
+        }
+    }
+    
+    @Test
+    public void testCheckDifferentSampleImages() throws IOException {
+        // prepare a "mosaic" with just one NetCDF
+        File nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.NO2.DUMMY.nc");
+        File mosaic = new File("./target/nc_sampleimages");
+        if (mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+        
+        nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130101.METOPA.GOME2.BrO.DUMMY.nc");
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+        
+        File xml = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/DUMMYGOME2.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+
+        // The indexer
+        String indexer = "TimeAttribute=time\n"
+                + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
+                + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
+        indexer += Prop.AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
+        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+
+        String timeregex = "regex=[0-9]{8}";
+        FileUtils.writeStringToFile(new File(mosaic, "timeregex.properties"), timeregex);
+
+        // the datastore.properties file is also mandatory...
+        File dsp = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+
+        // have the reader harvest it
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        assertNotNull(reader);
+        
+        // Checking whether different sample images have been created
+        final File sampleImage1 = new File("./target/nc_sampleimages/BrOsample_image");
+        final File sampleImage2 = new File("./target/nc_sampleimages/NO2sample_image");
+        assertTrue(sampleImage1.exists());
+        assertTrue(sampleImage2.exists());
+        reader.dispose();
     }
 
     private Date parseTimeStamp(String timeStamp) throws ParseException {

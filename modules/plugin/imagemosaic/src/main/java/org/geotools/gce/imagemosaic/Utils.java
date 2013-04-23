@@ -1188,6 +1188,8 @@ public class Utils {
 	static final String ASCENDING_ORDER_IDENTIFIER = " A"; //SortOrder.ASCENDING.identifier();
 
     public static final String SCAN_FOR_TYPENAMES = "ScanTypeNames";
+
+    public static final String SAMPLE_IMAGE_NAME = "sample_image";
     
     /**
      * Private constructor to initialize the ehCache instance.

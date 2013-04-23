@@ -4,19 +4,7 @@
 	<xs:element name="Indexer">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element name="schemas" maxOccurs="1" minOccurs="0">
-					<xs:complexType>
-						<xs:sequence>
-							<xs:element name="schema" maxOccurs="unbounded" minOccurs="0">
-								<xs:complexType>
-									<xs:sequence>
-										<xs:element name="attributes" type="xs:string" />
-									</xs:sequence>
-									<xs:attribute name="name" type="xs:string" use="required" />
-								</xs:complexType>
-							</xs:element>
-						</xs:sequence>
-					</xs:complexType>
+				<xs:element name="schemas" maxOccurs="1" minOccurs="0" type="schemasType">
 				</xs:element>
 				<xs:element name="coverages" maxOccurs="1" minOccurs="0">
 					<xs:complexType>
@@ -24,27 +12,35 @@
 							<xs:element name="coverage" maxOccurs="unbounded" minOccurs="1">
 								<xs:complexType>
 									<xs:sequence>
-										<xs:element name="schema"
-											type="xs:string" />
+										<xs:element name="schema" type="schemaType" />
 										<xs:element name="origName"
 											type="xs:string" />
 										<xs:element name="domains">
 											<xs:complexType>
 												<xs:sequence>
-													<xs:element name="domain" maxOccurs="unbounded" minOccurs="0">
+													<xs:element
+														name="domain" maxOccurs="unbounded" minOccurs="0">
 														<xs:complexType>
 															<xs:sequence>
-																<xs:element name="attributes" type="xs:string" />
+																<xs:element
+																	name="attributes" type="xs:string" />
 															</xs:sequence>
-															<xs:attribute name="name" type="xs:string" use="required" />
+															<xs:attribute
+																name="name" type="xs:string" use="required" />
 														</xs:complexType>
 													</xs:element>
 												</xs:sequence>
 											</xs:complexType>
 										</xs:element>
+										<xs:choice>
+											<xs:element name="name"
+												type="xs:string">
+											</xs:element>
+											<xs:element
+												name="nameCollector" type="xs:string">
+											</xs:element>
+										</xs:choice>
 									</xs:sequence>
-									<xs:attribute name="name"
-										type="xs:string" use="required" />
 								</xs:complexType>
 							</xs:element>
 
@@ -63,10 +59,10 @@
 				<xs:element name="collectors" maxOccurs="1" minOccurs="0">
 					<xs:complexType>
 						<xs:sequence>
-							<xs:element name="collector">
+							<xs:element name="collector" maxOccurs="unbounded" minOccurs="0">
 								<xs:complexType>
 									<xs:sequence>
-										<xs:element name="SPI" type="xs:string" />
+										<xs:element name="spi" type="xs:string" />
 										<xs:element name="type" type="xs:string" />
 										<xs:element name="value" type="xs:string" />
 										<xs:element name="mapped" type="xs:string" />
@@ -83,17 +79,29 @@
 		</xs:complexType>
 	</xs:element>
     <xs:complexType name="parametersType">
-	<xs:sequence>
-		<xs:element name="parameter" maxOccurs="unbounded"
-			minOccurs="0">
-			<xs:complexType>
-				<xs:sequence>
-					<xs:element name="value" type="xs:string" />
-				</xs:sequence>
-				<xs:attribute name="name" type="xs:string" use="required" />
-			</xs:complexType>
-		</xs:element>
-	</xs:sequence>
-</xs:complexType>
+		<xs:sequence>
+			<xs:element name="parameter" maxOccurs="unbounded" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="value" type="xs:string" />
+					</xs:sequence>
+					<xs:attribute name="name" type="xs:string" use="required" />
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="schemasType">
+		<xs:sequence>
+			<xs:element name="schema" maxOccurs="unbounded" minOccurs="0" type="schemaType">
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="schemaType">
+		<xs:sequence>
+			<xs:element name="attributes" type="xs:string" />
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string" use="optional" />
+		<xs:attribute name="ref" type="xs:string" use="optional" />
+	</xs:complexType>
 </xs:schema>
 

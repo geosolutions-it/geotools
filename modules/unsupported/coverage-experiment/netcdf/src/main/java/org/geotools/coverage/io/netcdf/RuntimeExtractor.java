@@ -19,6 +19,7 @@ package org.geotools.coverage.io.netcdf;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
@@ -56,6 +57,11 @@ class RuntimeExtractor extends PropertiesCollector {
             feature.setAttribute(propertyName, date);
 
         }
+    }
+    
+    @Override
+    public void setProperties(Map<String, Object> map) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

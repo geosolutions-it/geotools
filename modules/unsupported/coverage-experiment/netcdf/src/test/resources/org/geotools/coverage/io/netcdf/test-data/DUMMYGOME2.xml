@@ -9,12 +9,16 @@ the_geom:Polygon,coverage:String,imageindex:Integer,time:java.util.Date,elevatio
     </schemas>
     <coverages>
         <coverage>
-			<name>O3</name>
+			<nameCollector>coverageNameCollector</nameCollector>
             <schema ref="default"></schema>
-        </coverage>
-        <coverage>
-			<name>NO2</name>
-            <schema><attributes>the_geom:Polygon,coverage:String,imageindex:Integer,time:java.util.Date</attributes></schema>
+            <origName>z</origName>
         </coverage>
     </coverages>
+    <collectors>
+		<collector name="coverageNameCollector">
+			<value>[A-z0-9]+(?=.DUMMY)</value>
+			<spi>StringFileNameExtractorSPI</spi>
+			<mapped>coverageName</mapped>
+		</collector>
+    </collectors>
 </Indexer>

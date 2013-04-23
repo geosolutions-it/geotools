@@ -553,7 +553,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         boolean filtered = false;
                         if (filteringCoverages != null) {
                             for (Coverage filteringCoverage: filteringCoverages) {
-                                if (filteringCoverage.getName().equalsIgnoreCase(varName) || 
+                                if (varName.equalsIgnoreCase(filteringCoverage.getName()) || 
                                         varName.equalsIgnoreCase(filteringCoverage.getOrigName())) {
                                     break;
                                 } 
