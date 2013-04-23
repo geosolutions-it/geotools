@@ -3,7 +3,7 @@
     <coverages>
         <coverage>
 			<name>NO2</name>
-            <schema><attributes>the_geom:Polygon,coverage:String,imageindex:Integer				</attributes></schema>
+            <schema><attributes>the_geom:Polygon,coverage:String,imageindex:Integer</attributes></schema>
             <origName>z</origName>
         </coverage>
     </coverages>

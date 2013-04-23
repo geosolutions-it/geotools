@@ -60,7 +60,7 @@ class NetCDFAncillaryManager {
     private static Unmarshaller UNMARSHALLER;
 
     /** Default schema name */
-    static final String DEFAULT = "default";
+    static final String DEFAULT = "def";
     
     private static final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder.getPropertiesCollectorSPI();
 
