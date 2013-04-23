@@ -45,51 +45,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Indexer.Collectors.Collector }
+     * Create an instance of {@link AttributeType }
      * 
      */
-    public Indexer.Collectors.Collector createIndexerCollectorsCollector() {
-        return new Indexer.Collectors.Collector();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Datastore }
-     * 
-     */
-    public Indexer.Datastore createIndexerDatastore() {
-        return new Indexer.Datastore();
-    }
-
-    /**
-     * Create an instance of {@link ParametersType }
-     * 
-     */
-    public ParametersType createParametersType() {
-        return new ParametersType();
-    }
-
-    /**
-     * Create an instance of {@link SchemasType }
-     * 
-     */
-    public SchemasType createSchemasType() {
-        return new SchemasType();
-    }
-
-    /**
-     * Create an instance of {@link SchemaType }
-     * 
-     */
-    public SchemaType createSchemaType() {
-        return new SchemaType();
-    }
-
-    /**
-     * Create an instance of {@link Indexer.Coverages.Coverage.Domains.Domain }
-     * 
-     */
-    public Indexer.Coverages.Coverage.Domains.Domain createIndexerCoveragesCoverageDomainsDomain() {
-        return new Indexer.Coverages.Coverage.Domains.Domain();
+    public AttributeType createAttributeType() {
+        return new AttributeType();
     }
 
     /**
@@ -101,11 +61,51 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link SchemasType }
+     * 
+     */
+    public SchemasType createSchemasType() {
+        return new SchemasType();
+    }
+
+    /**
      * Create an instance of {@link Indexer.Coverages.Coverage }
      * 
      */
     public Indexer.Coverages.Coverage createIndexerCoveragesCoverage() {
         return new Indexer.Coverages.Coverage();
+    }
+
+    /**
+     * Create an instance of {@link ParametersType }
+     * 
+     */
+    public ParametersType createParametersType() {
+        return new ParametersType();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Collectors.Collector }
+     * 
+     */
+    public Indexer.Collectors.Collector createIndexerCollectorsCollector() {
+        return new Indexer.Collectors.Collector();
+    }
+
+    /**
+     * Create an instance of {@link DomainType }
+     * 
+     */
+    public DomainType createDomainType() {
+        return new DomainType();
+    }
+
+    /**
+     * Create an instance of {@link ParametersType.Parameter }
+     * 
+     */
+    public ParametersType.Parameter createParametersTypeParameter() {
+        return new ParametersType.Parameter();
     }
 
     /**
@@ -117,14 +117,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Indexer.Coverages.Coverage.Domains }
-     * 
-     */
-    public Indexer.Coverages.Coverage.Domains createIndexerCoveragesCoverageDomains() {
-        return new Indexer.Coverages.Coverage.Domains();
-    }
-
-    /**
      * Create an instance of {@link Indexer }
      * 
      */
@@ -133,11 +125,27 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link ParametersType.Parameter }
+     * Create an instance of {@link DomainsType }
      * 
      */
-    public ParametersType.Parameter createParametersTypeParameter() {
-        return new ParametersType.Parameter();
+    public DomainsType createDomainsType() {
+        return new DomainsType();
+    }
+
+    /**
+     * Create an instance of {@link SchemaType }
+     * 
+     */
+    public SchemaType createSchemaType() {
+        return new SchemaType();
+    }
+
+    /**
+     * Create an instance of {@link Indexer.Datastore }
+     * 
+     */
+    public Indexer.Datastore createIndexerDatastore() {
+        return new Indexer.Datastore();
     }
 
 }
