@@ -37,6 +37,7 @@ import javax.xml.bind.annotation.XmlType;
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
  *         &lt;element name="schemas" type="{}schemasType" minOccurs="0"/>
+ *         &lt;element name="domains" type="{}domainsType" minOccurs="0"/>
  *         &lt;element name="coverages" minOccurs="0">
  *           &lt;complexType>
  *             &lt;complexContent>
@@ -49,28 +50,7 @@ import javax.xml.bind.annotation.XmlType;
  *                           &lt;sequence>
  *                             &lt;element name="schema" type="{}schemaType"/>
  *                             &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
- *                             &lt;element name="domains">
- *                               &lt;complexType>
- *                                 &lt;complexContent>
- *                                   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *                                     &lt;sequence>
- *                                       &lt;element name="domain" maxOccurs="unbounded" minOccurs="0">
- *                                         &lt;complexType>
- *                                           &lt;complexContent>
- *                                             &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *                                               &lt;sequence>
- *                                                 &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
- *                                               &lt;/sequence>
- *                                               &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
- *                                             &lt;/restriction>
- *                                           &lt;/complexContent>
- *                                         &lt;/complexType>
- *                                       &lt;/element>
- *                                     &lt;/sequence>
- *                                   &lt;/restriction>
- *                                 &lt;/complexContent>
- *                               &lt;/complexType>
- *                             &lt;/element>
+ *                             &lt;element name="domains" type="{}domainsType"/>
  *                             &lt;choice>
  *                               &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *                               &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -134,6 +114,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
     "schemas",
+    "domains",
     "coverages",
     "datastore",
     "collectors",
@@ -143,6 +124,7 @@ import javax.xml.bind.annotation.XmlType;
 public class Indexer {
 
     protected SchemasType schemas;
+    protected DomainsType domains;
     protected Indexer.Coverages coverages;
     @XmlElement(required = true)
     protected Indexer.Datastore datastore;
@@ -171,6 +153,30 @@ public class Indexer {
      */
     public void setSchemas(SchemasType value) {
         this.schemas = value;
+    }
+
+    /**
+     * Gets the value of the domains property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link DomainsType }
+     *     
+     */
+    public DomainsType getDomains() {
+        return domains;
+    }
+
+    /**
+     * Sets the value of the domains property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link DomainsType }
+     *     
+     */
+    public void setDomains(DomainsType value) {
+        this.domains = value;
     }
 
     /**
@@ -526,28 +532,7 @@ public class Indexer {
      *                 &lt;sequence>
      *                   &lt;element name="schema" type="{}schemaType"/>
      *                   &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
-     *                   &lt;element name="domains">
-     *                     &lt;complexType>
-     *                       &lt;complexContent>
-     *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-     *                           &lt;sequence>
-     *                             &lt;element name="domain" maxOccurs="unbounded" minOccurs="0">
-     *                               &lt;complexType>
-     *                                 &lt;complexContent>
-     *                                   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-     *                                     &lt;sequence>
-     *                                       &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-     *                                     &lt;/sequence>
-     *                                     &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-     *                                   &lt;/restriction>
-     *                                 &lt;/complexContent>
-     *                               &lt;/complexType>
-     *                             &lt;/element>
-     *                           &lt;/sequence>
-     *                         &lt;/restriction>
-     *                       &lt;/complexContent>
-     *                     &lt;/complexType>
-     *                   &lt;/element>
+     *                   &lt;element name="domains" type="{}domainsType"/>
      *                   &lt;choice>
      *                     &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
      *                     &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -616,28 +601,7 @@ public class Indexer {
          *       &lt;sequence>
          *         &lt;element name="schema" type="{}schemaType"/>
          *         &lt;element name="origName" type="{http://www.w3.org/2001/XMLSchema}string"/>
-         *         &lt;element name="domains">
-         *           &lt;complexType>
-         *             &lt;complexContent>
-         *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-         *                 &lt;sequence>
-         *                   &lt;element name="domain" maxOccurs="unbounded" minOccurs="0">
-         *                     &lt;complexType>
-         *                       &lt;complexContent>
-         *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-         *                           &lt;sequence>
-         *                             &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-         *                           &lt;/sequence>
-         *                           &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-         *                         &lt;/restriction>
-         *                       &lt;/complexContent>
-         *                     &lt;/complexType>
-         *                   &lt;/element>
-         *                 &lt;/sequence>
-         *               &lt;/restriction>
-         *             &lt;/complexContent>
-         *           &lt;/complexType>
-         *         &lt;/element>
+         *         &lt;element name="domains" type="{}domainsType"/>
          *         &lt;choice>
          *           &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
          *           &lt;element name="nameCollector" type="{http://www.w3.org/2001/XMLSchema}string"/>
@@ -665,7 +629,7 @@ public class Indexer {
             @XmlElement(required = true)
             protected String origName;
             @XmlElement(required = true)
-            protected Indexer.Coverages.Coverage.Domains domains;
+            protected DomainsType domains;
             protected String name;
             protected String nameCollector;
 
@@ -722,10 +686,10 @@ public class Indexer {
              * 
              * @return
              *     possible object is
-             *     {@link Indexer.Coverages.Coverage.Domains }
+             *     {@link DomainsType }
              *     
              */
-            public Indexer.Coverages.Coverage.Domains getDomains() {
+            public DomainsType getDomains() {
                 return domains;
             }
 
@@ -734,10 +698,10 @@ public class Indexer {
              * 
              * @param value
              *     allowed object is
-             *     {@link Indexer.Coverages.Coverage.Domains }
+             *     {@link DomainsType }
              *     
              */
-            public void setDomains(Indexer.Coverages.Coverage.Domains value) {
+            public void setDomains(DomainsType value) {
                 this.domains = value;
             }
 
@@ -787,158 +751,6 @@ public class Indexer {
              */
             public void setNameCollector(String value) {
                 this.nameCollector = value;
-            }
-
-
-            /**
-             * <p>Java class for anonymous complex type.
-             * 
-             * <p>The following schema fragment specifies the expected content contained within this class.
-             * 
-             * <pre>
-             * &lt;complexType>
-             *   &lt;complexContent>
-             *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-             *       &lt;sequence>
-             *         &lt;element name="domain" maxOccurs="unbounded" minOccurs="0">
-             *           &lt;complexType>
-             *             &lt;complexContent>
-             *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-             *                 &lt;sequence>
-             *                   &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-             *                 &lt;/sequence>
-             *                 &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-             *               &lt;/restriction>
-             *             &lt;/complexContent>
-             *           &lt;/complexType>
-             *         &lt;/element>
-             *       &lt;/sequence>
-             *     &lt;/restriction>
-             *   &lt;/complexContent>
-             * &lt;/complexType>
-             * </pre>
-             * 
-             * 
-             */
-            @XmlAccessorType(XmlAccessType.FIELD)
-            @XmlType(name = "", propOrder = {
-                "domain"
-            })
-            public static class Domains {
-
-                protected List<Indexer.Coverages.Coverage.Domains.Domain> domain;
-
-                /**
-                 * Gets the value of the domain property.
-                 * 
-                 * <p>
-                 * This accessor method returns a reference to the live list,
-                 * not a snapshot. Therefore any modification you make to the
-                 * returned list will be present inside the JAXB object.
-                 * This is why there is not a <CODE>set</CODE> method for the domain property.
-                 * 
-                 * <p>
-                 * For example, to add a new item, do as follows:
-                 * <pre>
-                 *    getDomain().add(newItem);
-                 * </pre>
-                 * 
-                 * 
-                 * <p>
-                 * Objects of the following type(s) are allowed in the list
-                 * {@link Indexer.Coverages.Coverage.Domains.Domain }
-                 * 
-                 * 
-                 */
-                public List<Indexer.Coverages.Coverage.Domains.Domain> getDomain() {
-                    if (domain == null) {
-                        domain = new ArrayList<Indexer.Coverages.Coverage.Domains.Domain>();
-                    }
-                    return this.domain;
-                }
-
-
-                /**
-                 * <p>Java class for anonymous complex type.
-                 * 
-                 * <p>The following schema fragment specifies the expected content contained within this class.
-                 * 
-                 * <pre>
-                 * &lt;complexType>
-                 *   &lt;complexContent>
-                 *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-                 *       &lt;sequence>
-                 *         &lt;element name="attributes" type="{http://www.w3.org/2001/XMLSchema}string"/>
-                 *       &lt;/sequence>
-                 *       &lt;attribute name="name" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-                 *     &lt;/restriction>
-                 *   &lt;/complexContent>
-                 * &lt;/complexType>
-                 * </pre>
-                 * 
-                 * 
-                 */
-                @XmlAccessorType(XmlAccessType.FIELD)
-                @XmlType(name = "", propOrder = {
-                    "attributes"
-                })
-                public static class Domain {
-
-                    @XmlElement(required = true)
-                    protected String attributes;
-                    @XmlAttribute(required = true)
-                    protected String name;
-
-                    /**
-                     * Gets the value of the attributes property.
-                     * 
-                     * @return
-                     *     possible object is
-                     *     {@link String }
-                     *     
-                     */
-                    public String getAttributes() {
-                        return attributes;
-                    }
-
-                    /**
-                     * Sets the value of the attributes property.
-                     * 
-                     * @param value
-                     *     allowed object is
-                     *     {@link String }
-                     *     
-                     */
-                    public void setAttributes(String value) {
-                        this.attributes = value;
-                    }
-
-                    /**
-                     * Gets the value of the name property.
-                     * 
-                     * @return
-                     *     possible object is
-                     *     {@link String }
-                     *     
-                     */
-                    public String getName() {
-                        return name;
-                    }
-
-                    /**
-                     * Sets the value of the name property.
-                     * 
-                     * @param value
-                     *     allowed object is
-                     *     {@link String }
-                     *     
-                     */
-                    public void setName(String value) {
-                        this.name = value;
-                    }
-
-                }
-
             }
 
         }

@@ -59,6 +59,7 @@ import org.geotools.data.h2.H2DataStoreFactory;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
+import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.UnidataUtilities.KeyValuePair;
@@ -552,9 +553,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         
                         boolean filtered = false;
                         if (filteringCoverages != null) {
+                            filtered = true;
                             for (Coverage filteringCoverage: filteringCoverages) {
                                 if (varName.equalsIgnoreCase(filteringCoverage.getName()) || 
                                         varName.equalsIgnoreCase(filteringCoverage.getOrigName())) {
+                                    filtered = false;
                                     break;
                                 } 
                             }
@@ -676,14 +679,20 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return numImages;
     }
 
-    private SimpleFeatureType getIndexSchema(Name coverageName, Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+    private SimpleFeatureType getIndexSchema(Name name, Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
         // Getting the schema for this coverage
         SimpleFeatureType indexSchema = null;
-        final String coverage = coverageName.toString();
-        String schemaName = manager.coveragesToSchemaMap.get(coverage);
+        final String coverageName = name.toString();
+        Coverage coverage = manager.coveragesMapping.get(coverageName);
+        SchemaType schema = coverage.getSchema();
+        String schemaName = null;
+        if (schema != null) {
+            schemaName = schema.getName();
+        }
+        
         if (schemaName == null) {
-            schemaName = NetCDFAncillaryManager.DEFAULT;
-            manager.coveragesToSchemaMap.put(coverage, schemaName);
+            schemaName = manager.addDefaultSchema(coverage);
+//            manager.coveragesToSchemaMap.put(coverage, schemaName);
         }
         
         String [] typeNames = slicesCatalog.getTypeNames();
@@ -697,14 +706,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
         }
         if (indexSchema == null) {
-            indexSchema = manager.initializeSchema(params, schemaName);
+            indexSchema = manager.initializeSchema(params, schemaName, coverage);
             slicesCatalog.createType(indexSchema);
         }
         return indexSchema;
     }
 
     private Name getCoverageName(String varName) {
-        Map<String, Name> coveragesMap = manager.getCoverages();
+        Map<String, Coverage> coveragesMap = manager.getCoverages();
         Name coverageName = null;
         if (coverages.isEmpty() || coverages.size() <= coveragesMap.size()) {
             coverageName = null;
@@ -712,8 +721,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 coverageName = manager.getCoverageName(varName);
             } 
             if (coverageName == null) {
+                manager.addCoverage(varName);
                 coverageName = new NameImpl(varName);
-                manager.addCoverage(varName, coverageName);
             }
             coverages.add(coverageName);
         }
@@ -841,6 +850,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 final File indexerFile = manager.getIndexerFile();
 
                 if (indexerFile.exists()) {
+                    // Initializing the indexer stuff
                     manager.initIndexer();
                 }
                 
