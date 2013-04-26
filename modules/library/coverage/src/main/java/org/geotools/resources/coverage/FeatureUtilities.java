@@ -21,7 +21,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.List;
 
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.factory.CommonFactoryFinder;
@@ -217,7 +216,7 @@ public final class FeatureUtilities {
 		SimpleFeatureTypeBuilder ftb = new SimpleFeatureTypeBuilder(getTypeFactory());
         ftb.setName("GridCoverage");
         ftb.add("geom", Polygon.class, sourceCrs);
-        ftb.add("grid", AbstractGridCoverage2DReader.class);
+        ftb.add("grid", GridCoverage2DReader.class);
         ftb.add("params", GeneralParameterValue[].class);
         SimpleFeatureType schema = ftb.buildFeatureType();
 
@@ -234,7 +233,7 @@ public final class FeatureUtilities {
     }
     
     /**
-     * Checks if the feature type specified is a AbstractGridCoverage2DReader wrapper
+     * Checks if the feature type specified is a GridCoverage2DReader wrapper
      * @param featureType
      * @return
      */
@@ -250,7 +249,7 @@ public final class FeatureUtilities {
             return false;
         
         AttributeDescriptor gridDescriptor = featureType.getDescriptor("grid");
-        if(gridDescriptor == null || !AbstractGridCoverage2DReader.class.equals(gridDescriptor.getType().getBinding()))
+        if(gridDescriptor == null || !GridCoverage2DReader.class.equals(gridDescriptor.getType().getBinding()))
             return false;
         
         AttributeDescriptor paramDescriptor = featureType.getDescriptor("params");

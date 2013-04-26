@@ -45,12 +45,6 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      */
     GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException, UnsupportedOperationException;
 
-//    /**
-//     * Describes the dimensions supported by the specified coverage, if any. 
-//     * (might be null, if there is only one supported coverage)
-//     */
-//    Set<DimensionDescriptor> getDimensionDescriptors(String coverageName);
-
     /**
      * Return whether this reader can modify the granule source 
      * @return
@@ -60,7 +54,7 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
     /**
      * Creates a granule store for a new coverage with the given feature type
      */
-    void createCoverage(String coverageName, SimpleFeatureType schema/*, Set<DimensionDescriptor> dimensions*/) throws
+    void createCoverage(String coverageName, SimpleFeatureType schema) throws
                                                IOException, UnsupportedOperationException;
 
     /**
