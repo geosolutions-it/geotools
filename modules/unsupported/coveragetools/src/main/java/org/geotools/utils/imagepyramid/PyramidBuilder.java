@@ -41,6 +41,7 @@ import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker;
 import org.geotools.gce.imagemosaic.MosaicConfigurationBean;
+import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.utils.CoverageToolsConstants;
@@ -580,8 +581,12 @@ public class PyramidBuilder extends BaseArgumentsManager implements Runnable,
 	    
 	        // prepare the configuration
 	        final CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
-                configuration.setRootMosaicDirectory(new File(outputLocation, String.valueOf(level)).getAbsolutePath());   
-                configuration.setIndexName(name);
+	        configuration.setParameter(Prop.ROOT_MOSAIC_DIR, new File(outputLocation, String.valueOf(level)).getAbsolutePath());
+                configuration.setParameter(Prop.INDEX_NAME, name);
+//              
+//	        configuration.setRootMosaicDirectory();   
+//                configuration.setIndexName(name);
+                
 //	        configuration.setAbsolute(runner.absolute);
 //	        configuration.setFootprintManagement(runner.footprintManagement);
 //	        configuration.setCaching(runner.caching);
@@ -595,7 +600,9 @@ public class PyramidBuilder extends BaseArgumentsManager implements Runnable,
 //	        for (String dir : dirs_)
 //	            dirs.add(dir);
 //	        configuration.setIndexingDirectories(dirs);
-                configuration.setIndexingDirectories(Arrays.asList(configuration.getRootMosaicDirectory()));
+                
+                configuration.setParameter(Prop.INDEXING_DIRECTORIES, configuration.getParameter(Prop.ROOT_MOSAIC_DIR));
+//                configuration.setIndexingDirectories(Arrays.asList(configuration.getRootMosaicDirectory()));
 
 	        // prepare and run the index builder
 	        final ImageMosaicWalker builder = new ImageMosaicWalker(configuration);

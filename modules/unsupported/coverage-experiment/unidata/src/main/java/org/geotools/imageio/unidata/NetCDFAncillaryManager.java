@@ -318,7 +318,7 @@ class NetCDFAncillaryManager {
         initializeParams(params);
 
         // Use default attributes if schema isn't defined yet
-        if (schemaAttributes == null && schemaTypeName.equalsIgnoreCase(DEFAULT)) {
+        if (schemaAttributes == null /* schemaTypeName.equalsIgnoreCase(DEFAULT)*/) {
             schemaAttributes = CoverageSlice.Attributes.FULLSCHEMA;
             schemaElement.setAttributes(schemaAttributes);
             schemaElement.setName(schemaTypeName);
@@ -520,14 +520,18 @@ class NetCDFAncillaryManager {
 
                 // Get the coverage schema and attributes
                 final SchemaType coverageSchema = coverageElement.getSchema();
-                String schemaAttributes = coverageSchema.getAttributes();
+                String coverageSchemaRef = null;
+                String schemaAttributes = null;
+                if (coverageSchema != null) {
+                    schemaAttributes = coverageSchema.getAttributes();
+                    coverageSchemaRef = coverageSchema.getRef();
+                }
 
                 // initialize schemaName with the coverageName unless there isn't a schema
                 // reference
                 String schemaName = coverageName;
 
                 // in case of coverageSchemaRef not null, link to that reference schema
-                final String coverageSchemaRef = coverageSchema.getRef();
                 if (coverageSchemaRef == null || coverageSchemaRef.trim().length() == 0)  {
                     schemaMapping.put(coverageName, schemaAttributes);
                 } else {

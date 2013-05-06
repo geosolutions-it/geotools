@@ -546,10 +546,10 @@ public class ImageMosaicReaderTest extends Assert{
 		final GeneralEnvelope envelope = reader.getOriginalEnvelope();
 		assertNotNull(envelope);
 		
-		assertEquals(envelope.getMinimum(0), -180.0,1E-6);
-		assertEquals(envelope.getMinimum(1), -90.0,1E-6);
-		assertEquals(envelope.getMaximum(0), 180.0,1E-6);
-		assertEquals(envelope.getMaximum(1), 90.0,1E-6);
+		assertEquals(-180.0, envelope.getMinimum(0), 1E-6);
+		assertEquals(-90.0, envelope.getMinimum(1), 1E-6);
+		assertEquals(180.0, envelope.getMaximum(0), 1E-6);
+		assertEquals(90.0, envelope.getMaximum(1), 1E-6);
 		
 		// limit yourself to reading just a bit of it
 		final ParameterValue<GridGeometry2D> gg =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
@@ -1706,7 +1706,7 @@ public class ImageMosaicReaderTest extends Assert{
             List<HarvestedFile> summary = reader.harvest(null, renamed, null);
             assertEquals(1, summary.size());
             HarvestedFile hf = summary.get(0);
-            assertEquals(renamed.getCanonicalFile(), hf.getFile());
+            assertEquals(renamed.getCanonicalFile(), hf.getFile().getCanonicalFile());
             assertTrue(hf.success());
             
             // the harvest put the file in the same coverage
@@ -1900,7 +1900,7 @@ public class ImageMosaicReaderTest extends Assert{
             List<HarvestedFile> summary = reader.harvest(null, renamed, null);
             assertEquals(1, summary.size());
             HarvestedFile hf = summary.get(0);
-            assertEquals(renamed.getCanonicalFile(), hf.getFile());
+            assertEquals(renamed.getCanonicalFile(), hf.getFile().getCanonicalFile());
             assertTrue(hf.success());
 
             // the harvest put the file in the same coverage

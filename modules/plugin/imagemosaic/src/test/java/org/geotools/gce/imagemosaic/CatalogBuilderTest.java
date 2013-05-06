@@ -37,6 +37,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEventListener;
+import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.geometry.GeneralEnvelope;
@@ -90,21 +91,32 @@ public class CatalogBuilderTest extends Assert {
 	@Test
 	public void catalogBuilderConfiguration() throws Exception{
 		// create a stub configuration
-		final CatalogBuilderConfiguration c1= new CatalogBuilderConfiguration();
-		c1.setIndexName("index");
-		c1.setLocationAttribute("location");
-		c1.setAbsolute(true);
-		c1.setRootMosaicDirectory(TestData.file(this,"/rgb").toString());
-		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/rgb").toString()));
+        final CatalogBuilderConfiguration c1 = new CatalogBuilderConfiguration();
+        c1.setParameter(Prop.INDEX_NAME, "index");
+        c1.setParameter(Prop.LOCATION_ATTRIBUTE, "location");
+        c1.setParameter(Prop.ABSOLUTE_PATH, "true");
+        c1.setParameter(Prop.ROOT_MOSAIC_DIR, TestData.file(this, "/rgb").toString());
+        c1.setParameter(Prop.INDEXING_DIRECTORIES, TestData.file(this,"/rgb").toString());
+//        c1.setIndexName("index");
+        // c1.setLocationAttribute("location");
+//		c1.setAbsolute(true);
+//		c1.setRootMosaicDirectory(TestData.file(this,"/rgb").toString());
+//		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/rgb").toString()));
 		assertNotNull(c1.toString());
 		
 		// create a second stub configuration
-		final CatalogBuilderConfiguration c2= new CatalogBuilderConfiguration();
-		c2.setIndexName("index");
-		c2.setLocationAttribute("location");
-		c2.setAbsolute(true);
-		c2.setRootMosaicDirectory(TestData.file(this,"/rgb").toString());
-		c2.setIndexingDirectories(Arrays.asList(TestData.file(this,"/rgb").toString()));
+        final CatalogBuilderConfiguration c2 = new CatalogBuilderConfiguration();
+        c2.setParameter(Prop.INDEX_NAME, "index");
+        c2.setParameter(Prop.LOCATION_ATTRIBUTE, "location");
+        c2.setParameter(Prop.ABSOLUTE_PATH, "true");
+        c2.setParameter(Prop.ROOT_MOSAIC_DIR, TestData.file(this, "/rgb").toString());
+        c2.setParameter(Prop.INDEXING_DIRECTORIES, TestData.file(this,"/rgb").toString());	
+//		c2.setIndexName("index");
+//		c2.setLocationAttribute("location");
+//		c2.setAbsolute(true);
+//		c2.setRootMosaicDirectory(TestData.file(this,"/rgb").toString());
+//		c2.setIndexingDirectories(Arrays.asList(TestData.file(this,"/rgb").toString()));
+//		
 		assertTrue(c1.equals(c2));
 		assertEquals(c1.hashCode(), c2.hashCode());
 		
@@ -138,12 +150,17 @@ public class CatalogBuilderTest extends Assert {
 
 	    
 		//build a relative index and then make it run
-		CatalogBuilderConfiguration c1= new CatalogBuilderConfiguration();
-		c1.setIndexName("shpindex");
-		c1.setLocationAttribute("location");
-		c1.setAbsolute(false);
-		c1.setRootMosaicDirectory(TestData.file(this,"/overview").toString());
-		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/overview/0").toString()));
+            CatalogBuilderConfiguration c1 = new CatalogBuilderConfiguration();
+            c1.setParameter(Prop.INDEX_NAME, "shpindex");
+            c1.setParameter(Prop.LOCATION_ATTRIBUTE, "location");
+            c1.setParameter(Prop.ABSOLUTE_PATH, "false");
+            c1.setParameter(Prop.ROOT_MOSAIC_DIR, TestData.file(this, "/overview/0").toString());
+            c1.setParameter(Prop.INDEXING_DIRECTORIES, TestData.file(this,"/overview/0").toString());
+//		c1.setIndexName("shpindex");
+//		c1.setLocationAttribute("location");
+//		c1.setAbsolute(false);
+//		c1.setRootMosaicDirectory(TestData.file(this,"/overview").toString());
+//		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/overview/0").toString()));
 		assertNotNull(c1.toString());		
 		//build the index
 		builder= new ImageMosaicWalker(c1);
@@ -194,13 +211,19 @@ public class CatalogBuilderTest extends Assert {
 
 		
 		//build an absolute index and then make it run
-		CatalogBuilderConfiguration c2= new CatalogBuilderConfiguration();
-		c2.setIndexName("shpindex_absolute");
-		c2.setLocationAttribute("location");
-		c2.setAbsolute(true);
-		c2.setCaching(true);
-		c2.setRootMosaicDirectory(TestData.file(this,"/overview").toString());
-		c2.setIndexingDirectories(Arrays.asList(TestData.file(this,"/overview/0").toString()));
+            CatalogBuilderConfiguration c2 = new CatalogBuilderConfiguration();
+            c2.setParameter(Prop.INDEX_NAME, "shpindex_absolute");
+            c2.setParameter(Prop.LOCATION_ATTRIBUTE, "location");
+            c2.setParameter(Prop.ABSOLUTE_PATH, "true");
+            c2.setParameter(Prop.CACHING, "true");
+            c2.setParameter(Prop.ROOT_MOSAIC_DIR, TestData.file(this, "/overview").toString());
+            c2.setParameter(Prop.INDEXING_DIRECTORIES, TestData.file(this,"/overview").toString());
+//		c2.setIndexName("shpindex_absolute");
+//		c2.setLocationAttribute("location");
+//		c2.setAbsolute(true);
+//		c2.setCaching(true);
+//		c2.setRootMosaicDirectory(TestData.file(this,"/overview").toString());
+//		c2.setIndexingDirectories(Arrays.asList(TestData.file(this,"/overview/0").toString()));
 		assertNotNull(c2.toString());		
 		//build the index
 		builder= new ImageMosaicWalker(c2);
@@ -261,18 +284,24 @@ public class CatalogBuilderTest extends Assert {
 		ImageMosaicReader reader = null;
 		FileInputStream inStream = null;
 		CatalogBuilderConfiguration c1 = new CatalogBuilderConfiguration();
-		c1.setIndexName("shpindex");
-		c1.setLocationAttribute("location");
-		c1.setAbsolute(false);
-		c1.setRootMosaicDirectory(TestData.file(this, "/caching").toString());
-		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/caching").toString()));
+//		c1.setIndexName("shpindex");
+//		c1.setLocationAttribute("location");
+//		c1.setAbsolute(false);
+//		c1.setRootMosaicDirectory(TestData.file(this, "/caching").toString());
+//		c1.setIndexingDirectories(Arrays.asList(TestData.file(this,"/caching").toString()));
+            c1.setParameter(Prop.INDEX_NAME, "shpindex");
+            c1.setParameter(Prop.LOCATION_ATTRIBUTE, "location");
+            c1.setParameter(Prop.ABSOLUTE_PATH, "false");
+            c1.setParameter(Prop.ROOT_MOSAIC_DIR, TestData.file(this, "/caching").toString());
+            c1.setParameter(Prop.INDEXING_DIRECTORIES, TestData.file(this,"/caching").toString());
+                
 		Properties prop = new Properties();
 		
 		
 		try {
 			
-			c1.setCaching(false);
-			
+//			c1.setCaching(false);
+		    c1.setParameter(Prop.CACHING, "false");
 	
 			// build the index
 			builder = new ImageMosaicWalker(c1);
@@ -309,7 +338,8 @@ public class CatalogBuilderTest extends Assert {
 		
 		try {
 			
-			c1.setCaching(true);
+//			c1.setCaching(true);
+			c1.setParameter(Prop.CACHING, "true");
 	
 			// build the index
 			builder = new ImageMosaicWalker(c1);

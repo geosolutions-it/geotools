@@ -58,6 +58,7 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ExceptionEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.FileProcessingEvent;
 import org.geotools.gce.imagemosaic.ImageMosaicWalker.ProcessingEvent;
+import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
@@ -906,20 +907,25 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         
         // prepare the walker configuration
         CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
-        configuration.setAbsolute(Utils.DEFAULT_PATH_BEHAVIOR);
+        configuration.setParameter(Prop.ABSOLUTE_PATH, Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR));
+//        configuration.setAbsolute(Utils.DEFAULT_PATH_BEHAVIOR);
         String indexingPath = directory.getAbsolutePath();
-        configuration.setIndexingDirectories(Collections.singletonList(indexingPath));
+//        configuration.setIndexingDirectories(Collections.singletonList(indexingPath));
+        configuration.setParameter(Prop.INDEXING_DIRECTORIES, indexingPath);
         if(defaultCoverage == null) {
             defaultCoverage = getGridCoverageNames()[0];
         } 
-        configuration.setIndexName(defaultCoverage);
+//        configuration.setIndexName(defaultCoverage);
+        configuration.setParameter(Prop.INDEX_NAME, defaultCoverage);
         configuration.setHints(new Hints(Utils.MOSAIC_READER, this));
         
         File mosaicSource = DataUtilities.urlToFile(sourceURL);
         if(!mosaicSource.isDirectory()) {
             mosaicSource = mosaicSource.getParentFile();
         }
-        configuration.setRootMosaicDirectory(mosaicSource.getAbsolutePath());
+        
+//        configuration.setRootMosaicDirectory(mosaicSource.getAbsolutePath());
+        configuration.setParameter(Prop.ROOT_MOSAIC_DIR, mosaicSource.getAbsolutePath());
         
         // run the walker and collect information
         ImageMosaicWalker walker = new ImageMosaicWalker(configuration);

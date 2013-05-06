@@ -71,9 +71,20 @@ import org.geotools.gce.image.WorldImageFormat;
 import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
+import org.geotools.gce.imagemosaic.catalog.index.DomainType;
+import org.geotools.gce.imagemosaic.catalog.index.DomainsType;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors.Collector;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
+import org.geotools.gce.imagemosaic.catalog.index.ParametersType;
+import org.geotools.gce.imagemosaic.catalog.index.ParametersType.Parameter;
+import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
+import org.geotools.gce.imagemosaic.catalog.index.SchemasType;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.gce.imagemosaic.catalogbuilder.MosaicBeanBuilder;
+import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
@@ -323,10 +334,13 @@ public class ImageMosaicWalker implements Runnable {
                 //
                 final AbstractGridFormat format;
                 final Hints configurationHints = runConfiguration.getHints();
-//                if (runConfiguration.getIndexer() != null) {
-//                    configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
-//                }
-                
+                String indexName = runConfiguration.getParameter(Prop.INDEX_NAME);
+                Indexer indexer = runConfiguration.getIndexer();
+                if (indexer != null) {
+                    if(indexerFile.getAbsolutePath().endsWith("xml")) {
+                        configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
+                    }
+                }
                 if (cachedFormat == null) {
                     // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
                     format = (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed, excludeMosaicHints);
@@ -355,7 +369,7 @@ public class ImageMosaicWalker implements Runnable {
                     
                     final String inputCoverageName = cvName;
                     String coverageName = coverageReader instanceof StructuredGridCoverage2DReader ? inputCoverageName
-                            : runConfiguration.getIndexName();
+                            : indexName;
 
                     // checking whether the coverage already exists 
                     final boolean coverageExists = coverageExists(coverageName);
@@ -424,10 +438,13 @@ public class ImageMosaicWalker implements Runnable {
                         configBuilder.setLevels(resolutionLevels);
                         configBuilder.setLevelsNum(numberOfLevels);
                         configBuilder.setName(coverageName);
-                        configBuilder.setTimeAttribute(runConfiguration.getTimeAttribute());
-                        configBuilder.setElevationAttribute(runConfiguration.getElevationAttribute());
-                        configBuilder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
-
+//                        configBuilder.setTimeAttribute(runConfiguration.getTimeAttribute());
+//                        configBuilder.setElevationAttribute(runConfiguration.getElevationAttribute());
+//                        configBuilder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
+                        configBuilder.setTimeAttribute(Utils.getAttribute(coverageName, Utils.TIME_DOMAIN, indexer));
+                        configBuilder.setElevationAttribute(Utils.getAttribute(coverageName, Utils.ELEVATION_DOMAIN, indexer));
+                        configBuilder.setAdditionalDomainAttributes(Utils.getAttribute(coverageName, Utils.ADDITIONAL_DOMAIN, indexer));
+                        
                         final Hints runHints = runConfiguration.getHints();
                         if (runHints != null && runHints.containsKey(Utils.AUXILIARY_FILES_PATH)) {
                             String auxiliaryFilePath = (String) runHints.get(Utils.AUXILIARY_FILES_PATH);
@@ -437,9 +454,12 @@ public class ImageMosaicWalker implements Runnable {
                         }
 
                         final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
-                        catalogConfigurationBean.setCaching(runConfiguration.isCaching());
-                        catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
-                        catalogConfigurationBean.setLocationAttribute(runConfiguration.getLocationAttribute());
+//                        catalogConfigurationBean.setCaching(runConfiguration.isCaching());
+//                        catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
+                        catalogConfigurationBean.setCaching(Utils.getParameterAsBoolean(Prop.CACHING, indexer));
+                        catalogConfigurationBean.setAbsolutePath(Utils.getParameterAsBoolean(Prop.ABSOLUTE_PATH, indexer));
+                        
+                        catalogConfigurationBean.setLocationAttribute(Utils.getParameter(Prop.LOCATION_ATTRIBUTE, indexer));
                         configBuilder.setCatalogConfigurationBean(catalogConfigurationBean);
 
                         currentConfigurationBean = configBuilder.getMosaicConfigurationBean();
@@ -457,9 +477,12 @@ public class ImageMosaicWalker implements Runnable {
                     } else {
                         catalogConfig = new CatalogBuilderConfiguration();
                         CatalogConfigurationBean bean = mosaicConfiguration.getCatalogConfigurationBean();
-                        catalogConfig.setLocationAttribute(bean.getLocationAttribute());
-                        catalogConfig.setAbsolute(bean.isAbsolutePath());
-                        catalogConfig.setRootMosaicDirectory(runConfiguration.getRootMosaicDirectory());
+                        catalogConfig.setParameter(Prop.LOCATION_ATTRIBUTE, (bean.getLocationAttribute()));
+                        catalogConfig.setParameter(Prop.ABSOLUTE_PATH, Boolean.toString(bean.isAbsolutePath()));
+                        catalogConfig.setParameter(Prop.ROOT_MOSAIC_DIR/*setRootMosaicDirectory(*/, runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR));
+//                        catalogConfig.setLocationAttribute(bean.getLocationAttribute());
+//                        catalogConfig.setAbsolute(bean.isAbsolutePath());
+//                        catalogConfig.setRootMosaicDirectory(runConfiguration.getRootMosaicDirectory());
                         // We already have a Configuration for this coverage.
                         // Check its properties are compatible with the existing coverage.
                         
@@ -818,10 +841,13 @@ public class ImageMosaicWalker implements Runnable {
 
             // TODO we might want to remove this in the future for performance
             numFiles = 0;
-            for (String indexingDirectory : runConfiguration.getIndexingDirectories()) {
+            String indexDirs = runConfiguration.getParameter(Prop.INDEXING_DIRECTORIES);
+            String[] indexDirectories = indexDirs.split("\\s*,\\s*");
+            for (String indexingDirectory : indexDirectories) {
+                indexingDirectory = Utils.checkDirectory(indexingDirectory, false);
                 final File directoryToScan = new File(indexingDirectory);
                 final Collection files = FileUtils.listFiles(directoryToScan, finalFilter,
-                        runConfiguration.isRecursive() ? TrueFileFilter.INSTANCE
+                        Boolean.parseBoolean(runConfiguration.getParameter(Prop.RECURSIVE)) ? TrueFileFilter.INSTANCE
                                 : FalseFileFilter.INSTANCE);
                 numFiles += files.size();
             }
@@ -829,7 +855,7 @@ public class ImageMosaicWalker implements Runnable {
             // walk over the files that have filtered out
             //
             if (numFiles > 0) {
-                final List<String> indexingDirectories = runConfiguration.getIndexingDirectories();
+                final List<String> indexingDirectories = new ArrayList<String>(Arrays.asList(indexDirectories));
                 @SuppressWarnings("unused")
                 final MosaicDirectoryWalker walker = new MosaicDirectoryWalker(
                         indexingDirectories, finalFilter);
@@ -847,7 +873,7 @@ public class ImageMosaicWalker implements Runnable {
      */
     private IOFileFilter createGranuleFilterRules() {
         final IOFileFilter specialWildCardFileFilter = new WildcardFileFilter(
-                runConfiguration.getWildcard(), IOCase.INSENSITIVE);
+                runConfiguration.getParameter(Prop.WILDCARD), IOCase.INSENSITIVE);
         IOFileFilter dirFilter = FileFilterUtils.and(
                 FileFilterUtils.directoryFileFilter(), HiddenFileFilter.VISIBLE);
         IOFileFilter filesFilter = Utils.excludeFilters(FileFilterUtils.makeSVNAware(FileFilterUtils
@@ -917,15 +943,28 @@ public class ImageMosaicWalker implements Runnable {
      */
     public ImageMosaicWalker(final CatalogBuilderConfiguration configuration) {
         Utilities.ensureNonNull("runConfiguration", configuration);
-        Utilities.ensureNonNull("root location", configuration.getRootMosaicDirectory());
+//        Utilities.ensureNonNull("root location", configuration.getRootMosaicDirectory());
+
+        Indexer defaultIndexer = configuration.getIndexer();
+        ParametersType params = null;
+        String rootMosaicDir = null;
+        if (defaultIndexer != null) {
+            params = defaultIndexer.getParameters();
+            rootMosaicDir = Utils.getParam(params, Prop.ROOT_MOSAIC_DIR);
+        }
+        
+        Utilities.ensureNonNull("root location", rootMosaicDir);
 
         // look for and indexer.properties file
-        parent = new File(configuration.getRootMosaicDirectory());
+//        parent = new File(configuration.getRootMosaicDirectory());
+        parent = new File(rootMosaicDir);
         indexerFile = new File(parent, Utils.INDEXER_XML);
+        Indexer indexer = null;
+
         Hints hints = configuration.getHints();
         if (Utils.checkFileReadable(indexerFile)) {
             try {
-                Indexer indexer = (Indexer) Utils.UNMARSHALLER.unmarshal(indexerFile);
+                indexer = (Indexer) Utils.UNMARSHALLER.unmarshal(indexerFile);
                 configuration.setIndexer(indexer);
             } catch (JAXBException e) {
                 LOGGER.log(Level.WARNING, e.getMessage(), e);
@@ -933,74 +972,96 @@ public class ImageMosaicWalker implements Runnable {
         } else {
             // Backward compatible with old indexing
             indexerFile = new File(parent, Utils.INDEXER_PROPERTIES);
+            
             if (Utils.checkFileReadable(indexerFile)) {
                 // load it and parse it
                 final Properties props = Utils.loadPropertiesFromURL(DataUtilities
                         .fileToURL(indexerFile));
     
-                // name
-                if (props.containsKey(Prop.NAME))
-                    configuration.setIndexName(props.getProperty(Prop.NAME));
-    
-                // absolute
-                if (props.containsKey(Prop.ABSOLUTE_PATH))
-                    configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
-    
-                // recursive
-                if (props.containsKey(Prop.RECURSIVE))
-                    configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
-    
-                // wildcard
-                if (props.containsKey(Prop.WILDCARD))
-                    configuration.setWildcard(props.getProperty(Prop.WILDCARD));
-    
-                // schema
-                if (props.containsKey(Prop.SCHEMA))
-                    configuration.setSchema(props.getProperty(Prop.SCHEMA));
-    
-                // time attr
-                if (props.containsKey(Prop.TIME_ATTRIBUTE))
-                    configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
-    
-                // elevation attr
-                if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
-                    configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
-    
-                // Additional domain attr
-                if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
-                    configuration.setAdditionalDomainAttribute(props
-                            .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
-    
-                // imposed BBOX
-                if (props.containsKey(Prop.ENVELOPE2D))
-                    configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
-    
-                // imposed Pyramid Layout
-                if (props.containsKey(Prop.RESOLUTION_LEVELS))
-                    configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
-    
-                // collectors
-                if (props.containsKey(Prop.PROPERTY_COLLECTORS))
-                    configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
-    
-                if (props.containsKey(Prop.CACHING))
-                    configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
-                
-                if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
-                    // Overriding root mosaic directory
-                    configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
-                }
+//                // name
+//                if (props.containsKey(Prop.NAME))
+//                    configuration.setIndexName(props.getProperty(Prop.NAME));
+//    
+//                // absolute
+//                if (props.containsKey(Prop.ABSOLUTE_PATH))
+//                    configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
+//    
+//                // recursive
+//                if (props.containsKey(Prop.RECURSIVE))
+//                    configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
+//    
+//                // wildcard
+//                if (props.containsKey(Prop.WILDCARD))
+//                    configuration.setWildcard(props.getProperty(Prop.WILDCARD));
+//    
+//                // schema
+//                if (props.containsKey(Prop.SCHEMA))
+//                    configuration.setSchema(props.getProperty(Prop.SCHEMA));
+//    
+//                // time attr
+//                if (props.containsKey(Prop.TIME_ATTRIBUTE))
+//                    configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
+//    
+//                // elevation attr
+//                if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
+//                    configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
+//    
+//                // Additional domain attr
+//                if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
+//                    configuration.setAdditionalDomainAttribute(props
+//                            .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
+//    
+//                // imposed BBOX
+//                if (props.containsKey(Prop.ENVELOPE2D))
+//                    configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
+//    
+//                // imposed Pyramid Layout
+//                if (props.containsKey(Prop.RESOLUTION_LEVELS))
+//                    configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
+//    
+//                // collectors
+//                if (props.containsKey(Prop.PROPERTY_COLLECTORS))
+//                    configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
+//    
+//                if (props.containsKey(Prop.CACHING))
+//                    configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
+//                
+//                if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
+//                    // Overriding root mosaic directory
+//                    configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
+//                }
+//                
+//                if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
+//                    // Setting the list of indexing directories
+//                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
+//                    String[] directories = directoriesCsv.split("\\s*,\\s*");
+//                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
+//                    configuration.setIndexingDirectories(list);
+//                }
+//                
+//                if (props.containsKey(Prop.AUXILIARY_FILE)) {
+//                    String ancillaryFile = configuration.getRootMosaicDirectory() + File.separatorChar + 
+//                            props.getProperty(Prop.AUXILIARY_FILE);
+//                    if (hints != null) {
+//                        hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
+//                    } else {
+//                        hints = new Hints(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
+//                        configuration.setHints(hints);
+//                    }
+//                }
+                indexer = createIndexer(props, params);
                 
                 if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
                     // Setting the list of indexing directories
-                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
-                    String[] directories = directoriesCsv.split("\\s*,\\s*");
-                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
-                    configuration.setIndexingDirectories(list);
+//                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
+//                    String[] directories = directoriesCsv.split("\\s*,\\s*");
+//                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
+                    Utils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
+//                    configuration.setIndexingDirectories(list);
                 }
-                
+//                
                 if (props.containsKey(Prop.AUXILIARY_FILE)) {
-                    String ancillaryFile = configuration.getRootMosaicDirectory() + File.separatorChar + 
+                    String ancillaryFile = Utils.getParam(params, Prop.ROOT_MOSAIC_DIR) + File.separatorChar + 
                             props.getProperty(Prop.AUXILIARY_FILE);
                     if (hints != null) {
                         hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
@@ -1011,7 +1072,11 @@ public class ImageMosaicWalker implements Runnable {
                 }
             }
         }
-
+        if (indexer != null) {
+            // Overwrite default indexer only when indexer is available
+            configuration.setIndexer(indexer);
+        }
+        
         if (hints != null && hints.containsKey(Utils.MOSAIC_READER)) {
             Object reader = hints.get(Utils.MOSAIC_READER);
             if (reader instanceof ImageMosaicReader) {
@@ -1201,7 +1266,7 @@ public class ImageMosaicWalker implements Runnable {
         //
         // IMPOSED ENVELOPE
         //
-        String bbox = runConfiguration.getEnvelope2D();
+        String bbox = runConfiguration.getParameter(Prop.ENVELOPE2D);
         try {
             this.imposedBBox = Utils.parseEnvelope(bbox);
         } catch (Exception e) {
@@ -1216,126 +1281,182 @@ public class ImageMosaicWalker implements Runnable {
         loadPropertyCollectors();
     }
 
+//    /**
+//     * Load properties collectors from the configuration
+//     */
+//    private void loadPropertyCollectors() {
+//        // load property collectors
+//        String pcConfig = runConfiguration.getPropertyCollectors();
+//        if (pcConfig != null && pcConfig.length() > 0) {
+//            pcConfig = pcConfig.trim();
+//            // load the SPI set
+//            final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder
+//                    .getPropertiesCollectorSPI();
+//
+//            // parse the string
+//            final List<PropertiesCollector> pcs = new ArrayList<PropertiesCollector>();
+//            final String[] pcsDefs = pcConfig.trim().split(",");
+//            for (String pcDef : pcsDefs) {
+//                // parse this def as NAME[CONFIG_FILE](PROPERTY;PROPERTY;....;PROPERTY)
+//                final int squareLPos = pcDef.indexOf("[");
+//                final int squareRPos = pcDef.indexOf("]");
+//                final int squareRPosLast = pcDef.lastIndexOf("]");
+//                final int roundLPos = pcDef.indexOf("(");
+//                final int roundRPos = pcDef.indexOf(")");
+//                final int roundRPosLast = pcDef.lastIndexOf(")");
+//                if (squareRPos != squareRPosLast) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (squareLPos == -1 || squareRPos == -1) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (squareLPos == 0) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//
+//                if (roundRPos != roundRPosLast) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (roundLPos == -1 || roundRPos == -1) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (roundLPos == 0) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (roundLPos != squareRPos + 1) {// ]( or exit
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//                if (roundRPos != (pcDef.length() - 1)) {// end with )
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
+//                    }
+//                    continue;
+//                }
+//
+//                // name
+//                final String name = pcDef.substring(0, squareLPos);
+//                PropertiesCollectorSPI selectedSPI = null;
+//                for (PropertiesCollectorSPI spi : pcSPIs) {
+//                    if (spi.isAvailable() && spi.getName().equalsIgnoreCase(name)) {
+//                        selectedSPI = spi;
+//                        break;
+//                    }
+//                }
+//                if (selectedSPI == null) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Unable to find a PropertyCollector for this definition: "
+//                                + pcDef);
+//                    }
+//                    continue;
+//                }
+//
+//                // config
+//                final String config = squareLPos < squareRPos ? pcDef.substring(squareLPos + 1,
+//                        squareRPos) : "";
+//                final File configFile = new File(runConfiguration.getRootMosaicDirectory(), config
+//                        + ".properties");
+//                if (!Utils.checkFileReadable(configFile)) {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Unable to access the file for this PropertyCollector: "
+//                                + configFile.getAbsolutePath());
+//                    }
+//                    continue;
+//                }
+//
+//                // property names
+//                final String propertyNames[] = pcDef.substring(roundLPos + 1, roundRPos).split(",");
+//
+//                // create the PropertiesCollector
+//                final PropertiesCollector pc = selectedSPI.create(configFile,
+//                        Arrays.asList(propertyNames));
+//                if (pc != null) {
+//                    pcs.add(pc);
+//                } else {
+//                    if (LOGGER.isLoggable(Level.INFO)) {
+//                        LOGGER.info("Unable to create PropertyCollector " + pcDef
+//                                + " from config file:" + configFile);
+//                    }
+//                }
+//            }
+//            this.propertiesCollectors = pcs;
+//        }
+//    }
+
+    
     /**
      * Load properties collectors from the configuration
      */
     private void loadPropertyCollectors() {
         // load property collectors
-        String pcConfig = runConfiguration.getPropertyCollectors();
-        if (pcConfig != null && pcConfig.length() > 0) {
-            pcConfig = pcConfig.trim();
-            // load the SPI set
-            final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder
-                    .getPropertiesCollectorSPI();
+        Indexer indexer = runConfiguration.getIndexer();
+        Collectors collectors = indexer.getCollectors();
+        if (collectors == null) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("No properties collector have been found");
+            }
+            return;
+        }
+        List<Collector> collectorList = collectors.getCollector();
+
+        // load the SPI set
+        final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder
+                .getPropertiesCollectorSPI();
 
             // parse the string
             final List<PropertiesCollector> pcs = new ArrayList<PropertiesCollector>();
-            final String[] pcsDefs = pcConfig.trim().split(",");
-            for (String pcDef : pcsDefs) {
-                // parse this def as NAME[CONFIG_FILE](PROPERTY;PROPERTY;....;PROPERTY)
-                final int squareLPos = pcDef.indexOf("[");
-                final int squareRPos = pcDef.indexOf("]");
-                final int squareRPosLast = pcDef.lastIndexOf("]");
-                final int roundLPos = pcDef.indexOf("(");
-                final int roundRPos = pcDef.indexOf(")");
-                final int roundRPosLast = pcDef.lastIndexOf(")");
-                if (squareRPos != squareRPosLast) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (squareLPos == -1 || squareRPos == -1) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (squareLPos == 0) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-
-                if (roundRPos != roundRPosLast) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (roundLPos == -1 || roundRPos == -1) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (roundLPos == 0) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (roundLPos != squareRPos + 1) {// ]( or exit
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-                if (roundRPos != (pcDef.length() - 1)) {// end with )
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-                    }
-                    continue;
-                }
-
-                // name
-                final String name = pcDef.substring(0, squareLPos);
+            for (Collector collector: collectorList) {
                 PropertiesCollectorSPI selectedSPI = null;
+                final String spiName = collector.getSpi();
                 for (PropertiesCollectorSPI spi : pcSPIs) {
-                    if (spi.isAvailable() && spi.getName().equalsIgnoreCase(name)) {
+                    if (spi.isAvailable() && spi.getName().equalsIgnoreCase(spiName)) {
                         selectedSPI = spi;
                         break;
                     }
                 }
+
                 if (selectedSPI == null) {
                     if (LOGGER.isLoggable(Level.INFO)) {
                         LOGGER.info("Unable to find a PropertyCollector for this definition: "
-                                + pcDef);
-                    }
-                    continue;
-                }
-
-                // config
-                final String config = squareLPos < squareRPos ? pcDef.substring(squareLPos + 1,
-                        squareRPos) : "";
-                final File configFile = new File(runConfiguration.getRootMosaicDirectory(), config
-                        + ".properties");
-                if (!Utils.checkFileReadable(configFile)) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Unable to access the file for this PropertyCollector: "
-                                + configFile.getAbsolutePath());
+                                + spiName);
                     }
                     continue;
                 }
 
                 // property names
-                final String propertyNames[] = pcDef.substring(roundLPos + 1, roundRPos).split(",");
+                final String regex = DefaultPropertiesCollectorSPI.REGEX_PREFIX + collector.getValue();
 
                 // create the PropertiesCollector
-                final PropertiesCollector pc = selectedSPI.create(configFile,
-                        Arrays.asList(propertyNames));
+                final PropertiesCollector pc = selectedSPI.create(regex, Arrays.asList(collector.getMapped()));
                 if (pc != null) {
                     pcs.add(pc);
                 } else {
                     if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.info("Unable to create PropertyCollector " + pcDef
-                                + " from config file:" + configFile);
+                        LOGGER.info("Unable to create PropertyCollector" );
                     }
                 }
             }
             this.propertiesCollectors = pcs;
-        }
     }
 
     private void indexingPostamble(final boolean success) throws IOException {
@@ -1367,7 +1488,7 @@ public class ImageMosaicWalker implements Runnable {
                     // TODO: DR: Remove that when dealing with Indexer.xml which should allow to know if configurations
                     // are available
                     final String source = 
-                            runConfiguration.getRootMosaicDirectory() + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
+                            runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
                     
                     final File mosaicFile = new File(indexerFile.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
                     FileUtils.copyFile(new File(source) , mosaicFile);
@@ -1397,7 +1518,7 @@ public class ImageMosaicWalker implements Runnable {
 
             // sample image file
             //TODO: Consider revisit this using different name/folder
-            final String baseName = runConfiguration.getRootMosaicDirectory() + "/";
+            final String baseName = runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + "/";
             final File sampleImageFile = new File(baseName 
                     + (useName ? mosaicConfiguration.getName() : "" ) + Utils.SAMPLE_IMAGE_NAME);
             try {
@@ -1407,6 +1528,130 @@ public class ImageMosaicWalker implements Runnable {
             }
         }
     }
+    
+    private Indexer createIndexer(Properties props, ParametersType params) {
+        // Initializing Indexer objects
+        Indexer indexer = Utils.OBJECT_FACTORY.createIndexer();
+        indexer.setParameters(params != null ? params : Utils.OBJECT_FACTORY.createParametersType());
+        Coverages coverages = Utils.OBJECT_FACTORY.createIndexerCoverages();
+        indexer.setCoverages(coverages);
+        List<Coverage> coverageList = coverages.getCoverage();
+        
+        Coverage coverage = Utils.OBJECT_FACTORY.createIndexerCoveragesCoverage();
+        coverageList.add(coverage);
+        
+        indexer.setParameters(params);
+        List<Parameter> parameters = params.getParameter();
+        
+        // name
+        if (props.containsKey(Prop.NAME)) {
+            Utils.setParam(parameters, props, Prop.NAME);
+            coverage.setName(props.getProperty(Prop.NAME));
+//            configuration.setIndexName(props.getProperty(Prop.NAME));
+        }
+
+        // absolute
+        if (props.containsKey(Prop.ABSOLUTE_PATH))
+            Utils.setParam(parameters, props, Prop.ABSOLUTE_PATH);
+//            configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
+
+        // recursive
+        if (props.containsKey(Prop.RECURSIVE))
+            Utils.setParam(parameters, props, Prop.RECURSIVE);
+//            configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
+
+        // wildcard
+        if (props.containsKey(Prop.WILDCARD))
+            Utils.setParam(parameters, props, Prop.WILDCARD);
+//            configuration.setWildcard(props.getProperty(Prop.WILDCARD));
+
+        // schema
+        if (props.containsKey(Prop.SCHEMA)) {
+            SchemasType schemas = Utils.OBJECT_FACTORY.createSchemasType();
+            SchemaType schema = Utils.OBJECT_FACTORY.createSchemaType();
+            indexer.setSchemas(schemas);
+            schemas.getSchema().add(schema);
+            schema.setAttributes(props.getProperty(Prop.SCHEMA));
+            schema.setName(Utils.getParameter(Prop.INDEX_NAME, indexer));
+//            configuration.setSchema(props.getProperty(Prop.SCHEMA));
+        }
+
+        DomainsType domains = coverage.getDomains();
+        List<DomainType> domainList = null;
+        // time attr
+        if (props.containsKey(Prop.TIME_ATTRIBUTE)) {
+            if (domains == null) {
+                domains = Utils.OBJECT_FACTORY.createDomainsType();
+                coverage.setDomains(domains);
+                domainList = domains.getDomain();
+            }
+            DomainType domain = Utils.OBJECT_FACTORY.createDomainType();
+            domain.setName(Utils.TIME_DOMAIN.toLowerCase());
+            Utils.setAttributes(domain, props.getProperty(Prop.TIME_ATTRIBUTE));
+            domainList.add(domain);
+//            configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
+        }
+            
+
+        // elevation attr
+        if (props.containsKey(Prop.ELEVATION_ATTRIBUTE)) {
+            if (domains == null) {
+                domains = Utils.OBJECT_FACTORY.createDomainsType();
+                coverage.setDomains(domains);
+                domainList = domains.getDomain();
+            }
+            DomainType domain = Utils.OBJECT_FACTORY.createDomainType();
+            domain.setName(Utils.ELEVATION_DOMAIN.toLowerCase());
+            Utils.setAttributes(domain, props.getProperty(Prop.ELEVATION_ATTRIBUTE));
+            domainList.add(domain);
+//            configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
+        }
+            
+
+        // Additional domain attr
+        if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES)) {
+//            configuration.setAdditionalDomainAttribute(props
+//                    .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
+            if (domains == null) {
+                domains = Utils.OBJECT_FACTORY.createDomainsType();
+                coverage.setDomains(domains);
+                domainList = domains.getDomain();
+            }
+            String attributes = props.getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES);
+            Utils.parseAdditionalDomains(attributes, domainList);
+        }
+
+        // imposed BBOX
+        if (props.containsKey(Prop.ENVELOPE2D))
+            Utils.setParam(parameters, props, Prop.ENVELOPE2D);
+//            configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
+
+        // imposed Pyramid Layout
+        if (props.containsKey(Prop.RESOLUTION_LEVELS))
+            Utils.setParam(parameters, props, Prop.RESOLUTION_LEVELS);
+//            configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
+
+        // collectors
+        if (props.containsKey(Prop.PROPERTY_COLLECTORS)) {
+            //TODO: Move that on proper property collectors index object.
+            Utils.setPropertyCollectors(indexer, props.getProperty(Prop.PROPERTY_COLLECTORS));
+//             Utils.setParam(parameters, props, Prop.PROPERTY_COLLECTORS);
+//            configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
+        }
+            
+
+        if (props.containsKey(Prop.CACHING))
+            Utils.setParam(parameters, props, Prop.CACHING);
+//            configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
+        
+        if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
+            // Overriding root mosaic directory
+            Utils.setParam(parameters, props, Prop.ROOT_MOSAIC_DIR);
+//            configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
+        }
+        return indexer;
+    }
+
 
     private void closeIndexObjects() {
         
@@ -1496,7 +1741,7 @@ public class ImageMosaicWalker implements Runnable {
         OutputStream outStream = null;
         try {
             outStream = new BufferedOutputStream(new FileOutputStream(
-                    runConfiguration.getRootMosaicDirectory() + "/"
+                    runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + "/"
 //                            + runConfiguration.getIndexName() + ".properties"));
                     + mosaicConfiguration.getName() + ".properties"));
             properties.store(outStream, "-Automagically created from GeoTools-");

@@ -49,9 +49,13 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.Hints;
 import org.geotools.feature.collection.AbstractFeatureVisitor;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer;
+import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
+import org.geotools.gce.imagemosaic.catalog.index.SchemasType;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.geometry.GeneralEnvelope;
@@ -65,7 +69,6 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
-import org.opengis.filter.MultiValuedFilter.MatchAction;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -98,7 +101,7 @@ public class CatalogManager {
         // create the index
         //
         // do we have a datastore.properties file?
-        final File parent = new File(runConfiguration.getRootMosaicDirectory());
+        final File parent = new File(runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR));
         GranuleCatalog catalog;
         
         // Consider checking that from the indexer if any
@@ -179,7 +182,21 @@ public class CatalogManager {
     public static SimpleFeatureType createSchema(CatalogBuilderConfiguration runConfiguration, String name,
             CoordinateReferenceSystem actualCRS) {
         SimpleFeatureType indexSchema = null;
-        String schema = runConfiguration.getSchema();
+        String schema = null;
+        Indexer indexer = runConfiguration.getIndexer();
+        if (indexer != null) {
+            SchemasType schemas = indexer.getSchemas();
+            if (schemas != null) {
+                List<SchemaType> schemaList = schemas.getSchema();
+                // CHECK THAT
+                if (!schemaList.isEmpty()) {
+                    schema = schemaList.get(0).getAttributes();
+                }
+            }
+        }
+        if (schema == null) {
+            schema = runConfiguration.getSchema(name);
+        }
         if (schema != null) {
             schema = schema.trim();
             // get the schema
@@ -198,9 +215,9 @@ public class CatalogManager {
         if (indexSchema == null) {
             // Proceed with default Schema
             final SimpleFeatureTypeBuilder featureBuilder = new SimpleFeatureTypeBuilder();
-            featureBuilder.setName(runConfiguration.getIndexName());
+            featureBuilder.setName(runConfiguration.getParameter(Prop.INDEX_NAME));
             featureBuilder.setNamespaceURI("http://www.geo-solutions.it/");
-            featureBuilder.add(runConfiguration.getLocationAttribute().trim(), String.class);
+            featureBuilder.add(runConfiguration.getParameter(Prop.LOCATION_ATTRIBUTE).trim(), String.class);
             featureBuilder.add("the_geom", Polygon.class, actualCRS);
             featureBuilder.setDefaultGeometry("the_geom");
             String timeAttribute = runConfiguration.getTimeAttribute();
@@ -274,7 +291,7 @@ public class CatalogManager {
         
         final ListFeatureCollection collection = new ListFeatureCollection(indexSchema);
         final String fileLocation = prepareLocation(configuration, fileBeingProcessed);
-        final String locationAttribute = configuration.getLocationAttribute();
+        final String locationAttribute = configuration.getParameter(Prop.LOCATION_ATTRIBUTE);
 
         // getting input granules
         if (inputReader instanceof StructuredGridCoverage2DReader) {

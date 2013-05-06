@@ -255,10 +255,6 @@ public class RasterManager {
 
         static final String HAS_PREFIX = "HAS_";
 
-        static final String TIME_DOMAIN = "TIME";
-
-        static final String ELEVATION_DOMAIN = "ELEVATION";
-
         private DomainType domainType = DomainType.SINGLE_VALUE;
 
         /** Unique identifier for this domain. */
@@ -535,7 +531,7 @@ public class RasterManager {
 
                     // Domain with ranges management
                     if (attributeHasRange(propertyName)) {
-                        domainType = domainAttributes.containsKey(DomainDescriptor.TIME_DOMAIN) ? DomainType.TIME_RANGE
+                        domainType = domainAttributes.containsKey(Utils.TIME_DOMAIN) ? DomainType.TIME_RANGE
                                 : DomainType.NUMBER_RANGE;
                         addDomain(domainName, propertyName, domainType);
                         continue;
@@ -905,14 +901,13 @@ public class RasterManager {
                 // time attribute
                 if (configuration.getTimeAttribute() != null) {
                     final HashMap<String, String> init = new HashMap<String, String>();
-                    init.put(DomainDescriptor.TIME_DOMAIN, configuration.getTimeAttribute());
+                    init.put(Utils.TIME_DOMAIN, configuration.getTimeAttribute());
                     timeDomainManager = new DomainManager(init, schema);
                 }
                 // elevation attribute
                 if (configuration.getElevationAttribute() != null) {
                     final HashMap<String, String> init = new HashMap<String, String>();
-                    init.put(DomainDescriptor.ELEVATION_DOMAIN,
-                            configuration.getElevationAttribute());
+                    init.put(Utils.ELEVATION_DOMAIN, configuration.getElevationAttribute());
                     elevationDomainManager = new DomainManager(init, schema);
                 }
             }
