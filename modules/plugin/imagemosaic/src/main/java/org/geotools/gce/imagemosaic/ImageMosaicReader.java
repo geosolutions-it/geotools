@@ -532,7 +532,12 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     		    } else {
     		        LOGGER.fine("Reading mosaic");
     		    }
-		    LOGGER.fine("Highest res "+highestRes[0]+" "+highestRes[1]);
+    		    final double[][] levels = getResolutionLevels(coverageName);
+    		    if (levels != null) {
+    		        final double[] highRes = levels[0];
+    		        LOGGER.fine("Highest res "+ highRes[0] + " " + highRes[1]);
+    		    }
+		    
 		}
 		//
 		// add max allowed tiles if missing
@@ -908,14 +913,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         // prepare the walker configuration
         CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
         configuration.setParameter(Prop.ABSOLUTE_PATH, Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR));
-//        configuration.setAbsolute(Utils.DEFAULT_PATH_BEHAVIOR);
         String indexingPath = directory.getAbsolutePath();
-//        configuration.setIndexingDirectories(Collections.singletonList(indexingPath));
         configuration.setParameter(Prop.INDEXING_DIRECTORIES, indexingPath);
         if(defaultCoverage == null) {
             defaultCoverage = getGridCoverageNames()[0];
         } 
-//        configuration.setIndexName(defaultCoverage);
         configuration.setParameter(Prop.INDEX_NAME, defaultCoverage);
         configuration.setHints(new Hints(Utils.MOSAIC_READER, this));
         
@@ -924,7 +926,6 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
             mosaicSource = mosaicSource.getParentFile();
         }
         
-//        configuration.setRootMosaicDirectory(mosaicSource.getAbsolutePath());
         configuration.setParameter(Prop.ROOT_MOSAIC_DIR, mosaicSource.getAbsolutePath());
         
         // run the walker and collect information

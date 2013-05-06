@@ -52,58 +52,8 @@ public class CatalogBuilderConfiguration {
 
 //	private String additionalDomainAttribute;
 
-	private Indexer indexer
-
-//	private boolean absolute = Utils.DEFAULT_PATH_BEHAVIOR;
-//	
-//	private boolean caching = Utils.DEFAULT_CONFIGURATION_CACHING;
-
-	;
+	private Indexer indexer;
 	
-//	/**
-//	 * Index file name. Default is index.
-//	 */
-//	private String indexName = Utils.DEFAULT_INDEX_NAME;
-
-//	private String locationAttribute = Utils.DEFAULT_LOCATION_ATTRIBUTE;
-
-//	private boolean footprintManagement = Utils.DEFAULT_FOOTPRINT_MANAGEMENT;
-//
-//	@Option(description = "Root directory where to place the index file", mandatory = true, name = "rootDirectory")
-//	private String rootMosaicDirectory;
-//
-//	@Option(description = "Wildcard to use for building the index of this mosaic", mandatory = false, name = "wildcard")
-//	private String wildcard = Utils.DEFAULT_WILCARD;
-
-//	/**
-//	 * String to pass to the featuretypebuilder for building the schema for the
-//	 * index.
-//	 */
-//	private String schema;
-//
-//	private String propertyCollectors;
-//	
-//        private List<String> indexingDirectories;
-
-	
-//	/**
-//	 * Imposed BBOX
-//	 */
-//	private String envelope2D;
-	
-	public String getResolutionLevels() {
-		return resolutionLevels;
-	}
-
-	public void setResolutionLevels(String resolutionLevels) {
-		this.resolutionLevels = resolutionLevels;
-	}
-
-	/**
-	 * Imposed resolution levels
-	 */
-	private String resolutionLevels;
-
 	/**
 	 * @deprecated parse indexer parameters instead.
 	 * @return
@@ -112,10 +62,6 @@ public class CatalogBuilderConfiguration {
 	    return getParameter(Prop.ENVELOPE2D);
 //		return envelope2D;
 	}
-//
-//	public void setEnvelope2D(String bbox) {
-//		this.envelope2D = bbox;
-//	}
 
     public CatalogBuilderConfiguration() {
         initDefaultsParam();
@@ -166,15 +112,6 @@ public class CatalogBuilderConfiguration {
 	}
 
 
-//	/**
-//	 * @deprecated use parameters instead
-//	 */
-//	public void setIndexingDirectories(List<String> indexingDirectories) {
-//		this.indexingDirectories = indexingDirectories;
-//	}
-
-//	private boolean recursive = Utils.DEFAULT_RECURSION_BEHAVIOR;
-
     /**
      * @deprecated parse indexer parameters instead.
      * @return
@@ -183,10 +120,6 @@ public class CatalogBuilderConfiguration {
         return Boolean.parseBoolean(getParameter(Prop.RECURSIVE));
     }
 
-//	public void setRecursive(boolean recursive) {
-//		this.recursive = recursive;
-//	}
-
         /**
          * @deprecated parse indexer parameters instead.
          * @return
@@ -194,22 +127,6 @@ public class CatalogBuilderConfiguration {
 	public boolean isCaching() {
 		return Boolean.parseBoolean(getParameter(Prop.CACHING));
 	}
-
-//	public void setCaching(boolean caching) {
-//		this.caching = caching;
-//	}
-//
-//	public String getPropertyCollectors() {
-//		return propertyCollectors;
-//	}
-//
-//	public void setPropertyCollectors(String propertyCollectors) {
-//		this.propertyCollectors = propertyCollectors;
-//	}
-
-//	public String getSchema() {
-//		return schema;
-//	}
 
     /**
      * Get the schema with the specified name
@@ -230,10 +147,6 @@ public class CatalogBuilderConfiguration {
         }
         return null;
     }
-
-//	public void setSchema(String schema) {
-//		this.schema = schema;
-//	}
 
     /**
      * Set the indexer parameter
@@ -271,19 +184,6 @@ public class CatalogBuilderConfiguration {
         this.indexer = indexer;
     }
 
-    // public void setTimeAttribute(String timeAttribute) {
-    //		this.timeAttribute = timeAttribute;
-//	}
-//
-//    
-//	public String getElevationAttribute() {
-//		return elevationAttribute;
-//	}
-//
-//	public void setElevationAttribute(String elevationAttribute) {
-//		this.elevationAttribute = elevationAttribute;
-//	}
-
 	public String getRuntimeAttribute() {
 		return runtimeAttribute;
 	}
@@ -292,21 +192,6 @@ public class CatalogBuilderConfiguration {
 		this.runtimeAttribute = runtimeAttribute;
 	}
 
-//    public String getAdditionalDomainAttribute() {
-//        return additionalDomainAttribute;
-//    }
-//    
-//    public void setAdditionalDomainAttribute(String additionalDomainAttribute) {
-//        this.additionalDomainAttribute = additionalDomainAttribute;
-//    }
-
-//    /**
-////     * @deprecated parse indexer parameters instead
-//     * @return
-//     */
-//	public List<String> getIndexingDirectories() {
-//		return indexingDirectories;
-//	}
 
     /**
      * @deprecated parse indexer parameters instead.
@@ -322,20 +207,14 @@ public class CatalogBuilderConfiguration {
      * @return
      */
     public boolean isFootprintManagement() {
-//        return footprintManagement;
         return  Boolean.parseBoolean(getParameter(Prop.FOOTPRINT_MANAGEMENT));
 }
 
-//public void setFootprintManagement(boolean footprintManagement) {
-//      this.footprintManagement = footprintManagement;
-//}
-    
     /**
      * @deprecated parse indexer parameters instead.
      * @return
      */
     public String getLocationAttribute() {
-        // return locationAttribute;
         return getParameter(Prop.LOCATION_ATTRIBUTE);
     }
 
@@ -344,49 +223,24 @@ public class CatalogBuilderConfiguration {
      * @return
      */
     public String getRootMosaicDirectory() {
-        // return rootMosaicDirectory;
         return getParameter(Prop.ROOT_MOSAIC_DIR);
     }
 
-        /**
-         * @deprecated parse Indexer parameters instead.
-         * @return
-         */
-        public String getWildcard() {
-            return getParameter(Prop.WILDCARD);
-        }
+    /**
+     * @deprecated parse Indexer parameters instead.
+     * @return
+     */
+    public String getWildcard() {
+        return getParameter(Prop.WILDCARD);
+    }
 
-//            /**
-//            * @deprecated parse Indexer parameters instead.
-//            * @return
-//            */
-//            public void setWildcard(String wildcardString) {
-//                this.wildcard = wildcardString;
-//            }
-
-                /**
-                 * @deprecated parse Indexer parameters instead.
-                 * @return
-                 */
-                public boolean isAbsolute() {
-                    return Boolean.parseBoolean(getParameter(Prop.ABSOLUTE_PATH));
-                }
-             
-//                /**
-//                 * @deprecated parse Indexer parameters instead.
-//                 * @return
-//                 */
-//                public void setAbsolute(boolean absolute) {
-//                    this.absolute = absolute;
-//                }
-//
-//                /**
-//                 * @deprecated parse Indexer parameters instead
-//                 * @param indexName
-//                 */
-//	public void setIndexName(String indexName) {
-//		this.indexName = indexName;
-//	}
+    /**
+     * @deprecated parse Indexer parameters instead.
+     * @return
+     */
+    public boolean isAbsolute() {
+        return Boolean.parseBoolean(getParameter(Prop.ABSOLUTE_PATH));
+    }
 
 	@Override
 	public CatalogBuilderConfiguration clone()

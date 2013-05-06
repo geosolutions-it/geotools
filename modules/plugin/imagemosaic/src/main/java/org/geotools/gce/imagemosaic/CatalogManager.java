@@ -113,7 +113,7 @@ public class CatalogManager {
         } else {
 
             // we do not have a datastore properties file therefore we continue with a shapefile datastore
-            final URL file = new File(parent, runConfiguration.getIndexName() + ".shp").toURI().toURL();
+            final URL file = new File(parent, runConfiguration.getParameter(Utils.Prop.INDEX_NAME) + ".shp").toURI().toURL();
             final Map<String, Serializable> params = new HashMap<String, Serializable>();
             params.put(ShapefileDataStoreFactory.URLP.key, file);
             if (file.getProtocol().equalsIgnoreCase("file")) {
@@ -121,7 +121,7 @@ public class CatalogManager {
             }
             params.put(ShapefileDataStoreFactory.MEMORY_MAPPED.key, Boolean.TRUE);
             params.put(ShapefileDataStoreFactory.DBFTIMEZONE.key, TimeZone.getTimeZone("UTC"));
-            params.put(Utils.Prop.LOCATION_ATTRIBUTE, runConfiguration.getLocationAttribute());
+            params.put(Utils.Prop.LOCATION_ATTRIBUTE, runConfiguration.getParameter(Utils.Prop.LOCATION_ATTRIBUTE));
             catalog = GranuleCatalogFactory.createGranuleCatalog(params, false, true, Utils.SHAPE_SPI);
         }
 
@@ -417,14 +417,14 @@ public class CatalogManager {
      */
     private static String prepareLocation(CatalogBuilderConfiguration runConfiguration, final File fileBeingProcessed) throws IOException {
         // absolute
-        if (runConfiguration.isAbsolute()) {
+        if (Boolean.valueOf(runConfiguration.getParameter(Utils.Prop.ABSOLUTE_PATH))) {
             return fileBeingProcessed.getAbsolutePath();
         }
 
         // relative
         String targetPath = fileBeingProcessed.getCanonicalPath();
-        String basePath = runConfiguration.getRootMosaicDirectory();
-        String relative = getRelativePath(targetPath, basePath, File.separator);
+        String basePath = runConfiguration.getParameter(Utils.Prop.ROOT_MOSAIC_DIR);
+        String relative = getRelativePath(targetPath, basePath, File.separator); //TODO: Remove this replace after fixing the quote escaping
         return relative;
     }
     

@@ -438,9 +438,6 @@ public class ImageMosaicWalker implements Runnable {
                         configBuilder.setLevels(resolutionLevels);
                         configBuilder.setLevelsNum(numberOfLevels);
                         configBuilder.setName(coverageName);
-//                        configBuilder.setTimeAttribute(runConfiguration.getTimeAttribute());
-//                        configBuilder.setElevationAttribute(runConfiguration.getElevationAttribute());
-//                        configBuilder.setAdditionalDomainAttributes(runConfiguration.getAdditionalDomainAttribute());
                         configBuilder.setTimeAttribute(Utils.getAttribute(coverageName, Utils.TIME_DOMAIN, indexer));
                         configBuilder.setElevationAttribute(Utils.getAttribute(coverageName, Utils.ELEVATION_DOMAIN, indexer));
                         configBuilder.setAdditionalDomainAttributes(Utils.getAttribute(coverageName, Utils.ADDITIONAL_DOMAIN, indexer));
@@ -454,8 +451,6 @@ public class ImageMosaicWalker implements Runnable {
                         }
 
                         final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
-//                        catalogConfigurationBean.setCaching(runConfiguration.isCaching());
-//                        catalogConfigurationBean.setAbsolutePath(runConfiguration.isAbsolute());
                         catalogConfigurationBean.setCaching(Utils.getParameterAsBoolean(Prop.CACHING, indexer));
                         catalogConfigurationBean.setAbsolutePath(Utils.getParameterAsBoolean(Prop.ABSOLUTE_PATH, indexer));
                         
@@ -480,9 +475,7 @@ public class ImageMosaicWalker implements Runnable {
                         catalogConfig.setParameter(Prop.LOCATION_ATTRIBUTE, (bean.getLocationAttribute()));
                         catalogConfig.setParameter(Prop.ABSOLUTE_PATH, Boolean.toString(bean.isAbsolutePath()));
                         catalogConfig.setParameter(Prop.ROOT_MOSAIC_DIR/*setRootMosaicDirectory(*/, runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR));
-//                        catalogConfig.setLocationAttribute(bean.getLocationAttribute());
-//                        catalogConfig.setAbsolute(bean.isAbsolutePath());
-//                        catalogConfig.setRootMosaicDirectory(runConfiguration.getRootMosaicDirectory());
+
                         // We already have a Configuration for this coverage.
                         // Check its properties are compatible with the existing coverage.
                         
@@ -978,77 +971,6 @@ public class ImageMosaicWalker implements Runnable {
                 final Properties props = Utils.loadPropertiesFromURL(DataUtilities
                         .fileToURL(indexerFile));
     
-//                // name
-//                if (props.containsKey(Prop.NAME))
-//                    configuration.setIndexName(props.getProperty(Prop.NAME));
-//    
-//                // absolute
-//                if (props.containsKey(Prop.ABSOLUTE_PATH))
-//                    configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
-//    
-//                // recursive
-//                if (props.containsKey(Prop.RECURSIVE))
-//                    configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
-//    
-//                // wildcard
-//                if (props.containsKey(Prop.WILDCARD))
-//                    configuration.setWildcard(props.getProperty(Prop.WILDCARD));
-//    
-//                // schema
-//                if (props.containsKey(Prop.SCHEMA))
-//                    configuration.setSchema(props.getProperty(Prop.SCHEMA));
-//    
-//                // time attr
-//                if (props.containsKey(Prop.TIME_ATTRIBUTE))
-//                    configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
-//    
-//                // elevation attr
-//                if (props.containsKey(Prop.ELEVATION_ATTRIBUTE))
-//                    configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
-//    
-//                // Additional domain attr
-//                if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES))
-//                    configuration.setAdditionalDomainAttribute(props
-//                            .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
-//    
-//                // imposed BBOX
-//                if (props.containsKey(Prop.ENVELOPE2D))
-//                    configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
-//    
-//                // imposed Pyramid Layout
-//                if (props.containsKey(Prop.RESOLUTION_LEVELS))
-//                    configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
-//    
-//                // collectors
-//                if (props.containsKey(Prop.PROPERTY_COLLECTORS))
-//                    configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
-//    
-//                if (props.containsKey(Prop.CACHING))
-//                    configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
-//                
-//                if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
-//                    // Overriding root mosaic directory
-//                    configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
-//                }
-//                
-//                if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
-//                    // Setting the list of indexing directories
-//                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
-//                    String[] directories = directoriesCsv.split("\\s*,\\s*");
-//                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
-//                    configuration.setIndexingDirectories(list);
-//                }
-//                
-//                if (props.containsKey(Prop.AUXILIARY_FILE)) {
-//                    String ancillaryFile = configuration.getRootMosaicDirectory() + File.separatorChar + 
-//                            props.getProperty(Prop.AUXILIARY_FILE);
-//                    if (hints != null) {
-//                        hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
-//                    } else {
-//                        hints = new Hints(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
-//                        configuration.setHints(hints);
-//                    }
-//                }
                 indexer = createIndexer(props, params);
                 
                 if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
@@ -1057,7 +979,6 @@ public class ImageMosaicWalker implements Runnable {
 //                    String[] directories = directoriesCsv.split("\\s*,\\s*");
 //                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
                     Utils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
-//                    configuration.setIndexingDirectories(list);
                 }
 //                
                 if (props.containsKey(Prop.AUXILIARY_FILE)) {
@@ -1280,129 +1201,6 @@ public class ImageMosaicWalker implements Runnable {
         //
         loadPropertyCollectors();
     }
-
-//    /**
-//     * Load properties collectors from the configuration
-//     */
-//    private void loadPropertyCollectors() {
-//        // load property collectors
-//        String pcConfig = runConfiguration.getPropertyCollectors();
-//        if (pcConfig != null && pcConfig.length() > 0) {
-//            pcConfig = pcConfig.trim();
-//            // load the SPI set
-//            final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder
-//                    .getPropertiesCollectorSPI();
-//
-//            // parse the string
-//            final List<PropertiesCollector> pcs = new ArrayList<PropertiesCollector>();
-//            final String[] pcsDefs = pcConfig.trim().split(",");
-//            for (String pcDef : pcsDefs) {
-//                // parse this def as NAME[CONFIG_FILE](PROPERTY;PROPERTY;....;PROPERTY)
-//                final int squareLPos = pcDef.indexOf("[");
-//                final int squareRPos = pcDef.indexOf("]");
-//                final int squareRPosLast = pcDef.lastIndexOf("]");
-//                final int roundLPos = pcDef.indexOf("(");
-//                final int roundRPos = pcDef.indexOf(")");
-//                final int roundRPosLast = pcDef.lastIndexOf(")");
-//                if (squareRPos != squareRPosLast) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (squareLPos == -1 || squareRPos == -1) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (squareLPos == 0) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//
-//                if (roundRPos != roundRPosLast) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (roundLPos == -1 || roundRPos == -1) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (roundLPos == 0) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (roundLPos != squareRPos + 1) {// ]( or exit
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//                if (roundRPos != (pcDef.length() - 1)) {// end with )
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Skipping unparseable PropertyCollector definition: " + pcDef);
-//                    }
-//                    continue;
-//                }
-//
-//                // name
-//                final String name = pcDef.substring(0, squareLPos);
-//                PropertiesCollectorSPI selectedSPI = null;
-//                for (PropertiesCollectorSPI spi : pcSPIs) {
-//                    if (spi.isAvailable() && spi.getName().equalsIgnoreCase(name)) {
-//                        selectedSPI = spi;
-//                        break;
-//                    }
-//                }
-//                if (selectedSPI == null) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Unable to find a PropertyCollector for this definition: "
-//                                + pcDef);
-//                    }
-//                    continue;
-//                }
-//
-//                // config
-//                final String config = squareLPos < squareRPos ? pcDef.substring(squareLPos + 1,
-//                        squareRPos) : "";
-//                final File configFile = new File(runConfiguration.getRootMosaicDirectory(), config
-//                        + ".properties");
-//                if (!Utils.checkFileReadable(configFile)) {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Unable to access the file for this PropertyCollector: "
-//                                + configFile.getAbsolutePath());
-//                    }
-//                    continue;
-//                }
-//
-//                // property names
-//                final String propertyNames[] = pcDef.substring(roundLPos + 1, roundRPos).split(",");
-//
-//                // create the PropertiesCollector
-//                final PropertiesCollector pc = selectedSPI.create(configFile,
-//                        Arrays.asList(propertyNames));
-//                if (pc != null) {
-//                    pcs.add(pc);
-//                } else {
-//                    if (LOGGER.isLoggable(Level.INFO)) {
-//                        LOGGER.info("Unable to create PropertyCollector " + pcDef
-//                                + " from config file:" + configFile);
-//                    }
-//                }
-//            }
-//            this.propertiesCollectors = pcs;
-//        }
-//    }
-
     
     /**
      * Load properties collectors from the configuration
@@ -1547,23 +1345,19 @@ public class ImageMosaicWalker implements Runnable {
         if (props.containsKey(Prop.NAME)) {
             Utils.setParam(parameters, props, Prop.NAME);
             coverage.setName(props.getProperty(Prop.NAME));
-//            configuration.setIndexName(props.getProperty(Prop.NAME));
         }
 
         // absolute
         if (props.containsKey(Prop.ABSOLUTE_PATH))
             Utils.setParam(parameters, props, Prop.ABSOLUTE_PATH);
-//            configuration.setAbsolute(Boolean.valueOf(props.getProperty(Prop.ABSOLUTE_PATH)));
 
         // recursive
         if (props.containsKey(Prop.RECURSIVE))
             Utils.setParam(parameters, props, Prop.RECURSIVE);
-//            configuration.setRecursive(Boolean.valueOf(props.getProperty(Prop.RECURSIVE)));
 
         // wildcard
         if (props.containsKey(Prop.WILDCARD))
             Utils.setParam(parameters, props, Prop.WILDCARD);
-//            configuration.setWildcard(props.getProperty(Prop.WILDCARD));
 
         // schema
         if (props.containsKey(Prop.SCHEMA)) {
@@ -1573,7 +1367,6 @@ public class ImageMosaicWalker implements Runnable {
             schemas.getSchema().add(schema);
             schema.setAttributes(props.getProperty(Prop.SCHEMA));
             schema.setName(Utils.getParameter(Prop.INDEX_NAME, indexer));
-//            configuration.setSchema(props.getProperty(Prop.SCHEMA));
         }
 
         DomainsType domains = coverage.getDomains();
@@ -1589,7 +1382,6 @@ public class ImageMosaicWalker implements Runnable {
             domain.setName(Utils.TIME_DOMAIN.toLowerCase());
             Utils.setAttributes(domain, props.getProperty(Prop.TIME_ATTRIBUTE));
             domainList.add(domain);
-//            configuration.setTimeAttribute(props.getProperty(Prop.TIME_ATTRIBUTE));
         }
             
 
@@ -1604,14 +1396,11 @@ public class ImageMosaicWalker implements Runnable {
             domain.setName(Utils.ELEVATION_DOMAIN.toLowerCase());
             Utils.setAttributes(domain, props.getProperty(Prop.ELEVATION_ATTRIBUTE));
             domainList.add(domain);
-//            configuration.setElevationAttribute(props.getProperty(Prop.ELEVATION_ATTRIBUTE));
         }
             
 
         // Additional domain attr
         if (props.containsKey(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES)) {
-//            configuration.setAdditionalDomainAttribute(props
-//                    .getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES));
             if (domains == null) {
                 domains = Utils.OBJECT_FACTORY.createDomainsType();
                 coverage.setDomains(domains);
@@ -1624,30 +1413,22 @@ public class ImageMosaicWalker implements Runnable {
         // imposed BBOX
         if (props.containsKey(Prop.ENVELOPE2D))
             Utils.setParam(parameters, props, Prop.ENVELOPE2D);
-//            configuration.setEnvelope2D(props.getProperty(Prop.ENVELOPE2D));
 
         // imposed Pyramid Layout
         if (props.containsKey(Prop.RESOLUTION_LEVELS))
             Utils.setParam(parameters, props, Prop.RESOLUTION_LEVELS);
-//            configuration.setResolutionLevels(props.getProperty(Prop.RESOLUTION_LEVELS));
 
         // collectors
         if (props.containsKey(Prop.PROPERTY_COLLECTORS)) {
-            //TODO: Move that on proper property collectors index object.
             Utils.setPropertyCollectors(indexer, props.getProperty(Prop.PROPERTY_COLLECTORS));
-//             Utils.setParam(parameters, props, Prop.PROPERTY_COLLECTORS);
-//            configuration.setPropertyCollectors(props.getProperty(Prop.PROPERTY_COLLECTORS));
         }
-            
 
         if (props.containsKey(Prop.CACHING))
             Utils.setParam(parameters, props, Prop.CACHING);
-//            configuration.setCaching(Boolean.valueOf(props.getProperty(Prop.CACHING)));
         
         if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
             // Overriding root mosaic directory
             Utils.setParam(parameters, props, Prop.ROOT_MOSAIC_DIR);
-//            configuration.setRootMosaicDirectory(props.getProperty(Prop.ROOT_MOSAIC_DIR));
         }
         return indexer;
     }
