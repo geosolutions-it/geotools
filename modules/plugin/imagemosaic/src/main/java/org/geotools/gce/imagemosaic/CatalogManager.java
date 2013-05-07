@@ -54,6 +54,9 @@ import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
+import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.gce.imagemosaic.catalog.index.SchemasType;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
@@ -182,26 +185,33 @@ public class CatalogManager {
     public static SimpleFeatureType createSchema(CatalogBuilderConfiguration runConfiguration, String name,
             CoordinateReferenceSystem actualCRS) {
         SimpleFeatureType indexSchema = null;
-        String schema = null;
+        SchemaType schema = null;
+        String schemaAttributes = null;
         Indexer indexer = runConfiguration.getIndexer();
         if (indexer != null) {
             SchemasType schemas = indexer.getSchemas();
-            if (schemas != null) {
+            Coverage coverage = IndexerUtils.getCoverage(indexer, name);
+            if (coverage != null) {
+                schema = IndexerUtils.getSchema(indexer, coverage);
+            }
+            if (schema != null) {
+                schemaAttributes = schema.getAttributes();
+            } else if (schemas != null) {
                 List<SchemaType> schemaList = schemas.getSchema();
                 // CHECK THAT
                 if (!schemaList.isEmpty()) {
-                    schema = schemaList.get(0).getAttributes();
+                    schemaAttributes = schemaList.get(0).getAttributes();
                 }
             }
         }
-        if (schema == null) {
-            schema = runConfiguration.getSchema(name);
+        if (schemaAttributes == null) {
+            schemaAttributes = runConfiguration.getSchema(name);
         }
-        if (schema != null) {
-            schema = schema.trim();
+        if (schemaAttributes != null) {
+            schemaAttributes = schemaAttributes.trim();
             // get the schema
             try {
-                indexSchema = DataUtilities.createType(name, schema);
+                indexSchema = DataUtilities.createType(name, schemaAttributes);
                 // override the crs in case the provided one was wrong or absent
                 indexSchema = DataUtilities.createSubType(indexSchema,
                         DataUtilities.attributeNames(indexSchema), actualCRS);

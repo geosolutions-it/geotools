@@ -24,6 +24,7 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
+import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
 import org.geotools.gce.imagemosaic.catalog.index.ParametersType;
 import org.geotools.gce.imagemosaic.catalog.index.ParametersType.Parameter;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
@@ -73,12 +74,12 @@ public class CatalogBuilderConfiguration {
         final List<Parameter> parameterList = parameters.getParameter();
         defaultIndexer.setParameters(parameters);
         setIndexer(defaultIndexer);
-        Utils.setParam(parameterList, Prop.LOCATION_ATTRIBUTE, Utils.DEFAULT_LOCATION_ATTRIBUTE);
-        Utils.setParam(parameterList, Prop.WILDCARD, Utils.DEFAULT_WILCARD);
-        Utils.setParam(parameterList, Prop.FOOTPRINT_MANAGEMENT, Boolean.toString(Utils.DEFAULT_FOOTPRINT_MANAGEMENT));
-        Utils.setParam(parameterList, Prop.ABSOLUTE_PATH, Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR));
-        Utils.setParam(parameterList, Prop.RECURSIVE, Boolean.toString(Utils.DEFAULT_RECURSION_BEHAVIOR));
-        Utils.setParam(parameterList, Prop.INDEX_NAME, Utils.DEFAULT_INDEX_NAME);
+        IndexerUtils.setParam(parameterList, Prop.LOCATION_ATTRIBUTE, Utils.DEFAULT_LOCATION_ATTRIBUTE);
+        IndexerUtils.setParam(parameterList, Prop.WILDCARD, Utils.DEFAULT_WILCARD);
+        IndexerUtils.setParam(parameterList, Prop.FOOTPRINT_MANAGEMENT, Boolean.toString(Utils.DEFAULT_FOOTPRINT_MANAGEMENT));
+        IndexerUtils.setParam(parameterList, Prop.ABSOLUTE_PATH, Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR));
+        IndexerUtils.setParam(parameterList, Prop.RECURSIVE, Boolean.toString(Utils.DEFAULT_RECURSION_BEHAVIOR));
+        IndexerUtils.setParam(parameterList, Prop.INDEX_NAME, Utils.DEFAULT_INDEX_NAME);
     }
 
 	public CatalogBuilderConfiguration(final CatalogBuilderConfiguration that) {
@@ -155,7 +156,7 @@ public class CatalogBuilderConfiguration {
      */
     public void setParameter(String parameterName, String parameterValue) {
         List<Parameter> params = indexer.getParameters().getParameter();
-        parameterValue = Utils.refineParameterValue(parameterName, parameterValue);
+        parameterValue = IndexerUtils.refineParameterValue(parameterName, parameterValue);
         for (Parameter param : params) {
             if (param.getName().equalsIgnoreCase(parameterName)) {
                 param.setValue(parameterValue);
@@ -169,7 +170,7 @@ public class CatalogBuilderConfiguration {
     }
 
     public String getParameter(String parameterName) {
-        return Utils.getParameter(parameterName, indexer);
+        return IndexerUtils.getParameter(parameterName, indexer);
     }
 
     public String getTimeAttribute() {

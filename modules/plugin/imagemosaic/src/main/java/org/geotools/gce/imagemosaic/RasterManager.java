@@ -535,12 +535,14 @@ public class RasterManager {
                                 : DomainType.NUMBER_RANGE;
                         addDomain(domainName, propertyName, domainType);
                         continue;
-                    } else if (simpleFeatureType.getDescriptor(propertyName) != null) {
-                        // add
-                        addDomain(domainName, propertyName, domainType);
-
-                        // continue
-                        continue;
+                    } else {
+                        propertyName = extractAttributes(propertyName);
+                        if (simpleFeatureType.getDescriptor(propertyName) != null) {
+                            // add
+                            addDomain(domainName, propertyName, domainType);
+                            // continue
+                            continue;
+                        }
                     }
 
                 } catch (Exception e) {
@@ -611,8 +613,8 @@ public class RasterManager {
          * @TODO We can surely improve it by making use of Regular Expressions
          */
         private String cleanupDomainName(String domainName) {
-            if (attributeHasRange(domainName) && domainName.contains("(")
-                    && domainName.contains(")")) {
+            if (attributeHasRange(domainName) || ( domainName.contains("(")
+                    && domainName.contains(")"))) {
                 // Getting rid of the attributes definition to get only the domain name
                 domainName = domainName.substring(0, domainName.indexOf("("));
             }
@@ -643,11 +645,7 @@ public class RasterManager {
             if (domainType != DomainType.SINGLE_VALUE) {
 
                 // Deal with a case like this: time(begin,endtime)
-                if (propertyName.contains("(") && propertyName.contains(")")) {
-                    // extract the ranges attributes
-                    propertyName = propertyName.substring(propertyName.indexOf("("))
-                            .replace("(", "").replace(")", "");
-                }
+                propertyName = extractAttributes(propertyName);
 
                 // Getting 2 attributes for this domain
                 String properties[] = propertyName.split(Utils.RANGE_SPLITTER_CHAR);
@@ -664,6 +662,15 @@ public class RasterManager {
             final String upperCase = name.toUpperCase();
             domainsMap.put(upperCase + DomainDescriptor.DOMAIN_SUFFIX, new DomainDescriptor(name,
                     domainType, basePropertyName, additionalPropertyName));
+        }
+
+        private String extractAttributes(String propertyName) {
+            if (propertyName.contains("(") && propertyName.contains(")")) {
+                // extract the ranges attributes
+                propertyName = propertyName.substring(propertyName.indexOf("("))
+                        .replace("(", "").replace(")", "");
+            }
+            return propertyName;
         }
 
         /**

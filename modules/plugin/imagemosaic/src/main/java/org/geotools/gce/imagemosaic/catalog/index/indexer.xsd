@@ -92,16 +92,18 @@
 	</xs:complexType>
 	<xs:complexType name="domainType">
 		<xs:sequence>
-			<xs:element name="attributes" maxOccurs="unbounded" minOccurs="1" type="attributeType" >
-			</xs:element>
+			<xs:element name="attributes" maxOccurs="1" minOccurs="1" type="attributesType" />
 		</xs:sequence>
 		<xs:attribute name="name" type="xs:string" use="required" />
 		<xs:attribute name="ref" type="xs:string" use="optional" />
 	</xs:complexType>
-	<xs:complexType name="attributeType">
+	<xs:complexType name="attributesType">
 		<xs:sequence>
-			<xs:element name="attribute" type="xs:string" />
+			<xs:element name="attribute" maxOccurs="unbounded" minOccurs="1" type="attributeType" />
 		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="attributeType">
+		<xs:attribute name="name" type="xs:string" />
 		<xs:attribute name="collectorRef" type="xs:string"/>
 	</xs:complexType>
 </xs:schema>

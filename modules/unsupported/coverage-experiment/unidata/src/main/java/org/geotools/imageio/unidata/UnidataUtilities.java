@@ -31,6 +31,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +65,7 @@ import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.VariableDS;
+import ucar.nc2.dataset.NetcdfDataset.Enhance;
 
 /**
  * Set of NetCDF utility methods.
@@ -72,6 +74,10 @@ import ucar.nc2.dataset.VariableDS;
  * @author Daniele Romagnoli, GeoSolutions
  */
 public class UnidataUtilities {
+
+    static {
+        NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
+   }
 
     static final String EXTERNAL_DATA_DIR;
 
@@ -252,9 +258,32 @@ public class UnidataUtilities {
             if (((CoordinateAxis) axis).isNumeric() && axis instanceof CoordinateAxis1D) {
                 axis1D = (CoordinateAxis1D) axis;
                 values = axis1D.getCoordValues();
+                Attribute scaleFactor = axis1D.findAttribute("scale_factor");
+                Attribute offset = axis1D.findAttribute("offset");
+                if (scaleFactor != null || offset != null) {
+                    rescaleValues(scaleFactor, offset);
+                }
+
             } else {
                 throw new IllegalArgumentException(
                         "The specified axis doesn't represent a valid zeta Axis");
+            }
+        }
+
+        private void rescaleValues(Attribute scaleFactor, Attribute offset) {
+            DataType dataType = scaleFactor != null ? scaleFactor.getDataType() : offset.getDataType();
+            if (dataType == DataType.DOUBLE) {
+                double sf = scaleFactor != null ? scaleFactor.getNumericValue().doubleValue() : 1.0d; 
+                double off = offset != null ? offset.getNumericValue().doubleValue() : 0.0d;
+                for (int i = 0 ; i < values.length; i++) {
+                    values[i] = ( sf * values[i]) + off;
+                }    
+            } else if (dataType == DataType.FLOAT) {
+                float sf = scaleFactor != null ? scaleFactor.getNumericValue().floatValue() : 1.0f; 
+                float  off = offset != null ? offset.getNumericValue().floatValue() : 0.0f;
+                for (int i = 0 ; i < values.length; i++) {
+                    values[i] = ( sf * values[i]) + off;
+                }
             }
         }
 

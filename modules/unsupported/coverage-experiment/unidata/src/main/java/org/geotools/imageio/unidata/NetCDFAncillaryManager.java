@@ -38,10 +38,13 @@ import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
 import org.geotools.imageio.unidata.UnidataImageReader.DatastoreProperties;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /** 
@@ -58,6 +61,8 @@ class NetCDFAncillaryManager {
     private static Marshaller MARSHALLER;
 
     private static Unmarshaller UNMARSHALLER;
+    
+    private static CoordinateReferenceSystem WGS84;
 
     /** Default schema name */
     static final String DEFAULT = "def";
@@ -70,7 +75,12 @@ class NetCDFAncillaryManager {
             jc = JAXBContext.newInstance("org.geotools.gce.imagemosaic.catalog.index");
             MARSHALLER = jc.createMarshaller();
             UNMARSHALLER = jc.createUnmarshaller();
+            WGS84 = CRS.decode("EPSG:4326", true);
         } catch (JAXBException e) {
+            LOGGER.log(Level.FINER, e.getMessage(), e);
+        } catch (NoSuchAuthorityCodeException e) {
+            LOGGER.log(Level.FINER, e.getMessage(), e);
+        } catch (FactoryException e) {
             LOGGER.log(Level.FINER, e.getMessage(), e);
         }
     }
@@ -313,7 +323,7 @@ class NetCDFAncillaryManager {
         String schemaAttributes = schemaElement.getAttributes(); 
 
         // for the moment we only handle data in 4326
-        final CoordinateReferenceSystem actualCRS = DefaultGeographicCRS.WGS84;
+        final CoordinateReferenceSystem actualCRS = WGS84;
         SimpleFeatureType indexSchema = null;
         initializeParams(params);
 

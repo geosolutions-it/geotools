@@ -78,6 +78,7 @@ import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Collectors.Collector;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
+import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
 import org.geotools.gce.imagemosaic.catalog.index.ParametersType;
 import org.geotools.gce.imagemosaic.catalog.index.ParametersType.Parameter;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
@@ -337,9 +338,9 @@ public class ImageMosaicWalker implements Runnable {
                 String indexName = runConfiguration.getParameter(Prop.INDEX_NAME);
                 Indexer indexer = runConfiguration.getIndexer();
                 if (indexer != null) {
-                    if(indexerFile.getAbsolutePath().endsWith("xml")) {
-                        configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
-                    }
+//                    if(indexerFile.getAbsolutePath().endsWith("xml")) {
+//                        configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
+//                    }
                 }
                 if (cachedFormat == null) {
                     // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
@@ -438,9 +439,9 @@ public class ImageMosaicWalker implements Runnable {
                         configBuilder.setLevels(resolutionLevels);
                         configBuilder.setLevelsNum(numberOfLevels);
                         configBuilder.setName(coverageName);
-                        configBuilder.setTimeAttribute(Utils.getAttribute(coverageName, Utils.TIME_DOMAIN, indexer));
-                        configBuilder.setElevationAttribute(Utils.getAttribute(coverageName, Utils.ELEVATION_DOMAIN, indexer));
-                        configBuilder.setAdditionalDomainAttributes(Utils.getAttribute(coverageName, Utils.ADDITIONAL_DOMAIN, indexer));
+                        configBuilder.setTimeAttribute(IndexerUtils.getAttribute(coverageName, Utils.TIME_DOMAIN, indexer));
+                        configBuilder.setElevationAttribute(IndexerUtils.getAttribute(coverageName, Utils.ELEVATION_DOMAIN, indexer));
+                        configBuilder.setAdditionalDomainAttributes(IndexerUtils.getAttribute(coverageName, Utils.ADDITIONAL_DOMAIN, indexer));
                         
                         final Hints runHints = runConfiguration.getHints();
                         if (runHints != null && runHints.containsKey(Utils.AUXILIARY_FILES_PATH)) {
@@ -451,10 +452,10 @@ public class ImageMosaicWalker implements Runnable {
                         }
 
                         final CatalogConfigurationBean catalogConfigurationBean = new CatalogConfigurationBean();
-                        catalogConfigurationBean.setCaching(Utils.getParameterAsBoolean(Prop.CACHING, indexer));
-                        catalogConfigurationBean.setAbsolutePath(Utils.getParameterAsBoolean(Prop.ABSOLUTE_PATH, indexer));
+                        catalogConfigurationBean.setCaching(IndexerUtils.getParameterAsBoolean(Prop.CACHING, indexer));
+                        catalogConfigurationBean.setAbsolutePath(IndexerUtils.getParameterAsBoolean(Prop.ABSOLUTE_PATH, indexer));
                         
-                        catalogConfigurationBean.setLocationAttribute(Utils.getParameter(Prop.LOCATION_ATTRIBUTE, indexer));
+                        catalogConfigurationBean.setLocationAttribute(IndexerUtils.getParameter(Prop.LOCATION_ATTRIBUTE, indexer));
                         configBuilder.setCatalogConfigurationBean(catalogConfigurationBean);
 
                         currentConfigurationBean = configBuilder.getMosaicConfigurationBean();
@@ -943,7 +944,7 @@ public class ImageMosaicWalker implements Runnable {
         String rootMosaicDir = null;
         if (defaultIndexer != null) {
             params = defaultIndexer.getParameters();
-            rootMosaicDir = Utils.getParam(params, Prop.ROOT_MOSAIC_DIR);
+            rootMosaicDir = IndexerUtils.getParam(params, Prop.ROOT_MOSAIC_DIR);
         }
         
         Utilities.ensureNonNull("root location", rootMosaicDir);
@@ -955,10 +956,13 @@ public class ImageMosaicWalker implements Runnable {
         Indexer indexer = null;
 
         Hints hints = configuration.getHints();
+        String ancillaryFile = null;
         if (Utils.checkFileReadable(indexerFile)) {
             try {
                 indexer = (Indexer) Utils.UNMARSHALLER.unmarshal(indexerFile);
-                configuration.setIndexer(indexer);
+                if (indexer != null) {
+                    copyDefaultParams(params, indexer);
+                }
             } catch (JAXBException e) {
                 LOGGER.log(Level.WARNING, e.getMessage(), e);
             }
@@ -974,28 +978,41 @@ public class ImageMosaicWalker implements Runnable {
                 indexer = createIndexer(props, params);
                 
                 if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
-                    // Setting the list of indexing directories
-//                    String directoriesCsv = props.getProperty(Prop.INDEXING_DIRECTORIES);
-//                    String[] directories = directoriesCsv.split("\\s*,\\s*");
-//                    List<String> list = new ArrayList<String>(Arrays.asList(directories));
-                    Utils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
+                    IndexerUtils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
                 }
 //                
                 if (props.containsKey(Prop.AUXILIARY_FILE)) {
-                    String ancillaryFile = Utils.getParam(params, Prop.ROOT_MOSAIC_DIR) + File.separatorChar + 
-                            props.getProperty(Prop.AUXILIARY_FILE);
-                    if (hints != null) {
-                        hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
-                    } else {
-                        hints = new Hints(Utils.AUXILIARY_FILES_PATH, ancillaryFile);
-                        configuration.setHints(hints);
-                    }
+                    ancillaryFile = props.getProperty(Prop.AUXILIARY_FILE);
                 }
             }
         }
         if (indexer != null) {
             // Overwrite default indexer only when indexer is available
             configuration.setIndexer(indexer);
+            String param = IndexerUtils.getParameter(Utils.Prop.AUXILIARY_FILE, indexer);
+            if (param != null) {
+                ancillaryFile = param;
+            }
+        }
+        
+        updateConfigurationHints(configuration, hints, ancillaryFile, IndexerUtils.getParam(params, Prop.ROOT_MOSAIC_DIR));
+
+        // check config
+        configuration.check();
+
+        this.runConfiguration = new CatalogBuilderConfiguration(configuration);
+    }
+
+    private void updateConfigurationHints(final CatalogBuilderConfiguration configuration, Hints hints,
+            final String ancillaryFile, final String rootMosaicDir) {
+        if (ancillaryFile != null) {
+            final String ancillaryFilePath = rootMosaicDir + File.separatorChar + ancillaryFile;
+            if (hints != null) {
+                hints.put(Utils.AUXILIARY_FILES_PATH, ancillaryFilePath);
+            } else {
+                hints = new Hints(Utils.AUXILIARY_FILES_PATH, ancillaryFilePath);
+                configuration.setHints(hints);
+            }
         }
         
         if (hints != null && hints.containsKey(Utils.MOSAIC_READER)) {
@@ -1006,12 +1023,26 @@ public class ImageMosaicWalker implements Runnable {
                 readerHints.add(hints);
             }
         }
-        
+    }
 
-        // check config
-        configuration.check();
-
-        this.runConfiguration = new CatalogBuilderConfiguration(configuration);
+    private void copyDefaultParams(ParametersType params, Indexer indexer) {
+        if (params != null) {
+            List<Parameter> defaultParamList = params.getParameter();
+            if (defaultParamList != null && !defaultParamList.isEmpty()) {
+                ParametersType parameters = indexer.getParameters();
+                if (parameters == null) {
+                    parameters = Utils.OBJECT_FACTORY.createParametersType();
+                    indexer.setParameters(parameters);
+                }
+                List<Parameter> parameterList = parameters.getParameter();
+                for (Parameter defaultParameter: defaultParamList) {
+                    final String defaultParameterName = defaultParameter.getName();
+                    if (IndexerUtils.getParameter(defaultParameterName, indexer) == null) {
+                        IndexerUtils.setParam(parameterList, defaultParameterName, defaultParameter.getValue());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1282,14 +1313,15 @@ public class ImageMosaicWalker implements Runnable {
                 // we create a root properties file if we have more than one coverage, or if the
                 // one coverage does not have the default name
                 if ( keySize > 1 || (keySize > 0 && !base.equals(keys.iterator().next()))) {
-                    
-                    // TODO: DR: Remove that when dealing with Indexer.xml which should allow to know if configurations
-                    // are available
-                    final String source = 
-                            runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
-                    
-                    final File mosaicFile = new File(indexerFile.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
-                    FileUtils.copyFile(new File(source) , mosaicFile);
+                    if (indexerFile.getAbsolutePath().endsWith("xml")) {
+                        final File mosaicFile = new File(indexerFile.getAbsolutePath().replace(Utils.INDEXER_XML, (base + ".xml")));
+                        FileUtils.copyFile(indexerFile , mosaicFile);
+                    } else {
+                        final String source = 
+                                runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + File.separatorChar + configurations.get(keys.iterator().next()).getName() +  ".properties";
+                        final File mosaicFile = new File(indexerFile.getAbsolutePath().replace(Utils.INDEXER_PROPERTIES, (base + ".properties")));
+                        FileUtils.copyFile(new File(source) , mosaicFile);
+                    }
                 }
 
                 // processing information
@@ -1343,21 +1375,21 @@ public class ImageMosaicWalker implements Runnable {
         
         // name
         if (props.containsKey(Prop.NAME)) {
-            Utils.setParam(parameters, props, Prop.NAME);
+            IndexerUtils.setParam(parameters, props, Prop.NAME);
             coverage.setName(props.getProperty(Prop.NAME));
         }
 
         // absolute
         if (props.containsKey(Prop.ABSOLUTE_PATH))
-            Utils.setParam(parameters, props, Prop.ABSOLUTE_PATH);
+            IndexerUtils.setParam(parameters, props, Prop.ABSOLUTE_PATH);
 
         // recursive
         if (props.containsKey(Prop.RECURSIVE))
-            Utils.setParam(parameters, props, Prop.RECURSIVE);
+            IndexerUtils.setParam(parameters, props, Prop.RECURSIVE);
 
         // wildcard
         if (props.containsKey(Prop.WILDCARD))
-            Utils.setParam(parameters, props, Prop.WILDCARD);
+            IndexerUtils.setParam(parameters, props, Prop.WILDCARD);
 
         // schema
         if (props.containsKey(Prop.SCHEMA)) {
@@ -1366,7 +1398,7 @@ public class ImageMosaicWalker implements Runnable {
             indexer.setSchemas(schemas);
             schemas.getSchema().add(schema);
             schema.setAttributes(props.getProperty(Prop.SCHEMA));
-            schema.setName(Utils.getParameter(Prop.INDEX_NAME, indexer));
+            schema.setName(IndexerUtils.getParameter(Prop.INDEX_NAME, indexer));
         }
 
         DomainsType domains = coverage.getDomains();
@@ -1380,7 +1412,7 @@ public class ImageMosaicWalker implements Runnable {
             }
             DomainType domain = Utils.OBJECT_FACTORY.createDomainType();
             domain.setName(Utils.TIME_DOMAIN.toLowerCase());
-            Utils.setAttributes(domain, props.getProperty(Prop.TIME_ATTRIBUTE));
+            IndexerUtils.setAttributes(domain, props.getProperty(Prop.TIME_ATTRIBUTE));
             domainList.add(domain);
         }
             
@@ -1394,7 +1426,7 @@ public class ImageMosaicWalker implements Runnable {
             }
             DomainType domain = Utils.OBJECT_FACTORY.createDomainType();
             domain.setName(Utils.ELEVATION_DOMAIN.toLowerCase());
-            Utils.setAttributes(domain, props.getProperty(Prop.ELEVATION_ATTRIBUTE));
+            IndexerUtils.setAttributes(domain, props.getProperty(Prop.ELEVATION_ATTRIBUTE));
             domainList.add(domain);
         }
             
@@ -1407,28 +1439,28 @@ public class ImageMosaicWalker implements Runnable {
                 domainList = domains.getDomain();
             }
             String attributes = props.getProperty(Prop.ADDITIONAL_DOMAIN_ATTRIBUTES);
-            Utils.parseAdditionalDomains(attributes, domainList);
+            IndexerUtils.parseAdditionalDomains(attributes, domainList);
         }
 
         // imposed BBOX
         if (props.containsKey(Prop.ENVELOPE2D))
-            Utils.setParam(parameters, props, Prop.ENVELOPE2D);
+            IndexerUtils.setParam(parameters, props, Prop.ENVELOPE2D);
 
         // imposed Pyramid Layout
         if (props.containsKey(Prop.RESOLUTION_LEVELS))
-            Utils.setParam(parameters, props, Prop.RESOLUTION_LEVELS);
+            IndexerUtils.setParam(parameters, props, Prop.RESOLUTION_LEVELS);
 
         // collectors
         if (props.containsKey(Prop.PROPERTY_COLLECTORS)) {
-            Utils.setPropertyCollectors(indexer, props.getProperty(Prop.PROPERTY_COLLECTORS));
+            IndexerUtils.setPropertyCollectors(indexer, props.getProperty(Prop.PROPERTY_COLLECTORS));
         }
 
         if (props.containsKey(Prop.CACHING))
-            Utils.setParam(parameters, props, Prop.CACHING);
+            IndexerUtils.setParam(parameters, props, Prop.CACHING);
         
         if (props.containsKey(Prop.ROOT_MOSAIC_DIR)) {
             // Overriding root mosaic directory
-            Utils.setParam(parameters, props, Prop.ROOT_MOSAIC_DIR);
+            IndexerUtils.setParam(parameters, props, Prop.ROOT_MOSAIC_DIR);
         }
         return indexer;
     }

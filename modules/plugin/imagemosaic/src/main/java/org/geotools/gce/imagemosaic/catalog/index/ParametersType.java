@@ -114,12 +114,12 @@ public class ParametersType {
      * 
      */
     @XmlAccessorType(XmlAccessType.FIELD)
-    @XmlType(name = "", propOrder = {
+    @XmlType(name = ""/*, propOrder = {
         "value"
-    })
+    }*/)
     public static class Parameter {
 
-        @XmlElement(required = true)
+        @XmlAttribute(required = true)
         protected String value;
         @XmlAttribute(required = true)
         protected String name;

@@ -205,7 +205,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             setProperty("passwd", PASSWORD);
             setProperty("driver", DRIVER);
             setProperty("type", TYPE);
-            setProperty("urlPrefix", URL_PREFIX + database);
+            setProperty("urlPrefix", URL_PREFIX + database + ";LOG=0");
             setProperty("database", database);
             setProperty(TYPE_NAME, database);
         }
