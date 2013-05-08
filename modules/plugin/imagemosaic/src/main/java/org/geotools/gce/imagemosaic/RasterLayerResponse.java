@@ -105,6 +105,7 @@ import org.opengis.coverage.SampleDimensionType;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.sort.SortBy;
 import org.opengis.filter.sort.SortOrder;
 import org.opengis.geometry.BoundingBox;
@@ -127,7 +128,9 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 @SuppressWarnings("rawtypes")
 class RasterLayerResponse{
-    
+
+    FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
+
     private static final class SimplifiedGridSampleDimension extends GridSampleDimension implements SampleDimension{
 
 		/**
@@ -827,16 +830,47 @@ class RasterLayerResponse{
                 final Map<String, List> requestedAdditionalDomains = request.getRequestedAdditionalDomains();
                 if (!requestedAdditionalDomains.isEmpty()) {
                     Set<Entry<String, List>> entries = requestedAdditionalDomains.entrySet();
-                    if (entries.size() > 1) {
-                        throw new IllegalStateException("Unable to handle dimensions stacking for more than 1 dimension");
+
+                    // Preliminary check on additional domains specification
+                    // we can't do stack in case there are multiple values selections for more than one domain 
+                    checkMultipleSelection(entries);
+
+                    // Prepare filtering
+                    Entry<String, List> multipleSelectionEntry = null;
+                    final List<Filter> filters = new ArrayList<Filter>(entries.size());
+
+                    // Loop over the additional domains
+                    for (Entry<String, List> entry: entries) {
+                        if (entry.getValue().size() > 1) {
+                            // take note of the entry containing multiple values
+                            multipleSelectionEntry = entry;
+                        } else {
+                            // create single value domain filter
+                            String domainName = entry.getKey() + DomainDescriptor.DOMAIN_SUFFIX;
+                            filters.add(rasterManager.domainsManager.createFilter(domainName, Arrays.asList(entry.getValue())));
+                        }
                     }
-                    final Entry<String, List> element = entries.iterator().next();
-                    // build a filter for each dimension
-                    final String domainName = element.getKey() + DomainDescriptor.DOMAIN_SUFFIX;
-                    final List values = (List) element.getValue();
-                    for (Object o : values) {
-                        // create a filter for this value
-                        granuleCollectors.add(new GranuleCollector(rasterManager.domainsManager.createFilter(domainName, Arrays.asList(o)),dryRun));
+
+                    // Anding all filters together
+                    Filter andFilter = filters.size() > 0 ? FF.and(filters) : null;
+
+                    if (multipleSelectionEntry == null) {
+                        // Simpler case... no multiple selections. All filter have already been combined
+                        granuleCollectors.add(new GranuleCollector(andFilter, dryRun));
+                    } else {
+                        final String domainName = multipleSelectionEntry.getKey() + DomainDescriptor.DOMAIN_SUFFIX;
+
+                        // Need to loop over the multiple values of a custom domains
+                        final List values = (List) multipleSelectionEntry.getValue();
+                        for (Object o : values) {
+
+                            // create a filter for this value
+                            Filter valueFilter = rasterManager.domainsManager.createFilter(domainName, Arrays.asList(o));
+
+                            // combine that filter with the previously merged ones
+                            Filter combinedFilter = andFilter == null ? valueFilter : FF.and(andFilter, valueFilter);
+                            granuleCollectors.add(new GranuleCollector(combinedFilter, dryRun));
+                        }
                     }
                 }
             }
@@ -846,6 +880,24 @@ class RasterLayerResponse{
             // let's use a default marker
             if (granuleCollectors.isEmpty()) {
                 granuleCollectors.add(new GranuleCollector(Filter.INCLUDE, dryRun));
+            }
+        }
+
+        /**
+         * Check whether the specified custom domains contain multiple selection. That case isn't supported
+         * so we will throw an exception
+         * 
+         * @param entries
+         */
+        private void checkMultipleSelection(Set<Entry<String, List>> entries) {
+            int multipleDimensionsSelections = 0;
+            for (Entry<String, List> entry: entries) {
+                if (entry.getValue().size() > 1) {
+                    multipleDimensionsSelections++;
+                    if (multipleDimensionsSelections > 1) {
+                        throw new IllegalStateException("Unable to handle dimensions stacking for more than 1 dimension");
+                    }
+                }
             }
         }
 
