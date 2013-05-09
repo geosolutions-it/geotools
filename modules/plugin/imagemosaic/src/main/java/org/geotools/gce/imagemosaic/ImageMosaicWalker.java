@@ -835,7 +835,11 @@ public class ImageMosaicWalker implements Runnable {
 
             // TODO we might want to remove this in the future for performance
             numFiles = 0;
+            String harvestDirectory = runConfiguration.getParameter(Prop.HARVEST_DIRECTORY);
             String indexDirs = runConfiguration.getParameter(Prop.INDEXING_DIRECTORIES);
+            if (harvestDirectory != null) {
+                indexDirs = harvestDirectory;
+            }
             String[] indexDirectories = indexDirs.split("\\s*,\\s*");
             for (String indexingDirectory : indexDirectories) {
                 indexingDirectory = Utils.checkDirectory(indexingDirectory, false);

@@ -914,7 +914,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
         configuration.setParameter(Prop.ABSOLUTE_PATH, Boolean.toString(Utils.DEFAULT_PATH_BEHAVIOR));
         String indexingPath = directory.getAbsolutePath();
-        configuration.setParameter(Prop.INDEXING_DIRECTORIES, indexingPath);
+        configuration.setParameter(Prop.HARVEST_DIRECTORY, indexingPath);
         if(defaultCoverage == null) {
             defaultCoverage = getGridCoverageNames()[0];
         } 
