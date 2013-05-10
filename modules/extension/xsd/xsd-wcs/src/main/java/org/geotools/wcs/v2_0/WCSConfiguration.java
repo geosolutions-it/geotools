@@ -88,6 +88,7 @@ public class WCSConfiguration extends Configuration {
         bindings.put(WCS.RequestBaseType, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.RequestBaseType));
         bindings.put(WCS.ServiceMetadataType, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.ServiceMetadataType));
         bindings.put(WCS.ServiceParametersType, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.ServiceParametersType));
+        bindings.put(WCS.ServiceParametersType, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.ServiceParametersType));
         // bindings.put(WCS.VersionStringType, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.VersionStringType));
         /*
         bindings.put(WCS.Capabilities, new ComplexEMFBinding(Wcs20Factory.eINSTANCE, WCS.Capabilities));

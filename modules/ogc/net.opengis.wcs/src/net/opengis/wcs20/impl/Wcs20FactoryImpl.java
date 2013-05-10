@@ -4,6 +4,7 @@ package net.opengis.wcs20.impl;
 
 import javax.xml.namespace.QName;
 import net.opengis.wcs20.CapabilitiesType;
+import net.opengis.wcs20.ContainmentType;
 import net.opengis.wcs20.ContentsType;
 import net.opengis.wcs20.CoverageDescriptionType;
 import net.opengis.wcs20.CoverageDescriptionsType;
@@ -11,6 +12,7 @@ import net.opengis.wcs20.CoverageOfferingsType;
 import net.opengis.wcs20.CoverageSubtypeParentType;
 import net.opengis.wcs20.CoverageSummaryType;
 import net.opengis.wcs20.DescribeCoverageType;
+import net.opengis.wcs20.DescribeEOCoverageSetType;
 import net.opengis.wcs20.DimensionSliceType;
 import net.opengis.wcs20.DimensionTrimType;
 import net.opengis.wcs20.DocumentRoot;
@@ -32,6 +34,8 @@ import net.opengis.wcs20.ScaleByFactorType;
 import net.opengis.wcs20.ScaleToExtentType;
 import net.opengis.wcs20.ScaleToSizeType;
 import net.opengis.wcs20.ScalingType;
+import net.opengis.wcs20.Section;
+import net.opengis.wcs20.Sections;
 import net.opengis.wcs20.ServiceMetadataType;
 import net.opengis.wcs20.ServiceParametersType;
 import net.opengis.wcs20.TargetAxisExtentType;
@@ -128,6 +132,8 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
             case Wcs20Package.INTERPOLATION_AXIS_TYPE: return createInterpolationAxisType();
             case Wcs20Package.INTERPOLATION_METHOD_TYPE: return createInterpolationMethodType();
             case Wcs20Package.INTERPOLATION_TYPE: return createInterpolationType();
+            case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE: return createDescribeEOCoverageSetType();
+            case Wcs20Package.SECTIONS: return createSections();
             default:
                 throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
         }
@@ -141,6 +147,10 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
     @Override
     public Object createFromString(EDataType eDataType, String initialValue) {
         switch (eDataType.getClassifierID()) {
+            case Wcs20Package.CONTAINMENT_TYPE:
+                return createContainmentTypeFromString(eDataType, initialValue);
+            case Wcs20Package.SECTION:
+                return createSectionFromString(eDataType, initialValue);
             case Wcs20Package.VERSION_STRING_TYPE:
                 return createVersionStringTypeFromString(eDataType, initialValue);
             case Wcs20Package.VERSION_STRING_TYPE_1:
@@ -160,6 +170,10 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
     @Override
     public String convertToString(EDataType eDataType, Object instanceValue) {
         switch (eDataType.getClassifierID()) {
+            case Wcs20Package.CONTAINMENT_TYPE:
+                return convertContainmentTypeToString(eDataType, instanceValue);
+            case Wcs20Package.SECTION:
+                return convertSectionToString(eDataType, instanceValue);
             case Wcs20Package.VERSION_STRING_TYPE:
                 return convertVersionStringTypeToString(eDataType, instanceValue);
             case Wcs20Package.VERSION_STRING_TYPE_1:
@@ -499,6 +513,66 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
     public InterpolationType createInterpolationType() {
         InterpolationTypeImpl interpolationType = new InterpolationTypeImpl();
         return interpolationType;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public DescribeEOCoverageSetType createDescribeEOCoverageSetType() {
+        DescribeEOCoverageSetTypeImpl describeEOCoverageSetType = new DescribeEOCoverageSetTypeImpl();
+        return describeEOCoverageSetType;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public Sections createSections() {
+        SectionsImpl sections = new SectionsImpl();
+        return sections;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public ContainmentType createContainmentTypeFromString(EDataType eDataType, String initialValue) {
+        ContainmentType result = ContainmentType.get(initialValue);
+        if (result == null) throw new IllegalArgumentException("The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+        return result;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public String convertContainmentTypeToString(EDataType eDataType, Object instanceValue) {
+        return instanceValue == null ? null : instanceValue.toString();
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public Section createSectionFromString(EDataType eDataType, String initialValue) {
+        Section result = Section.get(initialValue);
+        if (result == null) throw new IllegalArgumentException("The value '" + initialValue + "' is not a valid enumerator of '" + eDataType.getName() + "'");
+        return result;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public String convertSectionToString(EDataType eDataType, Object instanceValue) {
+        return instanceValue == null ? null : instanceValue.toString();
     }
 
     /**

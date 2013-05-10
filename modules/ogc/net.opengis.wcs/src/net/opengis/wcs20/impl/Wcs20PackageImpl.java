@@ -8,6 +8,7 @@ import javax.xml.namespace.QName;
 import net.opengis.ows11.Ows11Package;
 import net.opengis.ows20.Ows20Package;
 import net.opengis.wcs20.CapabilitiesType;
+import net.opengis.wcs20.ContainmentType;
 import net.opengis.wcs20.ContentsType;
 import net.opengis.wcs20.CoverageDescriptionType;
 import net.opengis.wcs20.CoverageDescriptionsType;
@@ -15,6 +16,7 @@ import net.opengis.wcs20.CoverageOfferingsType;
 import net.opengis.wcs20.CoverageSubtypeParentType;
 import net.opengis.wcs20.CoverageSummaryType;
 import net.opengis.wcs20.DescribeCoverageType;
+import net.opengis.wcs20.DescribeEOCoverageSetType;
 import net.opengis.wcs20.DimensionSliceType;
 import net.opengis.wcs20.DimensionSubsetType;
 import net.opengis.wcs20.DimensionTrimType;
@@ -38,6 +40,8 @@ import net.opengis.wcs20.ScaleByFactorType;
 import net.opengis.wcs20.ScaleToExtentType;
 import net.opengis.wcs20.ScaleToSizeType;
 import net.opengis.wcs20.ScalingType;
+import net.opengis.wcs20.Section;
+import net.opengis.wcs20.Sections;
 import net.opengis.wcs20.ServiceMetadataType;
 import net.opengis.wcs20.ServiceParametersType;
 import net.opengis.wcs20.TargetAxisExtentType;
@@ -49,6 +53,7 @@ import net.opengis.wcs20.util.Wcs20Validator;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EDataType;
+import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EValidator;
@@ -315,6 +320,34 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * @generated
      */
     private EClass interpolationTypeEClass = null;
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    private EClass describeEOCoverageSetTypeEClass = null;
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    private EClass sectionsEClass = null;
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    private EEnum containmentTypeEEnum = null;
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    private EEnum sectionEEnum = null;
 
     /**
      * <!-- begin-user-doc -->
@@ -1632,6 +1665,87 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * <!-- end-user-doc -->
      * @generated
      */
+    public EClass getDescribeEOCoverageSetType() {
+        return describeEOCoverageSetTypeEClass;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EAttribute getDescribeEOCoverageSetType_EoId() {
+        return (EAttribute)describeEOCoverageSetTypeEClass.getEStructuralFeatures().get(0);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EAttribute getDescribeEOCoverageSetType_ContainmentType() {
+        return (EAttribute)describeEOCoverageSetTypeEClass.getEStructuralFeatures().get(1);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EReference getDescribeEOCoverageSetType_Sections() {
+        return (EReference)describeEOCoverageSetTypeEClass.getEStructuralFeatures().get(2);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EReference getDescribeEOCoverageSetType_DimensionTrim() {
+        return (EReference)describeEOCoverageSetTypeEClass.getEStructuralFeatures().get(3);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EClass getSections() {
+        return sectionsEClass;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EAttribute getSections_Section() {
+        return (EAttribute)sectionsEClass.getEStructuralFeatures().get(0);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EEnum getContainmentType() {
+        return containmentTypeEEnum;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public EEnum getSection() {
+        return sectionEEnum;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
     public EDataType getVersionStringType() {
         return versionStringTypeEDataType;
     }
@@ -1853,6 +1967,19 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         createEReference(interpolationTypeEClass, INTERPOLATION_TYPE__INTERPOLATION_METHOD);
         createEReference(interpolationTypeEClass, INTERPOLATION_TYPE__INTERPOLATION_AXES);
 
+        describeEOCoverageSetTypeEClass = createEClass(DESCRIBE_EO_COVERAGE_SET_TYPE);
+        createEAttribute(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__EO_ID);
+        createEAttribute(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__CONTAINMENT_TYPE);
+        createEReference(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__SECTIONS);
+        createEReference(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM);
+
+        sectionsEClass = createEClass(SECTIONS);
+        createEAttribute(sectionsEClass, SECTIONS__SECTION);
+
+        // Create enums
+        containmentTypeEEnum = createEEnum(CONTAINMENT_TYPE);
+        sectionEEnum = createEEnum(SECTION);
+
         // Create data types
         versionStringTypeEDataType = createEDataType(VERSION_STRING_TYPE);
         versionStringType_1EDataType = createEDataType(VERSION_STRING_TYPE_1);
@@ -1900,6 +2027,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         dimensionTrimTypeEClass.getESuperTypes().add(this.getDimensionSubsetType());
         getCapabilitiesTypeEClass.getESuperTypes().add(theOws20Package.getGetCapabilitiesType());
         getCoverageTypeEClass.getESuperTypes().add(this.getRequestBaseType());
+        describeEOCoverageSetTypeEClass.getESuperTypes().add(this.getRequestBaseType());
 
         // Initialize classes and features; add operations and parameters
         initEClass(capabilitiesTypeEClass, CapabilitiesType.class, "CapabilitiesType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -2073,6 +2201,25 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         initEReference(getInterpolationType_InterpolationMethod(), this.getInterpolationMethodType(), null, "interpolationMethod", null, 0, 1, InterpolationType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
         initEReference(getInterpolationType_InterpolationAxes(), this.getInterpolationAxesType(), null, "interpolationAxes", null, 0, 1, InterpolationType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+        initEClass(describeEOCoverageSetTypeEClass, DescribeEOCoverageSetType.class, "DescribeEOCoverageSetType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+        initEAttribute(getDescribeEOCoverageSetType_EoId(), ecorePackage.getEString(), "eoId", null, 1, -1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+        initEAttribute(getDescribeEOCoverageSetType_ContainmentType(), theXMLTypePackage.getString(), "containmentType", null, 1, 1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+        initEReference(getDescribeEOCoverageSetType_Sections(), this.getSections(), null, "sections", null, 0, 1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+        initEReference(getDescribeEOCoverageSetType_DimensionTrim(), this.getDimensionTrimType(), null, "dimensionTrim", null, 1, -1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+        initEClass(sectionsEClass, Sections.class, "Sections", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+        initEAttribute(getSections_Section(), this.getSection(), "section", null, 1, -1, Sections.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+        // Initialize enums and add enum literals
+        initEEnum(containmentTypeEEnum, ContainmentType.class, "ContainmentType");
+        addEEnumLiteral(containmentTypeEEnum, ContainmentType.OVERLAPS);
+        addEEnumLiteral(containmentTypeEEnum, ContainmentType.CONTAINS);
+
+        initEEnum(sectionEEnum, Section.class, "Section");
+        addEEnumLiteral(sectionEEnum, Section.COVERAGEDESCRIPTIONS);
+        addEEnumLiteral(sectionEEnum, Section.DATASETSERIESDESCRIPTIONS);
+        addEEnumLiteral(sectionEEnum, Section.ALL);
+
         // Initialize data types
         initEDataType(versionStringTypeEDataType, String.class, "VersionStringType", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
         initEDataType(versionStringType_1EDataType, String.class, "VersionStringType_1", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
@@ -2157,7 +2304,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "gml.xsd"
-           });																																																																																																																																																																									
+           });																																																																																																																																																																																			
     }
 
     /**
@@ -2173,7 +2320,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "dynamicFeature.xsd"
-           });																																																																																																																																																																								
+           });																																																																																																																																																																																		
     }
 
     /**
@@ -2189,7 +2336,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "topology.xsd"
-           });																																																																																																																																																																							
+           });																																																																																																																																																																																	
     }
 
     /**
@@ -2205,7 +2352,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "coverage.xsd"
-           });																																																																																																																																																																						
+           });																																																																																																																																																																																
     }
 
     /**
@@ -2221,7 +2368,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "coordinateReferenceSystems.xsd"
-           });																																																																																																																																																																					
+           });																																																																																																																																																																															
     }
 
     /**
@@ -2237,7 +2384,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "observation.xsd"
-           });																																																																																																																																																																				
+           });																																																																																																																																																																														
     }
 
     /**
@@ -2253,7 +2400,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "temporalReferenceSystems.xsd"
-           });																																																																																																																																																																			
+           });																																																																																																																																																																													
     }
 
     /**
@@ -2269,7 +2416,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "deprecatedTypes.xsd"
-           });																																																																																																																																																																		
+           });																																																																																																																																																																												
     }
 
     /**
@@ -2285,7 +2432,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "temporalTopology.xsd"
-           });																																																																																																																																																																	
+           });																																																																																																																																																																											
     }
 
     /**
@@ -2301,7 +2448,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "dictionary.xsd"
-           });																																																																																																																																																																
+           });																																																																																																																																																																										
     }
 
     /**
@@ -2317,7 +2464,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "gmlBase.xsd"
-           });																																																																																																																																																															
+           });																																																																																																																																																																									
     }
 
     /**
@@ -2333,7 +2480,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "temporal.xsd"
-           });																																																																																																																																																														
+           });																																																																																																																																																																								
     }
 
     /**
@@ -2349,7 +2496,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "feature.xsd"
-           });																																																																																																																																																													
+           });																																																																																																																																																																							
     }
 
     /**
@@ -2365,7 +2512,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "direction.xsd"
-           });																																																																																																																																																												
+           });																																																																																																																																																																						
     }
 
     /**
@@ -2381,7 +2528,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "valueObjects.xsd"
-           });																																																																																																																																																											
+           });																																																																																																																																																																					
     }
 
     /**
@@ -2397,7 +2544,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "geometryBasic0d1d.xsd"
-           });																																																																																																																																																										
+           });																																																																																																																																																																				
     }
 
     /**
@@ -2413,7 +2560,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "coordinateSystems.xsd"
-           });																																																																																																																																																									
+           });																																																																																																																																																																			
     }
 
     /**
@@ -2429,7 +2576,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "datums.xsd"
-           });																																																																																																																																																								
+           });																																																																																																																																																																		
     }
 
     /**
@@ -2445,7 +2592,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "coordinateOperations.xsd"
-           });																																																																																																																																																							
+           });																																																																																																																																																																	
     }
 
     /**
@@ -2461,7 +2608,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "referenceSystems.xsd"
-           });																																																																																																																																																						
+           });																																																																																																																																																																
     }
 
     /**
@@ -2477,7 +2624,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "measures.xsd"
-           });																																																																																																																																																					
+           });																																																																																																																																																															
     }
 
     /**
@@ -2493,7 +2640,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "units.xsd"
-           });																																																																																																																																																				
+           });																																																																																																																																																														
     }
 
     /**
@@ -2509,7 +2656,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "grids.xsd"
-           });																																																																																																																																																			
+           });																																																																																																																																																													
     }
 
     /**
@@ -2525,7 +2672,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "geometryAggregates.xsd"
-           });																																																																																																																																																		
+           });																																																																																																																																																												
     }
 
     /**
@@ -2541,7 +2688,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "geometryPrimitives.xsd"
-           });																																																																																																																																																	
+           });																																																																																																																																																											
     }
 
     /**
@@ -2557,7 +2704,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "geometryComplexes.xsd"
-           });																																																																																																																																																
+           });																																																																																																																																																										
     }
 
     /**
@@ -2573,7 +2720,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "basicTypes.xsd"
-           });																																																																																																																																															
+           });																																																																																																																																																									
     }
 
     /**
@@ -2589,7 +2736,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "appinfo", "geometryBasic2d.xsd"
-           });																																																																																																																																														
+           });																																																																																																																																																								
     }
 
     /**
@@ -2605,7 +2752,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
            source, 
            new String[] {
              "lang", "en"
-           });																																																																																																																																													
+           });																																																																																																																																																							
     }
 
     /**
@@ -3289,6 +3436,72 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
              "name", "Extension",
              "namespace", "##targetNamespace"
            });			
+        addAnnotation
+          (describeEOCoverageSetTypeEClass, 
+           source, 
+           new String[] {
+             "name", "DescribeCoverageType",
+             "kind", "elementOnly"
+           });		
+        addAnnotation
+          (getDescribeEOCoverageSetType_EoId(), 
+           source, 
+           new String[] {
+             "kind", "element",
+             "name", "CoverageId",
+             "namespace", "##targetNamespace"
+           });		
+        addAnnotation
+          (getDescribeEOCoverageSetType_ContainmentType(), 
+           source, 
+           new String[] {
+             "kind", "element",
+             "name", "ContainmentType",
+             "namespace", "##targetNamespace"
+           });		
+        addAnnotation
+          (getDescribeEOCoverageSetType_Sections(), 
+           source, 
+           new String[] {
+             "kind", "element",
+             "name", "Sections",
+             "namespace", "##targetNamespace"
+           });			
+        addAnnotation
+          (getDescribeEOCoverageSetType_DimensionTrim(), 
+           source, 
+           new String[] {
+             "kind", "element",
+             "name", "DimensionTime",
+             "namespace", "##targetNamespace"
+           });		
+        addAnnotation
+          (sectionsEClass, 
+           source, 
+           new String[] {
+             "name", "Sections",
+             "kind", "elementOnly"
+           });		
+        addAnnotation
+          (getSections_Section(), 
+           source, 
+           new String[] {
+             "kind", "element",
+             "name", "Section",
+             "namespace", "##targetNamespace"
+           });		
+        addAnnotation
+          (containmentTypeEEnum, 
+           source, 
+           new String[] {
+             "name", "ContainmentType"
+           });		
+        addAnnotation
+          (sectionEEnum, 
+           source, 
+           new String[] {
+             "name", "ContainmentType"
+           });		
         addAnnotation
           (versionStringTypeEDataType, 
            source, 
