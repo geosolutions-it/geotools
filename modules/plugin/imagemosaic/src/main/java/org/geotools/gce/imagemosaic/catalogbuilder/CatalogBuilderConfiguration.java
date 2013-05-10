@@ -326,6 +326,12 @@ public class CatalogBuilderConfiguration {
         // Check the indexing directories
         String indexingDirs = getParameter(Prop.INDEXING_DIRECTORIES);
         if (indexingDirs == null) {
+            
+            // check whether we are on harvesting so check the Harvest directory param.
+            String customDirs = getParameter(Prop.HARVEST_DIRECTORY);
+            indexingDirs = customDirs;
+        }
+        if (indexingDirs == null) {
             throw new IllegalStateException("Indexing directories are empty");
         } else {
             String[] indexingDirectoriesString = indexingDirs.split("\\s*,\\s*");

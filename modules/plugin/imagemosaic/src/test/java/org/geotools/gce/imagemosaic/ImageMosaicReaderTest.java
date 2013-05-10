@@ -1605,7 +1605,7 @@ public class ImageMosaicReaderTest extends Assert{
     
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(12,metadataNames.length);
+        assertEquals(12, metadataNames.length);
         assertEquals("false", reader.getMetadataValue("HAS_POLARIZ_DOMAIN"));
         assertEquals("true", reader.getMetadataValue("HAS_POLARIZATION_DOMAIN"));
         assertEquals("POLARIZATION", reader.getDynamicParameters().iterator().next().getName().getCode());

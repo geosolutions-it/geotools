@@ -193,6 +193,7 @@ public class Utils {
         public final static String PARENT_LOCATION = "ParentLocation";
         public final static String ROOT_MOSAIC_DIR = "RootMosaicDirectory";
         public final static String INDEXING_DIRECTORIES = "IndexingDirectories";
+        public final static String HARVEST_DIRECTORY = "HarvestingDirectory";
         
         //Indexer Properties specific properties
         public  static final String RECURSIVE = "Recursive";
@@ -1056,6 +1057,7 @@ public class Utils {
                         //
                         // do we have a datastore properties file? It will preempt on
                         // the shapefile
+                        // TODO: Refactor these checks once we integrate datastore on indexer.xml
                         //
                         File dataStoreProperties = new File(locationPath,"datastore.properties");
 
