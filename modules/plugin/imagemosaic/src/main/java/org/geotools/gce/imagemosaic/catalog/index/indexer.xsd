@@ -45,7 +45,7 @@
 								<xs:complexType>
 									<xs:sequence>
 										<xs:element name="spi" type="xs:string" />
-										<xs:element name="type" type="xs:string" />
+										<xs:element name="type" type="xs:string" maxOccurs="1" minOccurs="0"/>
 										<xs:element name="value" type="xs:string" />
 										<xs:element name="mapped" type="xs:string" />
 									</xs:sequence>

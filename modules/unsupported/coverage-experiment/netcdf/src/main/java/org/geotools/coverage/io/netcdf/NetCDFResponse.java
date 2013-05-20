@@ -214,14 +214,15 @@ class NetCDFResponse extends CoverageResponse{
        
 
        Map<String, Set<?>> domainsSubset = readRequest.getAdditionalDomainsSubset();     
-       
+       Filter requestFilter = request.originalRequest.getFilter();
+
        // handling date and time
        for (DateRange timeRange : tempSubset) {
            for (NumberRange<Double> elevation : vertSubset) {
 
                Query query = new Query();
                // handle time and elevation
-               createTimeElevationQuery(timeRange, elevation,query);
+               createTimeElevationQuery(timeRange, elevation, query, requestFilter);
                
                // handle additional params
                additionalParamsManagement(query,domainsSubset);
@@ -295,13 +296,15 @@ class NetCDFResponse extends CoverageResponse{
      * and the specified elevation (if any)
      * @param time
      * @param elevation
-     * @param query 
+     * @param query
+     * @param requestFilter  
      * @return
      */
     private void createTimeElevationQuery(
             DateRange time, 
             NumberRange<Double> elevation, 
-            Query query) {
+            Query query,
+            Filter requestFilter) {
         final List<Filter> filters = new ArrayList<Filter>();
         
         // //
@@ -335,6 +338,11 @@ class NetCDFResponse extends CoverageResponse{
         // //
         filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.equal(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.COVERAGENAME),
                 FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(request.name), true));
+
+        if (requestFilter != null) {
+            filters.add(requestFilter);
+        }
+
         Filter filter = FeatureUtilities.DEFAULT_FILTER_FACTORY.and(filters);
         query.setFilter(filter);
     }

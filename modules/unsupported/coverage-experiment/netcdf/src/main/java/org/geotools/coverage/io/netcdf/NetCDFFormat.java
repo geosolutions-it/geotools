@@ -28,13 +28,18 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
+import org.geotools.parameter.DefaultParameterDescriptor;
 import org.geotools.parameter.DefaultParameterDescriptorGroup;
 import org.geotools.parameter.ParameterGroup;
 import org.geotools.util.logging.Logging;
 import org.opengis.coverage.grid.GridCoverageWriter;
+import org.opengis.filter.Filter;
 import org.opengis.parameter.GeneralParameterDescriptor;
+import org.opengis.parameter.ParameterDescriptor;
 
 public class NetCDFFormat extends AbstractGridFormat{
+
+    public static final ParameterDescriptor<Filter> FILTER = new DefaultParameterDescriptor<Filter>("Filter", Filter.class, null, null);
 
     private final static Logger LOGGER = Logging
             .getLogger("org.geotools.coverage.io.netcdf.NetCDFFormat");
@@ -69,7 +74,7 @@ public class NetCDFFormat extends AbstractGridFormat{
 //                MAX_ALLOWED_TILES,
                 TIME,
                 ELEVATION,
-//                FILTER,
+                FILTER,
 //                SORT_BY,
 //                MERGE_BEHAVIOR
         }));

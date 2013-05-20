@@ -585,7 +585,13 @@ class AncillaryFileManager {
             if (schema == null) {
                 schema = OBJECT_FACTORY.createSchemaType();
                 coverage.setSchema(schema);
+<<<<<<< HEAD:modules/unsupported/coverage-experiment/unidata/src/main/java/org/geotools/imageio/unidata/AncillaryFileManager.java
             } 
+=======
+            }
+            String schemaName = NetCDFAncillaryManager.DEFAULT; 
+            schema.setAttributes(CoverageSlice.Attributes.FULLSCHEMA);
+>>>>>>> d8eb05c... [MD][NetCDF] - Supporting FILTER read param:modules/unsupported/coverage-experiment/unidata/src/main/java/org/geotools/imageio/unidata/NetCDFAncillaryManager.java
             schema.setName(schemaName);
             if(schemaDef!=null){
                 schema.setAttributes(schemaDef);
