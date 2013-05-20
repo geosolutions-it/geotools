@@ -658,6 +658,7 @@ class NetCDFAncillaryManager {
                 coverage.setSchema(schema);
             }
             String schemaName = NetCDFAncillaryManager.DEFAULT; 
+            schema.setAttributes(CoverageSlice.Attributes.FULLSCHEMA);
             schema.setName(schemaName);
             return schemaName;
         }

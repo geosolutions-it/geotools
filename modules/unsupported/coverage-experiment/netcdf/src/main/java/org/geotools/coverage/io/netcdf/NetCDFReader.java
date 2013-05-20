@@ -94,6 +94,7 @@ import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.filter.Filter;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterDescriptor;
@@ -613,7 +614,15 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             }
             return;
         }
-        
+
+        if (name.equals(ImageMosaicFormat.FILTER.getName())) {
+            final Object value = param.getValue();
+            if (value == null)
+                return;
+            request.setFilter((Filter) value);
+            return;
+        }
+
         String paramName = name.getCode();
         if (((NetCDFSource) gridSource).isParameterSupported(name)) {
             final Object value = param.getValue();

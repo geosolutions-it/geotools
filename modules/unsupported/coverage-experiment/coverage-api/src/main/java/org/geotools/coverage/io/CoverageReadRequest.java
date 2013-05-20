@@ -33,6 +33,7 @@ import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
+import org.opengis.filter.Filter;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -94,9 +95,11 @@ public class CoverageReadRequest extends CoverageRequest {
      */
     private SortedSet<DateRange> temporalSubset;
 
-    
     private Map<String, Set<?>> additionalDomainsSubset;
-    
+
+    /** Custom filter for additional queries */
+    private Filter filter;
+
     /**
      * @see org.geotools.coverage.io.CoverageReadRequest#getRangeSubset()
      */
@@ -215,6 +218,14 @@ public class CoverageReadRequest extends CoverageRequest {
      */
     public MathTransform2D getGridToWorldTransform() {
         return gridToWorldTransform;
+    }
+
+    public void setFilter(Filter filter) {
+        this.filter = filter;
+    }
+
+    public Filter getFilter() {
+        return filter;
     }
 
 }

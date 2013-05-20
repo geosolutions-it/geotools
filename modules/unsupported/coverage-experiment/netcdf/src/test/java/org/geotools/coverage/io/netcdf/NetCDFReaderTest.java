@@ -44,11 +44,13 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
+import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.test.TestData;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.coverage.grid.GridEnvelope;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
@@ -132,6 +134,91 @@ public class NetCDFReaderTest extends Assert {
                 });
 
                 GeneralParameterValue[] values = new GeneralParameterValue[] { gg, time, elevation };
+                GridCoverage2D coverage = reader.read(coverageName, values);
+                assertNotNull(coverage);
+                if (TestData.isInteractiveTest()) {
+                    coverage.show();
+                } else {
+                    PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
+                }
+            }
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.dispose();
+                } catch (Throwable t) {
+                    // Does nothing
+                }
+            }
+        }
+    }
+
+    @Test
+    public void NetCDFTestOnFilter() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
+        
+        final URL testURL = TestData.url(this, "O3-NO2.nc");
+        final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
+        // Get format
+        final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
+        final NetCDFReader reader = (NetCDFReader) format.getReader(testURL, hints);
+        
+        assertNotNull(format);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            names = new String[] { names[1] };
+
+            for (String coverageName : names) {
+
+                final String[] metadataNames = reader.getMetadataNames(coverageName);
+                assertNotNull(metadataNames);
+                assertEquals(metadataNames.length, 10);
+
+                // Parsing metadata values
+                assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
+                final String timeMetadata = reader.getMetadataValue(coverageName, "TIME_DOMAIN");
+                assertEquals( "2012-04-01T00:00:00.000Z/2012-04-01T00:00:00.000Z,2012-04-01T01:00:00.000Z/2012-04-01T01:00:00.000Z",
+                        timeMetadata);
+                assertNotNull(timeMetadata);
+                assertEquals("2012-04-01T00:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MINIMUM"));
+                assertEquals("2012-04-01T01:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MAXIMUM"));
+
+                assertEquals("true", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
+                final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
+                assertNotNull(elevationMetadata);
+                assertEquals("10.0/10.0,450.0/450.0", elevationMetadata);
+                assertEquals(2, elevationMetadata.split(",").length);
+                assertEquals("10.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MINIMUM"));
+                assertEquals("450.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MAXIMUM"));
+
+                // subsetting the envelope
+                final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
+                        .createValue();
+                final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
+                final GeneralEnvelope reducedEnvelope = new GeneralEnvelope(new double[] {
+                        originalEnvelope.getLowerCorner().getOrdinate(0),
+                        originalEnvelope.getLowerCorner().getOrdinate(1) }, new double[] {
+                        originalEnvelope.getMedian().getOrdinate(0),
+                        originalEnvelope.getMedian().getOrdinate(1) });
+                reducedEnvelope.setCoordinateReferenceSystem(reader
+                        .getCoordinateReferenceSystem(coverageName));
+
+                // Selecting bigger gridRange for a zoomed result
+                final Dimension dim = new Dimension();
+                GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
+                dim.setSize(gridRange.getSpan(0) * 4.0, gridRange.getSpan(1) * 2.0);
+                final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
+                rasterArea.setSize(dim);
+                final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
+                gg.setValue(new GridGeometry2D(range, reducedEnvelope));
+
+                final ParameterValue<Filter> filterParam = NetCDFFormat.FILTER.createValue();
+                FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
+                Filter filter = FF.equals(FF.property("elevation"), FF.literal(450.0));
+                filterParam.setValue(filter);
+
+                GeneralParameterValue[] values = new GeneralParameterValue[] { filterParam };
                 GridCoverage2D coverage = reader.read(coverageName, values);
                 assertNotNull(coverage);
                 if (TestData.isInteractiveTest()) {

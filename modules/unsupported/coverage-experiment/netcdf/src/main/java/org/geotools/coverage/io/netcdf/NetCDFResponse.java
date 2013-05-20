@@ -237,12 +237,13 @@ public class NetCDFResponse extends CoverageResponse{
 //           if (additionalDomain != null) {
 //               
 //           }
+           Filter requestFilter = request.originalRequest.getFilter();
            for (DateRange timeRange : tempSubset) {
                for (NumberRange<Double> elevation : vertSubset) {
                    
-                   
-                   Query query = createQuery(timeRange, elevation);
+                   Query query = createQuery(timeRange, elevation, requestFilter);
                    query.setTypeName(request.source.reader.getTypeName(request.name));
+
                    List<Integer> indexes = request.source.reader.getImageIndex(query);
                    if (indexes == null || indexes.isEmpty()) {
                        if (LOGGER.isLoggable(Level.FINE)) {
@@ -274,9 +275,10 @@ public class NetCDFResponse extends CoverageResponse{
      * and the specified elevation (if any)
      * @param time
      * @param elevation
+     * @param requestFilter 
      * @return
      */
-    private Query createQuery(DateRange time, NumberRange<Double> elevation) {
+    private Query createQuery(DateRange time, NumberRange<Double> elevation, Filter requestFilter) {
         final List<Filter> filters = new ArrayList<Filter>();
         
         // //
@@ -310,6 +312,11 @@ public class NetCDFResponse extends CoverageResponse{
         // //
         filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
                 FF.literal(request.name), true));
+
+        if (requestFilter != null) {
+            filters.add(requestFilter);
+        }
+
         Filter filter = FF.and(filters);
         Query query = new Query();
         query.setFilter(filter);
