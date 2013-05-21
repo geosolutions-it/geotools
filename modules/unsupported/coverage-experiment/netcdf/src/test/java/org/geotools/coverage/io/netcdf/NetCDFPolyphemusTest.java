@@ -27,7 +27,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,7 +48,6 @@ import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.Driver.DriverCapabilities;
 import org.geotools.coverage.io.GridCoverageResponse;
 import org.geotools.coverage.io.impl.DefaultFileDriver;
-import org.geotools.coverage.io.util.DateRangeComparator;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.imageio.netcdf.NetCDFImageReader;
 import org.geotools.imageio.netcdf.NetCDFImageReaderSpi;

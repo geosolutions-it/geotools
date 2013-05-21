@@ -2,7 +2,6 @@ package org.geotools.imageio.unidata;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,7 +21,6 @@ import javax.xml.bind.Unmarshaller;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.io.catalog.CoverageSlice;
-import org.geotools.coverage.io.util.Utilities;
 import org.geotools.data.DataUtilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
@@ -37,24 +35,25 @@ import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
-import org.geotools.imageio.unidata.UnidataImageReader.DatastoreProperties;
 import org.geotools.referencing.CRS;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+
+import ucar.ma2.DataType;
+import ucar.nc2.constants.AxisType;
+import ucar.nc2.dataset.CoordinateAxis;
+import ucar.nc2.dataset.CoordinateSystem;
 
 /** 
  * A class used to store any auxiliary indexing information
  * 
  * @author Daniele Romagnoli, GeoSolutions SAS
  */
-class NetCDFAncillaryManager {
+class AncillaryFileManager {
 
-    private final static Logger LOGGER = Logging.getLogger(NetCDFAncillaryManager.class.toString());
+    private final static Logger LOGGER = Logging.getLogger(AncillaryFileManager.class.toString());
 
     private static ObjectFactory OBJECT_FACTORY = new ObjectFactory();
 
@@ -65,7 +64,7 @@ class NetCDFAncillaryManager {
     private static CoordinateReferenceSystem WGS84;
 
     /** Default schema name */
-    static final String DEFAULT = "def";
+    static final String DEFAULT_SCHEMA_NAME = "def";
     
     private static final Set<PropertiesCollectorSPI> pcSPIs = PropertiesCollectorFinder.getPropertiesCollectorSPI();
 
@@ -76,13 +75,9 @@ class NetCDFAncillaryManager {
             MARSHALLER = jc.createMarshaller();
             UNMARSHALLER = jc.createUnmarshaller();
             WGS84 = CRS.decode("EPSG:4326", true);
-        } catch (JAXBException e) {
-            LOGGER.log(Level.FINER, e.getMessage(), e);
-        } catch (NoSuchAuthorityCodeException e) {
-            LOGGER.log(Level.FINER, e.getMessage(), e);
-        } catch (FactoryException e) {
-            LOGGER.log(Level.FINER, e.getMessage(), e);
-        }
+        } catch (Exception e) {
+            LOGGER.log(Level.INFO, e.getMessage(), e);
+        } 
     }
 
     Indexer indexer;
@@ -116,7 +111,7 @@ class NetCDFAncillaryManager {
     private File mainFile;
 
     /** The parent folder of the main File */
-    private File parentDir;
+    private File parentDirectory;
 
     /** File storing the slices index (index, Tsection, Zsection) */
     private File slicesIndexFile;
@@ -129,7 +124,7 @@ class NetCDFAncillaryManager {
      */
     protected Properties datastoreProps = null;
 
-    public NetCDFAncillaryManager(final File file, final String indexFilePath) {
+    public AncillaryFileManager(final File file, final String indexFilePath) {
         org.geotools.util.Utilities.ensureNonNull("file", file);
         if (!file.exists()) {
             throw new IllegalArgumentException("The specified file doesn't exist: " + file);
@@ -137,7 +132,7 @@ class NetCDFAncillaryManager {
 
         // Set files  
         mainFile = file;
-        parentDir = new File(mainFile.getParent());
+        parentDirectory = new File(mainFile.getParent());
 
         // Look for external folder configuration
         final String baseFolder = UnidataUtilities.EXTERNAL_DATA_DIR;
@@ -152,7 +147,7 @@ class NetCDFAncillaryManager {
             String mainFilePath = mainFile.getCanonicalPath();
             String baseName = FilenameUtils.removeExtension(FilenameUtils.getName(mainFilePath));
             String outputLocalFolder = "." + baseName;
-            destinationDir = new File(parentDir, outputLocalFolder);
+            destinationDir = new File(parentDirectory, outputLocalFolder);
 
             // append base file folder tree to the optional external data dir
             if (baseDir != null) {
@@ -299,8 +294,8 @@ class NetCDFAncillaryManager {
     /**
      * Initialize the schema and return the {@link SimpleFeatureType} instance.
      * @param params
-     * @param schemaTypeName
      * @param coverage
+     * @param cs 
      * @return
      * @throws IOException
      * @throws InstantiationException
@@ -308,9 +303,9 @@ class NetCDFAncillaryManager {
      * @throws ClassNotFoundException
      */
     SimpleFeatureType initializeSchema(
-            final Map<String, Serializable> params, 
-            final String schemaTypeName, 
-            final Coverage coverage) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+//            final Map<String, Serializable> params, 
+            final Coverage coverage, 
+            CoordinateSystem cs) throws Exception {
 
         // Get the schema for that coverage (if any)
         SchemaType schemaElement = coverage.getSchema();
@@ -325,22 +320,67 @@ class NetCDFAncillaryManager {
         // for the moment we only handle data in 4326
         final CoordinateReferenceSystem actualCRS = WGS84;
         SimpleFeatureType indexSchema = null;
-        initializeParams(params);
+//        initializeParams(params);
 
         // Use default attributes if schema isn't defined yet
-        if (schemaAttributes == null /* schemaTypeName.equalsIgnoreCase(DEFAULT)*/) {
-            schemaAttributes = CoverageSlice.Attributes.FULLSCHEMA;
+        if (schemaAttributes == null) {
+            // init with base
+            schemaAttributes = CoverageSlice.Attributes.BASE_SCHEMA;
+            
+            // check other dimensions
+            List<CoordinateAxis> axes = cs.getCoordinateAxes();
+            for (int i = 0; i < axes.size(); i++) {
+                final CoordinateAxis axis = axes.get(i);
+                final AxisType axisType = axis.getAxisType();
+                if (AxisType.Time.equals(axisType)) {
+                    schemaAttributes+=(","+CoverageSlice.Attributes.TIME+ ":java.util.Date");
+                    continue;
+                }
+
+                // If the axis is not numeric, we can't process any further. 
+                // If it is, then adds the coordinate and index ranges.
+                if (!axis.isNumeric()) {
+                    continue;
+                }
+                if (axisType == AxisType.Height || axisType == AxisType.GeoZ || axisType == AxisType.Pressure) {
+                    
+                    //TODO: check that.
+                    String axisName = axis.getFullName();
+                    if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
+                        schemaAttributes+=(","+CoverageSlice.Attributes.ELEVATION+ ":Double");
+                        continue;
+                    }
+                }
+
+                if (axisType != AxisType.Lat && axisType != AxisType.Lon) {
+                    schemaAttributes+=(","+ axis.getFullName());
+                    DataType type = axis.getDataType();
+                    switch (type) {
+                    case BYTE:case INT:case SHORT: 
+                        schemaAttributes+=":Integer";
+                        break;
+                    case LONG:
+                        schemaAttributes+=":Long";
+                        break;                        
+                    case DOUBLE:case FLOAT:
+                        schemaAttributes+=":Double";
+                        break;                        
+                    default:
+                        break;
+                    }
+                    continue;
+                }
+            }
+            
             schemaElement.setAttributes(schemaAttributes);
-            schemaElement.setName(schemaTypeName);
         }
         
         // Setting up the simpleFeatureType
-        String schema = schemaAttributes;
-        if (schema != null) {
-            schema = schema.trim();
+        if (schemaAttributes != null) {
+            schemaAttributes = schemaAttributes.trim();
             // get the schema
             try {
-                indexSchema = DataUtilities.createType(schemaTypeName, schema);
+                indexSchema = DataUtilities.createType(schemaElement.getName(), schemaAttributes);
                 indexSchema = DataUtilities.createSubType(indexSchema,
                         DataUtilities.attributeNames(indexSchema), actualCRS);
             } catch (Throwable e) {
@@ -350,32 +390,6 @@ class NetCDFAncillaryManager {
             }
         }
         return indexSchema;
-    }
-
-    /**
-     * Initialize the datastore params
-     * @param params
-     * @throws IOException
-     */
-    void initializeParams(Map<String, Serializable> params) throws IOException {
-        final String filePath = slicesIndexFile.getAbsolutePath();
-        datastoreProps = new DatastoreProperties(FilenameUtils.removeExtension(FilenameUtils.getName(filePath)).replace(".", ""));
-        
-        try {
-            // create a datastore as instructed
-            params.putAll(Utilities.createDataStoreParamsFromProperties(datastoreProps,  DatastoreProperties.SPI));
-    
-            // set ParentLocation parameter since for embedded database like H2 we must change the database
-            // to incorporate the path where to write the db
-            params.put("ParentLocation", DataUtilities.fileToURL(destinationDir).toExternalForm());
-//            String typeName = datastoreProps.getProperty("database");
-//            if (typeName != null) {
-//                params.put(DatastoreProperties.TYPE_NAME, typeName);
-//            }
-
-        } catch (Throwable e) {
-            throw new IOException(e);
-        }
     }
 
     /**
@@ -623,7 +637,7 @@ class NetCDFAncillaryManager {
                     }
                     if (selectedSPI == null) {
                         if (LOGGER.isLoggable(Level.INFO)) {
-                            LOGGER.info("Unable to find a PropertyCollector for this SPI: " + spiName);
+                            LOGGER.info("Unable to find a PropertyCollector for this INTERNAL_STORE_SPI: " + spiName);
                         }
                         continue;
                     }
@@ -657,7 +671,7 @@ class NetCDFAncillaryManager {
                 schema = OBJECT_FACTORY.createSchemaType();
                 coverage.setSchema(schema);
             }
-            String schemaName = NetCDFAncillaryManager.DEFAULT; 
+            String schemaName = AncillaryFileManager.DEFAULT_SCHEMA_NAME; 
             schema.setName(schemaName);
             return schemaName;
         }

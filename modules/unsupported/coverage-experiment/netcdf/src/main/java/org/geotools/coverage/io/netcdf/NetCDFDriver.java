@@ -68,7 +68,7 @@ public class NetCDFDriver extends DefaultFileDriver implements FileDriver, Drive
                 temp = null;
             }
         }
-        // assign the SPI
+        // assign the INTERNAL_STORE_SPI
         SPI = temp;
     }
 

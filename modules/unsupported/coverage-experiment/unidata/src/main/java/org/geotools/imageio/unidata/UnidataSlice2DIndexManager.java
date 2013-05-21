@@ -29,11 +29,12 @@ import java.util.List;
  * An wrapper for variable index files.
  * 
  * @author Andrea Antonello
+ * @author Simone Giannecchini, GeoSolutions
  *
  */
 class UnidataSlice2DIndexManager {
 
-    private static final long ADRESS_SIZE = 8l;    
+    private static final long ADDRESS_SIZE = 8l;    
     
     private static long ADDRESS_POSITION = 4l;
     
@@ -61,7 +62,7 @@ class UnidataSlice2DIndexManager {
      * @throws IOException
      */
     public UnidataSlice2DIndex getSlice2DIndex( int imageIndex ) throws IOException {
-        long addressPosition = ADDRESS_POSITION + imageIndex * ADRESS_SIZE;
+        long addressPosition = ADDRESS_POSITION + imageIndex * ADDRESS_SIZE;
 
         raf.seek(addressPosition);
         long dataPosition = raf.readLong();
@@ -82,7 +83,6 @@ class UnidataSlice2DIndexManager {
             raf.close();
         }
     }
-
     /**
      * Utility method to write an index file.
      * 
@@ -91,13 +91,24 @@ class UnidataSlice2DIndexManager {
      * @throws IOException
      */
     public static void writeIndexFile( File file, List<UnidataSlice2DIndex> indexList ) throws IOException {
+        writeIndexFile(file, indexList, 2);
+    }
+    
+    /**
+     * Utility method to write an index file.
+     * 
+     * @param file the file to write to.
+     * @param indexList the list of {@link UnidataSlice2DIndex} to dump to file.
+     * @throws IOException
+     */
+    public static void writeIndexFile( File file, List<UnidataSlice2DIndex> indexList, int dimensions ) throws IOException {
         RandomAccessFile raf = null;
         try {
             raf = new RandomAccessFile(file, "rw");
             int size = indexList.size();
             // write number of records
             raf.writeInt(size);
-            long dataPosition = ADDRESS_POSITION + (size + 1) * ADRESS_SIZE; // the +1 is to have the end address
+            long dataPosition = ADDRESS_POSITION + (size + 1) * ADDRESS_SIZE; // the +1 is to have the end address
 
             long[] pointer = new long[size];
             raf.seek(dataPosition);

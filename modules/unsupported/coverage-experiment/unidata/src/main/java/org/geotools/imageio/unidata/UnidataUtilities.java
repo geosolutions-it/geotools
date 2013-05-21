@@ -41,14 +41,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.io.util.DateRangeComparator;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
-import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 
@@ -64,8 +61,8 @@ import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
-import ucar.nc2.dataset.VariableDS;
 import ucar.nc2.dataset.NetcdfDataset.Enhance;
+import ucar.nc2.dataset.VariableDS;
 
 /**
  * Set of NetCDF utility methods.

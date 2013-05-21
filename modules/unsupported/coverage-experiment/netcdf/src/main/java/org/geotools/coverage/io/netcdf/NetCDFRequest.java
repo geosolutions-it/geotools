@@ -50,10 +50,10 @@ import org.opengis.referencing.operation.MathTransform2D;
  * @author Daniele Romagnoli, GeoSolutions
  * @author Simone Giannecchini, GeoSolutions
  */
-public class NetCDFCoverageReadRequest extends CoverageReadRequest{
+class NetCDFRequest extends CoverageReadRequest{
     
     /** Logger. */
-    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(NetCDFCoverageReadRequest.class);
+    private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(NetCDFRequest.class);
 
     /** The Interpolation required to serve this request */
     // TODO: CUSTOMIZE INTERPOLATION request.getInterpolation();
@@ -79,7 +79,7 @@ public class NetCDFCoverageReadRequest extends CoverageReadRequest{
      * @param baseGridCoverage2DReader
      * @throws IOException 
      */
-    public NetCDFCoverageReadRequest(NetCDFSource source, CoverageReadRequest request) throws IOException {
+    public NetCDFRequest(NetCDFSource source, CoverageReadRequest request) throws IOException {
         this.source = source;
         this.originalRequest = request;
         name = source.getName(null).toString();
@@ -110,28 +110,19 @@ public class NetCDFCoverageReadRequest extends CoverageReadRequest{
     private void initInputCoverageProperties() throws IOException {
         UnidataCoverageDescriptor.UnidataSpatialDomain spatialDomain = (org.geotools.imageio.unidata.UnidataCoverageDescriptor.UnidataSpatialDomain) (source.getSpatialDomain());
 
-        double[] coverageFullResolution = null;
-        MathTransform raster2Model = null;
-        BoundingBox bbox;
-        CoordinateReferenceSystem spatialReferenceSystem2D = null;
-        GridGeometry2D gridGeometry2D = null;
-        AffineTransform gridToCRS = null;
-        Rectangle rasterArea = null;
-        ReferencedEnvelope referencedEnvelope;
-
         // Getting spatial context
-        Set<? extends RasterLayout> rasterElements = spatialDomain.getRasterElements(false, null);
-        gridGeometry2D = spatialDomain.getGridGeometry();
-        gridToCRS = (AffineTransform) gridGeometry2D.getGridToCRS();
-        coverageFullResolution = CoverageUtilities.getResolution(gridToCRS);
-        raster2Model = gridGeometry2D.getGridToCRS();
-        bbox = spatialDomain.getReferencedEnvelope();
-        referencedEnvelope = new ReferencedEnvelope(bbox);
-        spatialReferenceSystem2D = spatialDomain.getCoordinateReferenceSystem2D();
+        final Set<? extends RasterLayout> rasterElements = spatialDomain.getRasterElements(false, null);
+        final GridGeometry2D gridGeometry2D = spatialDomain.getGridGeometry();
+        final AffineTransform gridToCRS = (AffineTransform) gridGeometry2D.getGridToCRS();
+        final double[] coverageFullResolution = CoverageUtilities.getResolution(gridToCRS);
+        final MathTransform raster2Model = gridGeometry2D.getGridToCRS();
+        final ReferencedEnvelope bbox = spatialDomain.getReferencedEnvelope();
+        final ReferencedEnvelope referencedEnvelope = new ReferencedEnvelope(bbox);
+        final CoordinateReferenceSystem spatialReferenceSystem2D = spatialDomain.getCoordinateReferenceSystem2D();
         rasterArea = rasterElements.iterator().next().toRectangle();
 
         // Setting up Coverage info
-        CoverageProperties properties = new CoverageProperties();
+        final CoverageProperties properties = new CoverageProperties();
         properties.setCrs2D(spatialReferenceSystem2D);
         properties.setFullResolution(coverageFullResolution);
         

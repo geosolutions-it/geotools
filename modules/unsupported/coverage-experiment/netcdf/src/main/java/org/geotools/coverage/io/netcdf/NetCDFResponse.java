@@ -25,10 +25,10 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -89,7 +89,7 @@ import org.opengis.referencing.operation.TransformException;
  * @author Stefan Alfons Krueger (alfonx), Wikisquare.de : Support for jar:file:foo.jar/bar.properties URLs
  */
 @SuppressWarnings("rawtypes")
-public class NetCDFResponse extends CoverageResponse{
+class NetCDFResponse extends CoverageResponse{
     
     private final static double EPS = 1E-6;
 
@@ -101,8 +101,8 @@ public class NetCDFResponse extends CoverageResponse{
     private final static Logger LOGGER = org.geotools.util.logging.Logging
             .getLogger(NetCDFResponse.class);
 
-    /** The {@link NetCDFCoverageReadRequest} originating this response */
-    private NetCDFCoverageReadRequest request;
+    /** The {@link NetCDFRequest} originating this response */
+    private NetCDFRequest request;
 
     /** The coverage factory producing a {@link GridCoverage} from an image */
     final private static GridCoverageFactory COVERAGE_FACTORY = new GridCoverageFactory();
@@ -140,8 +140,7 @@ public class NetCDFResponse extends CoverageResponse{
      * @param COVERAGE_FACTORY a {@code GridCoverageFactory} to produce a {@code GridCoverage} when calling the {@link #createResponse()} method.
      * @param readerSpi the Image Reader Service provider interface.
      */
-    public NetCDFResponse(final NetCDFCoverageReadRequest request) {
-        super();
+    public NetCDFResponse(final NetCDFRequest request) {
         this.request = request;
         CoverageReadRequest readRequest = request.originalRequest;
         setRequest(readRequest);
@@ -166,6 +165,7 @@ public class NetCDFResponse extends CoverageResponse{
      */
     private void processRequest() throws IOException {
 
+        // is this query empty?
         if (request.spatialRequestHelper.isEmpty()) {
             if (LOGGER.isLoggable(Level.FINE)){
                 LOGGER.log(Level.FINE, "Request is empty: " + request.toString());
@@ -175,15 +175,13 @@ public class NetCDFResponse extends CoverageResponse{
 
         // assemble granules
         prepareParams();
+        
         CoverageReadRequest readRequest = (CoverageReadRequest) /*response.*/getRequest();
-
         RangeType rangeType = request.source.getRangeType(null);
-
         Set<DateRange> temporalSubset = readRequest.getTemporalSubset();
         Set<NumberRange<Double>> verticalSubset = readRequest.getVerticalSubset();
         RangeType requestedRange = readRequest.getRangeSubset();
         Set<FieldType> fieldTypes = requestedRange.getFieldTypes();
-        Map<String, Set<?>> domainsSubset = readRequest.getAdditionalDomainsSubset();
         
         
         //
@@ -200,8 +198,7 @@ public class NetCDFResponse extends CoverageResponse{
                    sampleDims = ft.getSampleDimensions();
            }
        }
-       
-        final GridSampleDimension[] sampleDimensions = sampleDims.toArray(new GridSampleDimension[sampleDims.size()]);
+       final GridSampleDimension[] sampleDimensions = sampleDims.toArray(new GridSampleDimension[sampleDims.size()]);
 
        // Forcing creation of subsets (even with a single null element)
        Set<DateRange> tempSubset = null;
@@ -220,63 +217,89 @@ public class NetCDFResponse extends CoverageResponse{
            vertSubset.add(null);
        }
        
-       
-//       Map<String, Set<?>> domSubset = null;
-//       if (!domainsSubset.isEmpty()) {
-//           domSubset = domainsSubset;
-//       } else {
-//           domSubset = new HashMap<String, Set<?>>();
-//           domSubset.put(null, null);
-//       }
 
-       // Current result order is as COARDS convention
-       // (ascending times as slowest increasing index,
-       // ascending elevations as fastest increasing index)
-//       Set<String> additionalDomains = domSubset.keySet();
-//       for (String additionalDomain: additionalDomains) {
-//           if (additionalDomain != null) {
-//               
-//           }
-           for (DateRange timeRange : tempSubset) {
-               for (NumberRange<Double> elevation : vertSubset) {
-                   
-                   
-                   Query query = createQuery(timeRange, elevation);
-                   query.setTypeName(request.source.reader.getTypeName(request.name));
-                   List<Integer> indexes = request.source.reader.getImageIndex(query);
-                   if (indexes == null || indexes.isEmpty()) {
-                       if (LOGGER.isLoggable(Level.FINE)) {
-                           LOGGER.fine(" No indexes found for this query: " + query.toString());
-                       }
-                       continue;
-                   } 
-                   int imageIndex = indexes.get(0);
-                   final RenderedImage image = loadRaster(baseReadParameters, imageIndex, mosaicBBox, finalWorldToGridCorner, hints);
-    
-                   // postproc
-                   RenderedImage finalRaster = postProcessRaster(image);
-                   // create the coverage
-                   GridCoverage2D gridCoverage = prepareCoverage(finalRaster, sampleDimensions);
-    
-                   // Adding coverage domain
-                   if (gridCoverage != null) {
-                       GridCoverage gcResponse = new DefaultGridCoverageResponse(gridCoverage, timeRange, elevation);
-                       addResult(gcResponse);
+       Map<String, Set<?>> domainsSubset = readRequest.getAdditionalDomainsSubset();     
+       
+       // handling date and time
+       for (DateRange timeRange : tempSubset) {
+           for (NumberRange<Double> elevation : vertSubset) {
+
+               Query query = new Query();
+               // handle time and elevation
+               createTimeElevationQuery(timeRange, elevation,query);
+               
+               // handle additional params
+               additionalParamsManagement(query,domainsSubset);
+               
+//               // spatial
+//               query.setFilter(Filter.INCLUDE);
+               
+               
+               query.setTypeName(request.source.reader.getTypeName(request.name));
+               List<Integer> indexes = request.source.reader.getImageIndex(query);
+               if (indexes == null || indexes.isEmpty()) {
+                   if (LOGGER.isLoggable(Level.FINE)) {
+                       LOGGER.fine(" No indexes found for this query: " + query.toString());
                    }
+                   continue;
+               } 
+               int imageIndex = indexes.get(0);
+               final RenderedImage image = loadRaster(baseReadParameters, imageIndex, mosaicBBox, finalWorldToGridCorner, hints);
+
+               // postproc
+               RenderedImage finalRaster = postProcessRaster(image);
+               // create the coverage
+               GridCoverage2D gridCoverage = prepareCoverage(finalRaster, sampleDimensions);
+
+               // Adding coverage domain
+               if (gridCoverage != null) {
+                   GridCoverage gcResponse = new DefaultGridCoverageResponse(gridCoverage, timeRange, elevation);
+                   addResult(gcResponse);
                }
            }
-//       }
+       }
+       
+       // success
        setStatus(Status.SUCCESS);
 
     }
     
+    /**
+     * @param query
+     * @param domainsSubset 
+     */
+    private void additionalParamsManagement(Query query, Map<String, Set<?>> domainsSubset) {
+        if (domainsSubset.isEmpty()){
+            return;
+        }
+        Filter filter = query.getFilter();
+        for(Entry<String, Set<?>> entry:domainsSubset.entrySet()){
+            Set<?> values = entry.getValue();
+            for(Object value:values){
+                if(value instanceof Range){
+                    throw new UnsupportedOperationException();
+                } else {
+                    filter=FF.and(filter,
+                            FF.equals(FF.property(entry.getKey().toLowerCase()),FF.literal(value)));
+                }
+            }
+
+        }
+        query.setFilter(filter);
+        
+    }
+
     /** Create the query to retrive the imageIndex related to the specified time (if any) 
      * and the specified elevation (if any)
      * @param time
      * @param elevation
+     * @param query 
      * @return
      */
-    private Query createQuery(DateRange time, NumberRange<Double> elevation) {
+    private void createTimeElevationQuery(
+            DateRange time, 
+            NumberRange<Double> elevation, 
+            Query query) {
         final List<Filter> filters = new ArrayList<Filter>();
         
         // //
@@ -311,9 +334,7 @@ public class NetCDFResponse extends CoverageResponse{
         filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
                 FF.literal(request.name), true));
         Filter filter = FF.and(filters);
-        Query query = new Query();
         query.setFilter(filter);
-        return query;
     }
 
     private RenderedImage postProcessRaster(RenderedImage image) {

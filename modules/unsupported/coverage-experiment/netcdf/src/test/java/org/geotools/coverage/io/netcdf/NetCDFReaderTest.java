@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 
 import javax.media.jai.PlanarImage;
@@ -50,6 +51,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.parameter.GeneralParameterValue;
+import org.opengis.parameter.ParameterDescriptor;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
@@ -314,5 +316,97 @@ public class NetCDFReaderTest extends Assert {
     @After
     public void tearDown() throws FileNotFoundException, IOException {
         cleanUp();
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void IASI() throws Exception {
+        
+        final URL testURL = TestData.url(this, "IASI_C_EUMP_20121120062959_31590_eps_o_l2.nc");
+        final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
+        // Get format
+        final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
+        final NetCDFReader reader = (NetCDFReader) format.getReader(testURL, hints);
+        
+        assertNotNull(format);
+        try {
+            String[] names = reader.getGridCoverageNames();
+    
+            // surface_emissivity
+            final String coverageName = "surface_emissivity";
+            final String[] metadataNames = reader.getMetadataNames(coverageName);
+            assertNotNull(metadataNames);
+            assertEquals(metadataNames.length, 14);
+
+            // Parsing metadata values
+            assertEquals("false", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
+            assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
+            assertEquals("true", reader.getMetadataValue(coverageName, "HAS_NEW_DOMAIN"));
+            
+            // additional domains
+            final String newDomain=reader.getMetadataValue(coverageName, "NEW_DOMAIN");
+            assertNotNull(metadataNames);
+            final String[] newDomainValues = newDomain.split(",");
+            assertNotNull(newDomainValues);
+            assertEquals(12,newDomainValues.length);
+            assertEquals(13.063399669990758,Double.valueOf(newDomainValues[11]),1E-6);
+            assertEquals(3.6231999084702693,Double.valueOf(newDomainValues[0]),1E-6);
+            
+            
+            // subsetting the envelope
+            final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
+            final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
+            final GeneralEnvelope reducedEnvelope = new GeneralEnvelope(new double[] {
+                    originalEnvelope.getLowerCorner().getOrdinate(0),
+                    originalEnvelope.getLowerCorner().getOrdinate(1) }, new double[] {
+                    originalEnvelope.getMedian().getOrdinate(0),
+                    originalEnvelope.getMedian().getOrdinate(1) });
+            reducedEnvelope.setCoordinateReferenceSystem(reader
+                    .getCoordinateReferenceSystem(coverageName));
+
+            // Selecting bigger gridRange for a zoomed result
+            final Dimension dim = new Dimension();
+            GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
+            dim.setSize(gridRange.getSpan(0) * 4.0, gridRange.getSpan(1) * 2.0);
+            final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
+            rasterArea.setSize(dim);
+            final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
+            gg.setValue(new GridGeometry2D(range, reducedEnvelope));
+
+            
+
+            // specify additional Dimensions
+            Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(coverageName);
+            ParameterValue<List> new_ = null;
+            for (ParameterDescriptor param : params) {
+                if (param.getName().getCode().equalsIgnoreCase("NEW")) {
+                    new_ = param.createValue();
+                    new_.setValue(new ArrayList() {
+                        {
+                            add(Double.valueOf(newDomainValues[11]));
+                        }
+                    });
+                } 
+            }
+
+            GeneralParameterValue[] values = new GeneralParameterValue[] { gg, new_ };
+            GridCoverage2D coverage = reader.read(coverageName, values);
+            assertNotNull(coverage);
+            if (TestData.isInteractiveTest()) {
+                coverage.show();
+            } else {
+                PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
+            }
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.dispose();
+                } catch (Throwable t) {
+                    // Does nothing
+                }
+            }
+        }
     }
 }

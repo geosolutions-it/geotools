@@ -39,11 +39,9 @@ public class CoverageSlice {
         
         public final static String GEOMETRY = "the_geom";
         
-//        public static final String FULLSCHEMA = GEOMETRY + ":Polygon," + COVERAGENAME + ":String,"
-//            + INDEX + ":Integer," + TIME + ":java.util.Date,";
+        public static final String BASE_SCHEMA = GEOMETRY + ":Polygon," + COVERAGENAME + ":String,"+ INDEX + ":Integer";
         
-        public static final String FULLSCHEMA = GEOMETRY + ":Polygon," + COVERAGENAME + ":String,"
-                + INDEX + ":Integer," + TIME + ":java.util.Date," + ELEVATION + ":Double";
+        public static final String DEFAULT_SCHEMA = BASE_SCHEMA+"," + TIME + ":java.util.Date," + ELEVATION + ":Double";
     }
 
     ReferencedEnvelope granuleBBOX;

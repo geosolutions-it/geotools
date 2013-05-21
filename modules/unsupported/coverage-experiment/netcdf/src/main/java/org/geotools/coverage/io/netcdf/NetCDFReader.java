@@ -74,8 +74,6 @@ import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataUtilities;
-import org.geotools.data.Parameter;
-import org.geotools.data.Query;
 import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
@@ -112,8 +110,6 @@ import org.opengis.referencing.operation.TransformException;
  *
  */
 public class NetCDFReader extends AbstractGridCoverage2DReader implements StructuredGridCoverage2DReader{
-
-    private static final String QUERY = "QUERY";
 
     static final String DOMAIN_SUFFIX = "_DOMAIN";
 
@@ -483,11 +479,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                     final ReferenceIdentifier name = param.getDescriptor().getName();
                     try {
                         extractParameter(param, name, request, gridSource);
-                    } catch (MismatchedDimensionException e) {
-                        throw new IOException(e);
-                    } catch (InvalidGridGeometryException e) {
-                        throw new IOException(e);
-                    } catch (TransformException e) {
+                    } catch (Exception e) {
                         throw new IOException(e);
                     }
                 }
@@ -515,18 +507,6 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             return;
         }
 
-        // // //
-        // //
-        // // Merge Behavior
-        // //
-        // // //
-        // if (name.equals(ImageMosaicFormat.MERGE_BEHAVIOR.getName())) {
-        // final Object value = param.getValue();
-        // if(value==null)
-        // return;
-        // mergeBehavior = MergeBehavior.valueOf(param.stringValue().toUpperCase());
-        // return;
-        // }
 
         // // //
         // //
@@ -620,16 +600,20 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             if (value == null){
                 return;
             }
-            if (value instanceof Set) {
-                Set values = (Set) value; // we are assuming it is a list !!!
-                // remove last comma
-                Map<String, Set<?>> domainsSubset = request.getAdditionalDomainsSubset();
-                if (domainsSubset == null) {
-                    domainsSubset = new HashMap<String, Set<?>>();
-                    request.setAdditionalDomainsSubset(domainsSubset);
-                }
-                domainsSubset.put(paramName, values);
+            final Set values= new HashSet();
+            if (value instanceof Collection) {
+                values.addAll((Collection)value); // we are assuming it is a list !!!
+
+            } else {
+                values.add(value);
             }
+            // remove last comma
+            Map<String, Set<?>> domainsSubset = request.getAdditionalDomainsSubset();
+            if (domainsSubset == null) {
+                domainsSubset = new HashMap<String, Set<?>>();
+                request.setAdditionalDomainsSubset(domainsSubset);
+            }
+            domainsSubset.put(paramName, values);            
             return;
         }
     }
@@ -855,13 +839,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         final CoverageSlicesCatalog catalog = unidataReader.getCatalog();
         return new CoverageSlicesCatalogSource(catalog, coverageName, unidataReader.getTypeName(coverageName));
     }
-
-//    @Override
-//    public Set<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
-//        // TODO Need to implement that
-//        return null;
-//    }
-
+    
     @Override
     public boolean isReadOnly() {
         return true;

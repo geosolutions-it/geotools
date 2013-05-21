@@ -82,6 +82,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-sample-data</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>    
+    <dependency>
       <!-- for FilenameUtils -->
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>

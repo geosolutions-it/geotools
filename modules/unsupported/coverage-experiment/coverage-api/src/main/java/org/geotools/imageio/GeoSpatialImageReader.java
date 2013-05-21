@@ -21,6 +21,7 @@ import it.geosolutions.imageio.utilities.SoftValueHashMap;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -38,7 +39,6 @@ import org.geotools.data.Query;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
-import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 
 /**
@@ -200,15 +200,11 @@ public abstract class GeoSpatialImageReader extends ImageReader {
     /**
      * Init the slicesCatalog based on the provided parameters
      * 
-     * @param params the parameters to be used for initialization
-     * @param create whether to create the store
-     * @param spi the {@link DataStoreFactorySpi} to be used
-     * @param indexSchema the {@link SimpleFeatureType} schema to be used to create type if not set yet
+     * @param parentLocation 
+     * @param databaseName 
      * @throws IOException
      */
-    protected void initCatalog(final Map<String, Serializable> params, final boolean create,
-            final DataStoreFactorySpi spi) throws IOException {
-        slicesCatalog = new CoverageSlicesCatalog(params, create, spi);
-//        return slicesCatalog;
+    protected void initCatalog(URL parentLocation, String databaseName) throws IOException {
+        slicesCatalog = new CoverageSlicesCatalog(databaseName,parentLocation);
     }
 }

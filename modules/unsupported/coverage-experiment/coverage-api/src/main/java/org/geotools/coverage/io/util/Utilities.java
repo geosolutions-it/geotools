@@ -1273,46 +1273,4 @@ public class Utilities {
         }
         return properties;
     }
-
-    /**
-     * 
-     * @param datastoreProperties
-     * @return
-     * @throws IOException
-     */
-    public static Map<String, Serializable> createDataStoreParamsFromPropertiesFile(
-            final URL datastoreProperties) throws IOException {
-        // read the properties file
-        Properties properties = loadPropertiesFromURL(datastoreProperties);
-        if (properties == null)
-            return null;
-
-        // SPI
-        final String SPIClass = properties.getProperty("SPI");
-        try {
-            // create a datastore as instructed
-            final DataStoreFactorySpi spi = (DataStoreFactorySpi) Class.forName(SPIClass).newInstance();
-            return createDataStoreParamsFromProperties(properties, spi);
-        } catch (Exception e) {
-            final IOException ioe = new IOException();
-            throw (IOException) ioe.initCause(e);
-        }
-    }
-
-    public static Map<String, Serializable> createDataStoreParamsFromProperties(
-            Properties properties, DataStoreFactorySpi spi) throws IOException {
-        // get the params
-        final Map<String, Serializable> params = new HashMap<String, Serializable>();
-        final Param[] paramsInfo = spi.getParametersInfo();
-        for (Param p : paramsInfo) {
-            // search for this param and set the value if found
-            if (properties.containsKey(p.key)) {
-                params.put(p.key, (Serializable) Converters.convert(properties.getProperty(p.key), p.type));
-            } else if (p.required && p.sample == null)
-                throw new IOException("Required parameter missing: " + p.toString());
-        }
-
-        return params;
-    }
-
 }

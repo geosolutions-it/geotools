@@ -32,7 +32,7 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
     private final Filter filterName;
     
     public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String coverageName, String typeName) {
-        this.innerCatalog = innerCatalog;
+
         this.typeName = typeName;
 //        this.sourceName = sourceName;
         List<Filter> filters = new ArrayList<Filter>(); 

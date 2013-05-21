@@ -311,8 +311,9 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         final CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variableDS);
         this.coordinateSystem = cs;
 
-        if (cs == null)
+        if (cs == null){
             throw new IllegalArgumentException("Provided CoordinateSystem is null");
+        }
 
         String crsName = "Unknown";
         // String csName = cs.getName(); TODO check
@@ -379,8 +380,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             if (!axis.isNumeric()) {
                 continue;
             }
-            if (axisType == AxisType.Height || axisType == AxisType.GeoZ
-                    || axisType == AxisType.Pressure) {
+            if (axisType == AxisType.Height || axisType == AxisType.GeoZ || axisType == AxisType.Pressure) {
                 
                 //TODO: check that.
                 String axisName = axis.getFullName();
@@ -467,6 +467,8 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         final GridGeometry2D gridGeometry = getGridGeometry(variableDS, coordinateReferenceSystem);
         spatialDomain.setGridGeometry(gridGeometry);
 
+        
+        // range type
         String description = variableDS.getDescription();
         final StringBuilder sb = new StringBuilder();
         final Set<SampleDimension> sampleDims = new HashSet<SampleDimension>();
@@ -481,6 +483,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         final RangeType range = new DefaultRangeType(name, description, fieldType);
         this.setRangeType(range);
         
+        // ADDITIONAL DOMAINS
         if (otherAxes != null) {
             List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
             this.setAdditionalDomains(additionalDomains);

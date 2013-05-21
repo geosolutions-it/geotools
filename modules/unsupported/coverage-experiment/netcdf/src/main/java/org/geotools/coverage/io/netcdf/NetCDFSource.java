@@ -57,7 +57,7 @@ public class NetCDFSource extends DefaultCoverageSource {
             throws IOException {
         ensureNotDisposed();
 
-        NetCDFCoverageReadRequest coverageRequest = new NetCDFCoverageReadRequest(this, request);
+        NetCDFRequest coverageRequest = new NetCDFRequest(this, request);
         NetCDFResponse netCDFresponse = new NetCDFResponse(coverageRequest);
         return netCDFresponse.createResponse();
     }

@@ -30,7 +30,6 @@ import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,14 +49,13 @@ import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.spi.ImageReaderSpi;
 import javax.xml.bind.JAXBException;
 
+import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.collection.ListFeatureCollection;
-import org.geotools.data.h2.H2DataStoreFactory;
 import org.geotools.feature.NameImpl;
-import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.imageio.GeoSpatialImageReader;
@@ -93,6 +91,9 @@ import com.vividsolutions.jts.geom.Geometry;
  * TODO caching for {@link CoverageSourceDescriptor}
  */
 public abstract class UnidataImageReader extends GeoSpatialImageReader {
+
+    /** INTERNAL_INDEX_CREATION_PAGE_SIZE */
+    private static final int INTERNAL_INDEX_CREATION_PAGE_SIZE = 1000;
 
     private final static Logger LOGGER = Logging.getLogger(UnidataImageReader.class.toString());
 
@@ -190,9 +191,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         
         final static String USER = "geotools";
         final static String PASSWORD = "geotools";
-        final static String DRIVER = "org.h2.Driver";
-        final static String TYPE = "javax.sql.DataSource";
-        final static H2DataStoreFactory SPI = new H2DataStoreFactory();
         
         final static String URL_PREFIX = "jdbc:h2:";
         String database = null;
@@ -200,11 +198,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         final static String TYPE_NAME = "TypeName";
         
         public DatastoreProperties(String database) {
-            super();
             setProperty("user", USER);
             setProperty("passwd", PASSWORD);
-            setProperty("driver", DRIVER);
-            setProperty("type", TYPE);
             setProperty("urlPrefix", URL_PREFIX + database + ";LOG=0");
             setProperty("database", database);
             setProperty(TYPE_NAME, database);
@@ -212,10 +207,10 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     }
     
     /** 
-     * An instance of {@link NetCDFAncillaryManager} which takes care of handling all the auxiliary index
+     * An instance of {@link AncillaryFileManager} which takes care of handling all the auxiliary index
      * files and initializations.
      */
-    private NetCDFAncillaryManager manager = null;
+    private AncillaryFileManager manager = null;
 
     /** Summary set of coverage names */
     protected List<Name> coverages = new ArrayList<Name>();
@@ -237,6 +232,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     protected NetcdfDataset dataset;
 
     protected Map<String, Variable> coordinatesVariables;
+    
     protected CheckType checkType = CheckType.UNSET;
 
     /** The source file */
@@ -514,7 +510,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             dataset = extractDataset(input);
             file = UnidataUtilities.getFile(input);
             if (file != null) {
-                manager = new NetCDFAncillaryManager(file, getAuxiliaryFilesPath());
+                manager = new AncillaryFileManager(file, getAuxiliaryFilesPath());
             }
 
             init();
@@ -532,13 +528,13 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      */
     protected int initIndex( final List<Variable> variables ) throws InvalidRangeException, IOException {
         DefaultTransaction transaction = new DefaultTransaction("indexTransaction" + System.nanoTime());
-        final Map<String, Serializable> params = new HashMap<String, Serializable>();
-        manager.initializeParams(params);
-        boolean rollback = false;
         int numImages = 0;
         try {
             
-            initCatalog(params, true, DatastoreProperties.SPI);
+            final File indexerFile = manager.getIndexerFile();
+            initCatalog(
+                    DataUtilities.fileToURL(indexerFile.getParentFile()),
+                            FilenameUtils.removeExtension(FilenameUtils.getName(indexerFile.getCanonicalPath())).replace(".", ""));
             List<Coverage> filteringCoverages = null;
             if (manager.indexer != null) {
                 filteringCoverages = manager.indexer.getCoverages().getCoverage();
@@ -570,7 +566,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         // Add the accepted variable to the list of coverages name
                         final Name coverageName = getCoverageName(varName);
                         
-                        final SimpleFeatureType indexSchema = getIndexSchema(coverageName, params);
+                        final SimpleFeatureType indexSchema = getIndexSchema(coverageName,cs);
                         
                         // Currently, we only support Geographic CRS
                         Geometry geometry = UnidataCRSUtilities.extractEnvelopeAsGeometry((VariableDS)variable);
@@ -641,7 +637,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             collection.add(feature);
                             features++;
                             
-                            if (features % 1000 == 0) {
+                            // write down in pages
+                            if (features % INTERNAL_INDEX_CREATION_PAGE_SIZE == 0) {
                                 slicesCatalog.addGranules(indexSchema.getTypeName(), collection, transaction);
                                 collection.clear();
                             }
@@ -655,21 +652,17 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 }
             }
             manager.writeToDisk();
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Committing changes to the DB");
+            }
+            transaction.commit();
         } catch (Throwable e) {
-            rollback = true;
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Rollback");
+            }
+            transaction.rollback();
             throw new IOException(e);
         } finally {
-            if (rollback) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine("Rollback");
-                }
-                transaction.rollback();
-            } else {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine("Committing changes to the DB");
-                }
-                transaction.commit();
-            }
             try {
                 transaction.close();
             } catch (Throwable t) {
@@ -679,7 +672,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return numImages;
     }
 
-    private SimpleFeatureType getIndexSchema(Name name, Map<String, Serializable> params) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+    private SimpleFeatureType getIndexSchema(Name name,CoordinateSystem cs) throws Exception {
         // Getting the schema for this coverage
         SimpleFeatureType indexSchema = null;
         final String coverageName = name.toString();
@@ -691,8 +684,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         }
         
         if (schemaName == null) {
-            schemaName = manager.addDefaultSchema(coverage);
-//            manager.coveragesToSchemaMap.put(coverage, schemaName);
+            manager.addDefaultSchema(coverage);
+            coverage.getSchema().setName(coverageName); // add the coveragename
+            schemaName=coverageName;
         }
         
         String [] typeNames = slicesCatalog.getTypeNames();
@@ -706,7 +700,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
         }
         if (indexSchema == null) {
-            indexSchema = manager.initializeSchema(params, schemaName, coverage);
+            indexSchema = manager.initializeSchema(coverage,cs);
             slicesCatalog.createType(indexSchema);
         }
         return indexSchema;
@@ -773,6 +767,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                     break;
                 }
             }
+            
+            // custom dimension, mapped to an attribute using its name
             if (attribute == null) {
                 // Assuming the custom dimension is always the last attribute
                 attribute = variable.getDimension(0).getShortName();
@@ -782,7 +778,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return feature;
     }
 
-    protected void fillCoordinatesMap( final List<Variable> variables ) throws IOException {
+    protected void extractCoordinatesVariable( final List<Variable> variables ) throws IOException {
         for( Variable variable : variables ) {
             String varName = variable.getFullName();
             if (variable.isCoordinateVariable()) {
@@ -845,7 +841,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 checkType = UnidataUtilities.getCheckType(dataset);
 
                 final List<Variable> variables = dataset.getVariables();
-                fillCoordinatesMap(variables);
+                extractCoordinatesVariable(variables);
                 final File slicesIndexFile = manager.getSlicesIndexFile();
                 final File indexerFile = manager.getIndexerFile();
 
@@ -860,10 +856,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         manager.initSliceManager();
                         numImages = manager.slicesIndexManager.getNumberOfRecords();
                         if (!ignoreMetadata) {
-                            final Map<String, Serializable> params = new HashMap<String, Serializable>();
-                            manager.initializeParams(params);
-                            params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
-                            initCatalog(params, false, DatastoreProperties.SPI);
+                            initCatalog(
+                                    DataUtilities.fileToURL(indexerFile.getParentFile()),
+                                            FilenameUtils.removeExtension(FilenameUtils.getName(indexerFile.getCanonicalPath())).replace(".", ""));
                             coverages = manager.getCoveragesNames();
                         }
                     }
@@ -887,7 +882,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 }
 
             } else{
-                throw new IllegalArgumentException("Not a valid dataset has been found");
+                throw new IllegalArgumentException("No valid NetCDF dataset has been found");
             }
         } catch (InvalidRangeException e) {
             throw new IllegalArgumentException("Exception occurred during NetCDF file parsing", e);

@@ -177,7 +177,7 @@ public interface CoverageSource{
 
     }
 
-    /**
+        /**
 	 * Name of the Coverage (ie data product) provided by this CoverageSource.
 	 * 
 	 * @since 2.5
