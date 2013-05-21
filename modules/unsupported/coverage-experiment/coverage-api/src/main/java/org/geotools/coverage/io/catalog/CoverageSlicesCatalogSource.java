@@ -23,18 +23,16 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
 
     private CoverageSlicesCatalog innerCatalog;
     
-    protected String typeName;
+    private final String typeName;
     
     private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
     
-//    private String sourceName;
     /** This filter is created to extract the portion of catalog related to the specified name */
     private final Filter filterName;
     
     public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String coverageName, String typeName) {
 
         this.typeName = typeName;
-//        this.sourceName = sourceName;
         List<Filter> filters = new ArrayList<Filter>(); 
         filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
                 FF.literal(coverageName), true));
@@ -70,7 +68,6 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
     @Override
     public int getCount(Query q) throws IOException {
         //TODO: quick implementation. think about something less expensive
-//        return getGranules(q).size();
         return innerCatalog.getGranules(q).size();
     }
 
@@ -87,8 +84,7 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
 
     @Override
     public void dispose() throws IOException {
-        //TODO: Should we dispose the inner catalog?
-//        innerCatalog.dispose();
+        // do nothing
     }
 
 }

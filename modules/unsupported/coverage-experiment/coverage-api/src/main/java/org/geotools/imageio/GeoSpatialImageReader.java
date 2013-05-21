@@ -20,12 +20,10 @@ package org.geotools.imageio;
 import it.geosolutions.imageio.utilities.SoftValueHashMap;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
@@ -34,10 +32,8 @@ import javax.imageio.spi.ImageReaderSpi;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
-import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.data.Query;
 import org.geotools.resources.coverage.FeatureUtilities;
-import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.FilterFactory2;
 

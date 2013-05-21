@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -295,14 +296,15 @@ public class CoverageSlicesCatalog {
         }
     }
 
-    public void getGranules(final Query q, final GranuleCatalogVisitor visitor) throws IOException {
-        Utilities.ensureNonNull("query", q);
 
+    public List<CoverageSlice> getGranules(final Query q) throws IOException {
+        Utilities.ensureNonNull("query", q);
+        final List<CoverageSlice> returnValue = new ArrayList<CoverageSlice>();
         final Lock lock = rwLock.readLock();
         try {
             lock.lock();
             checkStore();
-            String typeName = q.getTypeName();
+            final String typeName = q.getTypeName();
             
             //
             // Load tiles informations, especially the bounds, which will be reused
@@ -326,31 +328,33 @@ public class CoverageSlicesCatalog {
                 if (!it.hasNext()) {
                     if (LOGGER.isLoggable(Level.FINE))
                         LOGGER.fine("The provided SimpleFeatureCollection  or empty, it's impossible to create an index!");
-                    return;
+                    return Collections.emptyList();
                 }
 
                 // getting the features
                 while (it.hasNext()) {
                     SimpleFeature feature = it.next();
                     final SimpleFeature sf = (SimpleFeature) feature;
-                    final CoverageSlice granule;
+                    final CoverageSlice slice;
 
                     // caching by granule's index
                     synchronized (coverageSliceDescriptorsCache) {
                         Integer granuleIndex = (Integer) sf.getAttribute(IMAGE_INDEX_ATTR);
                         if (coverageSliceDescriptorsCache.containsKey(granuleIndex)) {
-                            granule = coverageSliceDescriptorsCache.get(granuleIndex);
+                            slice = coverageSliceDescriptorsCache.get(granuleIndex);
                         } else {
                             // create the granule coverageDescriptor
-                            granule = new CoverageSlice(sf);
-                            coverageSliceDescriptorsCache.put(granuleIndex, granule);
+                            slice = new CoverageSlice(sf);
+                            coverageSliceDescriptorsCache.put(granuleIndex, slice);
                         }
                     }
-                    visitor.visit(granule, null);
+                    returnValue.add(slice);
                 }
             } finally {
                 it.close();
             }
+            // return
+            return returnValue;
         } catch (Throwable e) {
             final IOException ioe = new IOException();
             ioe.initCause(e);
@@ -359,18 +363,6 @@ public class CoverageSlicesCatalog {
             lock.unlock();
 
         }
-    }
-
-    public List<CoverageSlice> getGranules(final Query q) throws IOException {
-        // create a list to return and reuse the visitor enabled method
-        //TODO revisit this to deal with iterators
-        final List<CoverageSlice> returnValue = new ArrayList<CoverageSlice>();
-        getGranules(q, new GranuleCatalogVisitor() {
-            public void visit(CoverageSlice granule, Object o) {
-                returnValue.add(granule);
-            }
-        });
-        return returnValue;
     }
 
     public ReferencedEnvelope getBounds(final String typeName) {

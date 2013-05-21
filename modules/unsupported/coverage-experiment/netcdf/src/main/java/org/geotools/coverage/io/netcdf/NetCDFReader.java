@@ -181,6 +181,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     public String[] getMetadataNames(String coverageName) {
         checkIsSupported(coverageName);
         final List<String> metadataNames = new ArrayList<String>();
+        
+        // standard metadata
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
         metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
@@ -191,9 +193,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        // additional domains
         addAdditionalMetadata(metadataNames, coverageName);
-        
-        // TODO: Check for custom domains
         return metadataNames.toArray(new String[metadataNames.size()]);
     }
 
