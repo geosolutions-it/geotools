@@ -38,6 +38,7 @@ import org.opengis.util.ProgressListener;
  *
  * @source $URL$
  */
+@SuppressWarnings("rawtypes")
 public class NetCDFSource extends DefaultCoverageSource {
 
     /** Logger. */

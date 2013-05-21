@@ -75,7 +75,6 @@ import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory2;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform2D;
@@ -94,8 +93,6 @@ class NetCDFResponse extends CoverageResponse{
     private final static double EPS = 1E-6;
 
     private final static double[] DEFAULT_BACKGROUND_VALUES = new double[]{0d};
-    
-    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
 
     /** Logger. */
     private final static Logger LOGGER = org.geotools.util.logging.Logging
@@ -110,7 +107,7 @@ class NetCDFResponse extends CoverageResponse{
     /** The base envelope related to the input coverage */
     private GeneralEnvelope coverageEnvelope;
 
-    private ReferencedEnvelope mosaicBBox;
+    private ReferencedEnvelope targetBBox;
 
     private Rectangle rasterBounds;
 
@@ -125,8 +122,6 @@ class NetCDFResponse extends CoverageResponse{
     private boolean oversampledRequest;
 
     private AffineTransform baseGridToWorld;
-
-//    private double[] backgroundValues;
 
     private Hints hints;
 
@@ -231,8 +226,14 @@ class NetCDFResponse extends CoverageResponse{
                // handle additional params
                additionalParamsManagement(query,domainsSubset);
                
-//               // spatial
-//               query.setFilter(Filter.INCLUDE);
+               // bbox
+               query.setFilter(
+                       FeatureUtilities.DEFAULT_FILTER_FACTORY.and(
+                               query.getFilter(),
+                               FeatureUtilities.DEFAULT_FILTER_FACTORY.bbox(
+                                       FeatureUtilities.DEFAULT_FILTER_FACTORY.property("the_geom"),
+                                       targetBBox)));
+                
                
                
                query.setTypeName(request.source.reader.getTypeName(request.name));
@@ -244,7 +245,7 @@ class NetCDFResponse extends CoverageResponse{
                    continue;
                } 
                int imageIndex = indexes.get(0);
-               final RenderedImage image = loadRaster(baseReadParameters, imageIndex, mosaicBBox, finalWorldToGridCorner, hints);
+               final RenderedImage image = loadRaster(baseReadParameters, imageIndex, targetBBox, finalWorldToGridCorner, hints);
 
                // postproc
                RenderedImage finalRaster = postProcessRaster(image);
@@ -279,8 +280,9 @@ class NetCDFResponse extends CoverageResponse{
                 if(value instanceof Range){
                     throw new UnsupportedOperationException();
                 } else {
-                    filter=FF.and(filter,
-                            FF.equals(FF.property(entry.getKey().toLowerCase()),FF.literal(value)));
+                    filter=FeatureUtilities.DEFAULT_FILTER_FACTORY.and(filter,
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.equals(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(entry.getKey().toLowerCase()),
+                                    FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(value)));
                 }
             }
 
@@ -308,11 +310,11 @@ class NetCDFResponse extends CoverageResponse{
         if (time != null) {
             final Range range = (Range) time;
             // schema with only one time attribute. Consider adding code for schema with begin,end attributes
-            filters.add(FF.and(
-                    FF.lessOrEqual(FF.property(CoverageSlice.Attributes.TIME),
-                            FF.literal(range.getMaxValue())),
-                    FF.greaterOrEqual(FF.property(CoverageSlice.Attributes.TIME),
-                            FF.literal(range.getMinValue()))));
+            filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.TIME),
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMaxValue())),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.TIME),
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMinValue()))));
         }
         
         // //
@@ -321,19 +323,19 @@ class NetCDFResponse extends CoverageResponse{
         if (elevation != null) {
             final Range range = (Range) elevation;
             // schema with only one time attribute. Consider adding code for schema with begin,end attributes
-            filters.add(FF.and(
-                    FF.lessOrEqual(FF.property(CoverageSlice.Attributes.ELEVATION),
-                            FF.literal(range.getMaxValue())),
-                    FF.greaterOrEqual(FF.property(CoverageSlice.Attributes.ELEVATION),
-                            FF.literal(range.getMinValue()))));
+            filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.ELEVATION),
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMaxValue())),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.ELEVATION),
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMinValue()))));
         }
         
         // //
         // Filtering by coverage name
         // //
-        filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
-                FF.literal(request.name), true));
-        Filter filter = FF.and(filters);
+        filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.equal(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.COVERAGENAME),
+                FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(request.name), true));
+        Filter filter = FeatureUtilities.DEFAULT_FILTER_FACTORY.and(filters);
         query.setFilter(filter);
     }
 
@@ -424,7 +426,7 @@ class NetCDFResponse extends CoverageResponse{
      * @throws TransformException In case transformation fails during the process.
      */
     private void initRasterBounds() throws TransformException {
-        final GeneralEnvelope tempRasterBounds = CRS.transform(finalWorldToGridCorner, mosaicBBox);
+        final GeneralEnvelope tempRasterBounds = CRS.transform(finalWorldToGridCorner, targetBBox);
         rasterBounds = tempRasterBounds.toRectangle2D().getBounds();
 
         // SG using the above may lead to problems since the reason is that may be a little (1 px) bigger
@@ -483,9 +485,9 @@ class NetCDFResponse extends CoverageResponse{
         // ok we got something to return, let's load records from the index
         final BoundingBox cropBBOX = request.spatialRequestHelper.getCropBBox();
         if (cropBBOX != null) {
-            mosaicBBox = ReferencedEnvelope.reference(cropBBOX);
+            targetBBox = ReferencedEnvelope.reference(cropBBOX);
         } else {
-            mosaicBBox = new ReferencedEnvelope(coverageEnvelope);
+            targetBBox = new ReferencedEnvelope(coverageEnvelope);
         }
     }
 
@@ -508,7 +510,7 @@ class NetCDFResponse extends CoverageResponse{
 //        image = TransposeDescriptor.create(image, TransposeDescriptor.FLIP_VERTICAL, hints); 
         return COVERAGE_FACTORY.create(request.name, image, new GridGeometry2D(new GridEnvelope2D(PlanarImage.wrapRenderedImage(image)
                         .getBounds()), PixelInCell.CELL_CORNER, finalGridToWorldCorner,
-                        this.mosaicBBox.getCoordinateReferenceSystem(), hints), sampleDimensions, null,
+                        this.targetBBox.getCoordinateReferenceSystem(), hints), sampleDimensions, null,
                 properties);
     }
     
@@ -525,7 +527,7 @@ class NetCDFResponse extends CoverageResponse{
      * @return a specified a raster as a portion of the granule describe by this {@link DefaultGranuleDescriptor}.
      * @throws IOException in case an error occurs.
      */
-    public RenderedImage loadRaster(final ImageReadParam imageReadParameters, final int index,
+    private RenderedImage loadRaster(final ImageReadParam imageReadParameters, final int index,
             final ReferencedEnvelope cropBBox, final MathTransform2D mosaicWorldToGrid,
             final Hints hints) throws IOException {
 

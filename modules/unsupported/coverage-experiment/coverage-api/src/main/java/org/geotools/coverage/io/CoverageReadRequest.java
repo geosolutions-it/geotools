@@ -18,6 +18,7 @@ package org.geotools.coverage.io;
 
 import java.awt.Rectangle;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -95,7 +96,7 @@ public class CoverageReadRequest extends CoverageRequest {
     private SortedSet<DateRange> temporalSubset;
 
     
-    private Map<String, Set<?>> additionalDomainsSubset;
+    private Map<String, Set<?>> additionalDomainsSubset= new HashMap<String, Set<?>>();
     
     /**
      * @see org.geotools.coverage.io.CoverageReadRequest#getRangeSubset()

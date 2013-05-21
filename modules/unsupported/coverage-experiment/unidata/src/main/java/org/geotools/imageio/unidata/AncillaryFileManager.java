@@ -42,8 +42,10 @@ import org.opengis.feature.type.Name;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.DataType;
+import ucar.nc2.Attribute;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
+import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 
 /** 
@@ -303,7 +305,6 @@ class AncillaryFileManager {
      * @throws ClassNotFoundException
      */
     SimpleFeatureType initializeSchema(
-//            final Map<String, Serializable> params, 
             final Coverage coverage, 
             CoordinateSystem cs) throws Exception {
 
@@ -320,7 +321,6 @@ class AncillaryFileManager {
         // for the moment we only handle data in 4326
         final CoordinateReferenceSystem actualCRS = WGS84;
         SimpleFeatureType indexSchema = null;
-//        initializeParams(params);
 
         // Use default attributes if schema isn't defined yet
         if (schemaAttributes == null) {
@@ -354,7 +354,20 @@ class AncillaryFileManager {
 
                 if (axisType != AxisType.Lat && axisType != AxisType.Lon) {
                     schemaAttributes+=(","+ axis.getFullName());
-                    DataType type = axis.getDataType();
+                    
+                    // do we have scale factors
+                    if (axis instanceof CoordinateAxis1D) {
+                        final CoordinateAxis1D axis1D = (CoordinateAxis1D) axis;
+                        Attribute scaleFactor = axis1D.findAttribute("scale_factor");
+                        Attribute offset = axis1D.findAttribute("offset");
+                        if (scaleFactor != null || offset != null) {
+                            schemaAttributes+=":Double";
+                            continue;
+                        }
+                    }
+                    
+                    // no scale factors    
+                    final DataType type = axis.getDataType();
                     switch (type) {
                     case BYTE:case INT:case SHORT: 
                         schemaAttributes+=":Integer";

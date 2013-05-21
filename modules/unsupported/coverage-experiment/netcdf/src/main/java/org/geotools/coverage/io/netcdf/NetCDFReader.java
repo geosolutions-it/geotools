@@ -206,7 +206,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             if (domains != null && !domains.isEmpty()) {
                 for (AdditionalDomain domain: domains) {
                     String domainName = domain.getName().toUpperCase();
-                    metadataNames.add(HAS_PREFIX + domainName);
+                    metadataNames.add(HAS_PREFIX + domainName+ DOMAIN_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MINIMUM_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MAXIMUM_SUFFIX);

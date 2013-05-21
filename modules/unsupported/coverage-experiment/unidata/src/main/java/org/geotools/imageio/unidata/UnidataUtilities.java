@@ -247,12 +247,13 @@ public class UnidataUtilities {
     }
     
     static class AxisValueGetter {
+        
         CoordinateAxis1D axis1D;
         
         double[] values = null;
         
-        public AxisValueGetter(Variable axis) {
-            if (((CoordinateAxis) axis).isNumeric() && axis instanceof CoordinateAxis1D) {
+        public AxisValueGetter(CoordinateAxis axis) {
+            if (axis.isNumeric() && axis instanceof CoordinateAxis1D) {
                 axis1D = (CoordinateAxis1D) axis;
                 values = axis1D.getCoordValues();
                 Attribute scaleFactor = axis1D.findAttribute("scale_factor");
@@ -1434,7 +1435,7 @@ public class UnidataUtilities {
                 if (!AxisType.GeoZ.equals(type) && !AxisType.Pressure.equals(type) && !AxisType.Height.equals(type))
                     return ve;
                 
-                AxisValueGetter zetaBuilder = new AxisValueGetter(axis);
+                AxisValueGetter zetaBuilder = new AxisValueGetter((CoordinateAxis) axis);
                 return zetaBuilder.build(zIndex);
             }
         }

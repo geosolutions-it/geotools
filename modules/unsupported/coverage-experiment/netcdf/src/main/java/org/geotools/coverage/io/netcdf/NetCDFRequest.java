@@ -69,8 +69,6 @@ class NetCDFRequest extends CoverageReadRequest{
     CoverageReadRequest originalRequest = null;
 
     String name = null;
-
-//    private Dimension tileDimensions;
     
     /**
      * Build a new {@code CoverageRequest} given a set of input parameters.
