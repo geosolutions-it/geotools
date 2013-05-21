@@ -33,9 +33,7 @@ import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.data.Query;
-import org.geotools.resources.coverage.FeatureUtilities;
 import org.opengis.feature.type.Name;
-import org.opengis.filter.FilterFactory2;
 
 /**
  * @author Daniele Romagnoli, GeoSolutions SAS
@@ -47,8 +45,6 @@ public abstract class GeoSpatialImageReader extends ImageReader {
 
     /** the coverage slices slicesCatalog currently stored as H2 DB */
     protected CoverageSlicesCatalog slicesCatalog = null;
-
-    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
 
     protected int numImages = -1;
 
@@ -165,8 +161,6 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      * @throws IOException
      */
     public List<Integer> getImageIndex(Query filterQuery) throws IOException {
-//        Query query = new Query(/*slicesCatalog.getSchema().getTypeName()*/);
-//        query.setFilter(FF.and(query.getFilter(), filterQuery.getFilter()));
         List<CoverageSlice> descs = slicesCatalog.getGranules(filterQuery);
         List<Integer> indexes = new ArrayList<Integer>();
         for (CoverageSlice desc : descs) {
