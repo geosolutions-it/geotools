@@ -15,6 +15,7 @@ import org.eclipse.emf.common.util.EList;
  *   <li>{@link net.opengis.wcs20.DescribeEOCoverageSetType#getContainmentType <em>Containment Type</em>}</li>
  *   <li>{@link net.opengis.wcs20.DescribeEOCoverageSetType#getSections <em>Sections</em>}</li>
  *   <li>{@link net.opengis.wcs20.DescribeEOCoverageSetType#getDimensionTrim <em>Dimension Trim</em>}</li>
+ *   <li>{@link net.opengis.wcs20.DescribeEOCoverageSetType#getCount <em>Count</em>}</li>
  * </ul>
  * </p>
  *
@@ -85,5 +86,21 @@ public interface DescribeEOCoverageSetType extends RequestBaseType {
     *        extendedMetaData="kind='element' name='DimensionTime' namespace='##targetNamespace'"
     */
     EList<DimensionTrimType> getDimensionTrim();
+    
+    /**
+     * @model
+     * @return
+     */
+    int getCount();
+
+    /**
+     * Sets the value of the '{@link net.opengis.wcs20.DescribeEOCoverageSetType#getCount <em>Count</em>}' attribute.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @param value the new value of the '<em>Count</em>' attribute.
+     * @see #getCount()
+     * @generated
+     */
+    void setCount(int value);
 
 } // DescribeCoverageType

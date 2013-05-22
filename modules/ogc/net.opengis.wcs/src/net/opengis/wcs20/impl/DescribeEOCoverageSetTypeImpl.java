@@ -33,6 +33,7 @@ import org.eclipse.emf.ecore.util.EObjectResolvingEList;
  *   <li>{@link net.opengis.wcs20.impl.DescribeEOCoverageSetTypeImpl#getContainmentType <em>Containment Type</em>}</li>
  *   <li>{@link net.opengis.wcs20.impl.DescribeEOCoverageSetTypeImpl#getSections <em>Sections</em>}</li>
  *   <li>{@link net.opengis.wcs20.impl.DescribeEOCoverageSetTypeImpl#getDimensionTrim <em>Dimension Trim</em>}</li>
+ *   <li>{@link net.opengis.wcs20.impl.DescribeEOCoverageSetTypeImpl#getCount <em>Count</em>}</li>
  * </ul>
  * </p>
  *
@@ -88,6 +89,26 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
      * @ordered
      */
     protected EList<DimensionTrimType> dimensionTrim;
+
+    /**
+     * The default value of the '{@link #getCount() <em>Count</em>}' attribute.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see #getCount()
+     * @generated
+     * @ordered
+     */
+    protected static final int COUNT_EDEFAULT = 0;
+
+    /**
+     * The cached value of the '{@link #getCount() <em>Count</em>}' attribute.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see #getCount()
+     * @generated
+     * @ordered
+     */
+    protected int count = COUNT_EDEFAULT;
 
     /**
      * <!-- begin-user-doc -->
@@ -201,6 +222,27 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
      * <!-- end-user-doc -->
      * @generated
      */
+    public int getCount() {
+        return count;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public void setCount(int newCount) {
+        int oldCount = count;
+        count = newCount;
+        if (eNotificationRequired())
+            eNotify(new ENotificationImpl(this, Notification.SET, Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT, oldCount, count));
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
     @Override
     public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs) {
         switch (featureID) {
@@ -226,6 +268,8 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
                 return getSections();
             case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM:
                 return getDimensionTrim();
+            case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT:
+                return getCount();
         }
         return super.eGet(featureID, resolve, coreType);
     }
@@ -253,6 +297,9 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
                 getDimensionTrim().clear();
                 getDimensionTrim().addAll((Collection<? extends DimensionTrimType>)newValue);
                 return;
+            case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT:
+                setCount((Integer)newValue);
+                return;
         }
         super.eSet(featureID, newValue);
     }
@@ -277,6 +324,9 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
             case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM:
                 getDimensionTrim().clear();
                 return;
+            case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT:
+                setCount(COUNT_EDEFAULT);
+                return;
         }
         super.eUnset(featureID);
     }
@@ -297,6 +347,8 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
                 return sections != null;
             case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM:
                 return dimensionTrim != null && !dimensionTrim.isEmpty();
+            case Wcs20Package.DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT:
+                return count != COUNT_EDEFAULT;
         }
         return super.eIsSet(featureID);
     }
@@ -315,6 +367,8 @@ public class DescribeEOCoverageSetTypeImpl extends RequestBaseTypeImpl implement
         result.append(eoId);
         result.append(", containmentType: ");
         result.append(containmentType);
+        result.append(", count: ");
+        result.append(count);
         result.append(')');
         return result.toString();
     }

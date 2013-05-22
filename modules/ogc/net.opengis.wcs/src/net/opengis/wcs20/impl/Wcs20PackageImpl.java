@@ -1727,6 +1727,15 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * <!-- end-user-doc -->
      * @generated
      */
+    public EAttribute getDescribeEOCoverageSetType_Count() {
+        return (EAttribute)describeEOCoverageSetTypeEClass.getEStructuralFeatures().get(4);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
     public EClass getSections() {
         return sectionsEClass;
     }
@@ -1999,6 +2008,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         createEAttribute(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__CONTAINMENT_TYPE);
         createEReference(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__SECTIONS);
         createEReference(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM);
+        createEAttribute(describeEOCoverageSetTypeEClass, DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT);
 
         sectionsEClass = createEClass(SECTIONS);
         createEAttribute(sectionsEClass, SECTIONS__SECTION);
@@ -2235,6 +2245,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         initEAttribute(getDescribeEOCoverageSetType_ContainmentType(), theXMLTypePackage.getString(), "containmentType", null, 1, 1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
         initEReference(getDescribeEOCoverageSetType_Sections(), this.getSections(), null, "sections", null, 0, 1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
         initEReference(getDescribeEOCoverageSetType_DimensionTrim(), this.getDimensionTrimType(), null, "dimensionTrim", null, 1, -1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+        initEAttribute(getDescribeEOCoverageSetType_Count(), ecorePackage.getEInt(), "count", null, 0, 1, DescribeEOCoverageSetType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
         initEClass(sectionsEClass, Sections.class, "Sections", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
         initEAttribute(getSections_Section(), this.getSection(), "section", null, 1, -1, Sections.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
