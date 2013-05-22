@@ -18,6 +18,7 @@
     <genDataTypes ecoreDataType="wcs20.ecore#//VersionStringType"/>
     <genDataTypes ecoreDataType="wcs20.ecore#//VersionStringType_1"/>
     <genDataTypes ecoreDataType="wcs20.ecore#//QName"/>
+    <genDataTypes ecoreDataType="wcs20.ecore#//Filter"/>
     <genClasses ecoreClass="wcs20.ecore#//CapabilitiesType">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference wcs20.ecore#//CapabilitiesType/serviceMetadata"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference wcs20.ecore#//CapabilitiesType/contents"/>
@@ -104,6 +105,7 @@
       <genFeatures property="None" notify="false" createChild="false" ecoreFeature="ecore:EReference wcs20.ecore#//GetCoverageType/dimensionSubset"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute wcs20.ecore#//GetCoverageType/format"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute wcs20.ecore#//GetCoverageType/mediaType"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute wcs20.ecore#//GetCoverageType/filter"/>
     </genClasses>
     <genClasses ecoreClass="wcs20.ecore#//OfferedCoverageType">
       <genFeatures property="None" children="true" createChild="false" ecoreFeature="ecore:EReference wcs20.ecore#//OfferedCoverageType/abstractCoverage"/>

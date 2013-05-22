@@ -60,6 +60,7 @@ import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.impl.EPackageImpl;
 import org.eclipse.emf.ecore.xml.type.XMLTypePackage;
+import org.opengis.filter.Filter;
 import org.w3.xlink.XlinkPackage;
 
 /**
@@ -369,6 +370,13 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * @generated
      */
     private EDataType qNameEDataType = null;
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    private EDataType filterEDataType = null;
 
     /**
      * Creates an instance of the model <b>Package</b>, registered with
@@ -1098,6 +1106,15 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * <!-- end-user-doc -->
      * @generated
      */
+    public EAttribute getGetCoverageType_Filter() {
+        return (EAttribute)getCoverageTypeEClass.getEStructuralFeatures().get(5);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
     public EClass getOfferedCoverageType() {
         return offeredCoverageTypeEClass;
     }
@@ -1773,6 +1790,15 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
      * <!-- end-user-doc -->
      * @generated
      */
+    public EDataType getFilter() {
+        return filterEDataType;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
     public Wcs20Factory getWcs20Factory() {
         return (Wcs20Factory)getEFactoryInstance();
     }
@@ -1882,6 +1908,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         createEReference(getCoverageTypeEClass, GET_COVERAGE_TYPE__DIMENSION_SUBSET);
         createEAttribute(getCoverageTypeEClass, GET_COVERAGE_TYPE__FORMAT);
         createEAttribute(getCoverageTypeEClass, GET_COVERAGE_TYPE__MEDIA_TYPE);
+        createEAttribute(getCoverageTypeEClass, GET_COVERAGE_TYPE__FILTER);
 
         offeredCoverageTypeEClass = createEClass(OFFERED_COVERAGE_TYPE);
         createEReference(offeredCoverageTypeEClass, OFFERED_COVERAGE_TYPE__ABSTRACT_COVERAGE);
@@ -1984,6 +2011,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         versionStringTypeEDataType = createEDataType(VERSION_STRING_TYPE);
         versionStringType_1EDataType = createEDataType(VERSION_STRING_TYPE_1);
         qNameEDataType = createEDataType(QNAME);
+        filterEDataType = createEDataType(FILTER);
     }
 
     /**
@@ -2116,6 +2144,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         initEReference(getGetCoverageType_DimensionSubset(), this.getDimensionSubsetType(), null, "dimensionSubset", null, 0, -1, GetCoverageType.class, IS_TRANSIENT, IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, IS_DERIVED, IS_ORDERED);
         initEAttribute(getGetCoverageType_Format(), theXMLTypePackage.getAnyURI(), "format", null, 0, 1, GetCoverageType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
         initEAttribute(getGetCoverageType_MediaType(), theXMLTypePackage.getAnyURI(), "mediaType", null, 0, 1, GetCoverageType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+        initEAttribute(getGetCoverageType_Filter(), this.getFilter(), "filter", null, 0, 1, GetCoverageType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
         initEClass(offeredCoverageTypeEClass, OfferedCoverageType.class, "OfferedCoverageType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
         initEReference(getOfferedCoverageType_AbstractCoverage(), this.getObject(), null, "abstractCoverage", null, 1, 1, OfferedCoverageType.class, IS_TRANSIENT, IS_VOLATILE, !IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, IS_DERIVED, IS_ORDERED);
@@ -2224,6 +2253,7 @@ public class Wcs20PackageImpl extends EPackageImpl implements Wcs20Package {
         initEDataType(versionStringTypeEDataType, String.class, "VersionStringType", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
         initEDataType(versionStringType_1EDataType, String.class, "VersionStringType_1", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
         initEDataType(qNameEDataType, QName.class, "QName", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
+        initEDataType(filterEDataType, Filter.class, "Filter", IS_SERIALIZABLE, !IS_GENERATED_INSTANCE_CLASS);
 
         // Create resource
         createResource(eNS_URI);

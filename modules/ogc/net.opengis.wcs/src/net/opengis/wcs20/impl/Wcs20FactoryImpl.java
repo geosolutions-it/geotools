@@ -54,6 +54,7 @@ import org.eclipse.emf.ecore.plugin.EcorePlugin;
 
 import org.eclipse.emf.ecore.xml.type.XMLTypeFactory;
 import org.eclipse.emf.ecore.xml.type.XMLTypePackage;
+import org.opengis.filter.Filter;
 
 /**
  * <!-- begin-user-doc -->
@@ -157,6 +158,8 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
                 return createVersionStringType_1FromString(eDataType, initialValue);
             case Wcs20Package.QNAME:
                 return createQNameFromString(eDataType, initialValue);
+            case Wcs20Package.FILTER:
+                return createFilterFromString(eDataType, initialValue);
             default:
                 throw new IllegalArgumentException("The datatype '" + eDataType.getName() + "' is not a valid classifier");
         }
@@ -180,6 +183,8 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
                 return convertVersionStringType_1ToString(eDataType, instanceValue);
             case Wcs20Package.QNAME:
                 return convertQNameToString(eDataType, instanceValue);
+            case Wcs20Package.FILTER:
+                return convertFilterToString(eDataType, instanceValue);
             default:
                 throw new IllegalArgumentException("The datatype '" + eDataType.getName() + "' is not a valid classifier");
         }
@@ -626,6 +631,24 @@ public class Wcs20FactoryImpl extends EFactoryImpl implements Wcs20Factory {
      * @generated
      */
     public String convertQNameToString(EDataType eDataType, Object instanceValue) {
+        return super.convertToString(eDataType, instanceValue);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public Filter createFilterFromString(EDataType eDataType, String initialValue) {
+        return (Filter)super.createFromString(eDataType, initialValue);
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public String convertFilterToString(EDataType eDataType, Object instanceValue) {
         return super.convertToString(eDataType, instanceValue);
     }
 

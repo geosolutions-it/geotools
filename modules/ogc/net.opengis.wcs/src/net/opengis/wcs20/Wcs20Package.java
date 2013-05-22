@@ -1887,13 +1887,22 @@ public interface Wcs20Package extends EPackage {
     int GET_COVERAGE_TYPE__MEDIA_TYPE = REQUEST_BASE_TYPE_FEATURE_COUNT + 4;
 
     /**
+     * The feature id for the '<em><b>Filter</b></em>' attribute.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     * @ordered
+     */
+    int GET_COVERAGE_TYPE__FILTER = REQUEST_BASE_TYPE_FEATURE_COUNT + 5;
+
+    /**
      * The number of structural features of the '<em>Get Coverage Type</em>' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      * @ordered
      */
-    int GET_COVERAGE_TYPE_FEATURE_COUNT = REQUEST_BASE_TYPE_FEATURE_COUNT + 5;
+    int GET_COVERAGE_TYPE_FEATURE_COUNT = REQUEST_BASE_TYPE_FEATURE_COUNT + 6;
 
     /**
      * The meta object id for the '{@link net.opengis.wcs20.impl.OfferedCoverageTypeImpl <em>Offered Coverage Type</em>}' class.
@@ -2790,6 +2799,17 @@ public interface Wcs20Package extends EPackage {
 
 
     /**
+     * The meta object id for the '<em>Filter</em>' data type.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see org.opengis.filter.Filter
+     * @see net.opengis.wcs20.impl.Wcs20PackageImpl#getFilter()
+     * @generated
+     */
+    int FILTER = 43;
+
+
+    /**
      * Returns the meta object for class '{@link net.opengis.wcs20.CapabilitiesType <em>Capabilities Type</em>}'.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -3565,6 +3585,17 @@ public interface Wcs20Package extends EPackage {
      * @generated
      */
     EAttribute getGetCoverageType_MediaType();
+
+    /**
+     * Returns the meta object for the attribute '{@link net.opengis.wcs20.GetCoverageType#getFilter <em>Filter</em>}'.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @return the meta object for the attribute '<em>Filter</em>'.
+     * @see net.opengis.wcs20.GetCoverageType#getFilter()
+     * @see #getGetCoverageType()
+     * @generated
+     */
+    EAttribute getGetCoverageType_Filter();
 
     /**
      * Returns the meta object for class '{@link net.opengis.wcs20.OfferedCoverageType <em>Offered Coverage Type</em>}'.
@@ -4369,6 +4400,17 @@ public interface Wcs20Package extends EPackage {
     EDataType getQName();
 
     /**
+     * Returns the meta object for data type '{@link org.opengis.filter.Filter <em>Filter</em>}'.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @return the meta object for data type '<em>Filter</em>'.
+     * @see org.opengis.filter.Filter
+     * @model instanceClass="org.opengis.filter.Filter"
+     * @generated
+     */
+    EDataType getFilter();
+
+    /**
      * Returns the factory that creates the instances of the model.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -4995,6 +5037,14 @@ public interface Wcs20Package extends EPackage {
          * @generated
          */
         EAttribute GET_COVERAGE_TYPE__MEDIA_TYPE = eINSTANCE.getGetCoverageType_MediaType();
+
+        /**
+         * The meta object literal for the '<em><b>Filter</b></em>' attribute feature.
+         * <!-- begin-user-doc -->
+         * <!-- end-user-doc -->
+         * @generated
+         */
+        EAttribute GET_COVERAGE_TYPE__FILTER = eINSTANCE.getGetCoverageType_Filter();
 
         /**
          * The meta object literal for the '{@link net.opengis.wcs20.impl.OfferedCoverageTypeImpl <em>Offered Coverage Type</em>}' class.
@@ -5651,6 +5701,16 @@ public interface Wcs20Package extends EPackage {
          * @generated
          */
         EDataType QNAME = eINSTANCE.getQName();
+
+        /**
+         * The meta object literal for the '<em>Filter</em>' data type.
+         * <!-- begin-user-doc -->
+         * <!-- end-user-doc -->
+         * @see org.opengis.filter.Filter
+         * @see net.opengis.wcs20.impl.Wcs20PackageImpl#getFilter()
+         * @generated
+         */
+        EDataType FILTER = eINSTANCE.getFilter();
 
     }
 

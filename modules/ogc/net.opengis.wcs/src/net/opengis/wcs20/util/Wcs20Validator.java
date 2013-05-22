@@ -57,6 +57,7 @@ import org.eclipse.emf.ecore.util.EObjectValidator;
 
 import org.eclipse.emf.ecore.xml.type.util.XMLTypeUtil;
 import org.eclipse.emf.ecore.xml.type.util.XMLTypeValidator;
+import org.opengis.filter.Filter;
 
 /**
  * <!-- begin-user-doc -->
@@ -225,6 +226,8 @@ public class Wcs20Validator extends EObjectValidator {
                 return validateVersionStringType_1((String)value, diagnostics, context);
             case Wcs20Package.QNAME:
                 return validateQName((QName)value, diagnostics, context);
+            case Wcs20Package.FILTER:
+                return validateFilter((Filter)value, diagnostics, context);
             default:
                 return true;
         }
@@ -638,6 +641,15 @@ public class Wcs20Validator extends EObjectValidator {
      * @generated
      */
     public boolean validateQName(QName qName, DiagnosticChain diagnostics, Map<Object, Object> context) {
+        return true;
+    }
+
+    /**
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    public boolean validateFilter(Filter filter, DiagnosticChain diagnostics, Map<Object, Object> context) {
         return true;
     }
 
