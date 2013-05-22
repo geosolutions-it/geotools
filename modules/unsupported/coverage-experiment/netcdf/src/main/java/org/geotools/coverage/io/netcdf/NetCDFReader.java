@@ -51,6 +51,7 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.InvalidGridGeometryException;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.HarvestedFile;
@@ -891,5 +892,11 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     @Override
     public List<HarvestedFile> harvest(String defaultCoverage, File source, Hints hints) throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
+    }
+
+    @Override
+    public List<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
+        //TODO: implement me
+        return null;
     }
 }
