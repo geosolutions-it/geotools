@@ -195,6 +195,7 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute wcs20.ecore#//DescribeEOCoverageSetType/containmentType"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference wcs20.ecore#//DescribeEOCoverageSetType/sections"/>
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference wcs20.ecore#//DescribeEOCoverageSetType/dimensionTrim"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute wcs20.ecore#//DescribeEOCoverageSetType/count"/>
     </genClasses>
     <genClasses ecoreClass="wcs20.ecore#//Sections">
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EAttribute wcs20.ecore#//Sections/section"/>

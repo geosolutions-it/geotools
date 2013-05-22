@@ -28,6 +28,8 @@ public class DescribeEOCoverageSetTest {
         assertEquals(1, ids.size());
         assertEquals("someDatasetSeries", ids.get(0));
         
+        assertEquals(100, dcs.getCount());
+        
         EList<Section> sections = dcs.getSections().getSection();
         assertEquals(2, sections.size());
         assertEquals(Section.COVERAGEDESCRIPTIONS, sections.get(0));

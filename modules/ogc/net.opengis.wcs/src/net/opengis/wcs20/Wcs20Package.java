@@ -2709,13 +2709,22 @@ public interface Wcs20Package extends EPackage {
     int DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM = REQUEST_BASE_TYPE_FEATURE_COUNT + 3;
 
     /**
+     * The feature id for the '<em><b>Count</b></em>' attribute.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     * @ordered
+     */
+    int DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT = REQUEST_BASE_TYPE_FEATURE_COUNT + 4;
+
+    /**
      * The number of structural features of the '<em>Describe EO Coverage Set Type</em>' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      * @ordered
      */
-    int DESCRIBE_EO_COVERAGE_SET_TYPE_FEATURE_COUNT = REQUEST_BASE_TYPE_FEATURE_COUNT + 4;
+    int DESCRIBE_EO_COVERAGE_SET_TYPE_FEATURE_COUNT = REQUEST_BASE_TYPE_FEATURE_COUNT + 5;
 
     /**
      * The meta object id for the '{@link net.opengis.wcs20.impl.SectionsImpl <em>Sections</em>}' class.
@@ -4325,6 +4334,17 @@ public interface Wcs20Package extends EPackage {
     EReference getDescribeEOCoverageSetType_DimensionTrim();
 
     /**
+     * Returns the meta object for the attribute '{@link net.opengis.wcs20.DescribeEOCoverageSetType#getCount <em>Count</em>}'.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @return the meta object for the attribute '<em>Count</em>'.
+     * @see net.opengis.wcs20.DescribeEOCoverageSetType#getCount()
+     * @see #getDescribeEOCoverageSetType()
+     * @generated
+     */
+    EAttribute getDescribeEOCoverageSetType_Count();
+
+    /**
      * Returns the meta object for class '{@link net.opengis.wcs20.Sections <em>Sections</em>}'.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -5633,6 +5653,14 @@ public interface Wcs20Package extends EPackage {
          * @generated
          */
         EReference DESCRIBE_EO_COVERAGE_SET_TYPE__DIMENSION_TRIM = eINSTANCE.getDescribeEOCoverageSetType_DimensionTrim();
+
+        /**
+         * The meta object literal for the '<em><b>Count</b></em>' attribute feature.
+         * <!-- begin-user-doc -->
+         * <!-- end-user-doc -->
+         * @generated
+         */
+        EAttribute DESCRIBE_EO_COVERAGE_SET_TYPE__COUNT = eINSTANCE.getDescribeEOCoverageSetType_Count();
 
         /**
          * The meta object literal for the '{@link net.opengis.wcs20.impl.SectionsImpl <em>Sections</em>}' class.
