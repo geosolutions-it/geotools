@@ -705,7 +705,7 @@ public class UnidataUtilities {
                 return false;
             }
             for( Dimension dimension : dimensions ) {
-                String dimName = dimension.getName();
+                String dimName = dimension.getFullName();
                 // check the dimension to be defined
                 Group group = dimension.getGroup();
                 Variable dimVariable = group.findVariable(dimName);
@@ -1029,7 +1029,7 @@ public class UnidataUtilities {
 //        	final List<Attribute> globalAttributes = dataset.getGlobalAttributes();
 //            if (globalAttributes != null && !globalAttributes.isEmpty()) {
 //                for (Attribute attrib: globalAttributes){
-                    if (attrib != null && attrib.getName().equals(attributeName)) {
+                    if (attrib != null && attrib.getFullName().equals(attributeName)) {
                         attributeValue = UnidataUtilities.getAttributesAsString(attrib);
 //                        break;
                     }
@@ -1046,7 +1046,7 @@ public class UnidataUtilities {
             if (globalAttributes != null && !globalAttributes.isEmpty()) {
             	final Attribute attribute = (Attribute) globalAttributes.get(attributeIndex);
                 if (attribute != null) {
-                    attributePair = new KeyValuePair(attribute.getName(), UnidataUtilities.getAttributesAsString(attribute));
+                    attributePair = new KeyValuePair(attribute.getFullName(), UnidataUtilities.getAttributesAsString(attribute));
                 }
             }
         }
@@ -1060,7 +1060,7 @@ public class UnidataUtilities {
 		    if (attributes != null && !attributes.isEmpty()) {
 		    	final Attribute attribute = (Attribute) attributes.get(attributeIndex);
 		        if (attribute != null) {
-		            attributePair = new KeyValuePair(attribute.getName(),UnidataUtilities.getAttributesAsString(attribute));
+		            attributePair = new KeyValuePair(attribute.getFullName(),UnidataUtilities.getAttributesAsString(attribute));
 		        }
 		    }
 		}
@@ -1313,7 +1313,7 @@ public class UnidataUtilities {
             final int rank = variable.getRank();
             final Dimension temporalDimension = variable.getDimension(rank
                     - ((cs.hasVerticalAxis() ? UnidataUtilities.Z_DIMENSION : 2) + 1));
-            final Variable axis = unidataReader.getCoordinate(temporalDimension.getName());
+            final Variable axis = unidataReader.coordinatesVariables.get(temporalDimension.getFullName());
             if ((axis != null) && axis.isCoordinateVariable()) {
     
                 // for (Variable axis : coordVars) {
@@ -1429,7 +1429,7 @@ public class UnidataUtilities {
             final int rank = variable.getRank();
     
             final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
-            final Variable axis = unidataReader.getCoordinate(verticalDimension.getName());
+            final Variable axis = unidataReader.coordinatesVariables.get(verticalDimension.getFullName());
             if ((axis != null) && axis.isCoordinateVariable()) {
                 final AxisType type = ((CoordinateAxis) axis).getAxisType();
                 if (!AxisType.GeoZ.equals(type) && !AxisType.Pressure.equals(type) && !AxisType.Height.equals(type))

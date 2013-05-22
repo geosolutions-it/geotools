@@ -17,8 +17,6 @@
 package org.geotools.imageio;
 
 
-import it.geosolutions.imageio.utilities.SoftValueHashMap;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -44,14 +42,11 @@ import org.opengis.feature.type.Name;
 public abstract class GeoSpatialImageReader extends ImageReader {
 
     /** the coverage slices slicesCatalog currently stored as H2 DB */
-    protected CoverageSlicesCatalog slicesCatalog = null;
+    private CoverageSlicesCatalog slicesCatalog;
 
     protected int numImages = -1;
 
     private String auxiliaryFilesPath = null;
-
-    /** Internal Cache for CoverageSourceDescriptor.**/
-    private final SoftValueHashMap<String, CoverageSourceDescriptor> coverageSourceDescriptorsCache= new SoftValueHashMap<String, CoverageSourceDescriptor>();
 
     protected GeoSpatialImageReader(ImageReaderSpi originatingProvider) {
         super(originatingProvider);
@@ -69,9 +64,7 @@ public abstract class GeoSpatialImageReader extends ImageReader {
     @Override
     public void dispose() {
         super.dispose();
-        synchronized (coverageSourceDescriptorsCache) {
-            coverageSourceDescriptorsCache.clear();
-        }
+        
         try {
             if (slicesCatalog != null) {
                 slicesCatalog.dispose();
@@ -120,34 +113,17 @@ public abstract class GeoSpatialImageReader extends ImageReader {
     public abstract int getCoveragesNumber();
 
     /**
-     * Forces implementors to create the {@link CoverageSourceDescriptor} for the provided name.
      * 
      * @param name
      * @return
      */
-    protected abstract CoverageSourceDescriptor createCoverageDescriptor(Name name);
-
-    /**
-     * 
-     * @param name
-     * @return
-     */
-    public CoverageSourceDescriptor getCoverageDescriptor(Name name){
-        final String name_ = name.toString();
-        synchronized (coverageSourceDescriptorsCache) {
-            if(coverageSourceDescriptorsCache.containsKey(name_)){
-                return coverageSourceDescriptorsCache.get(name_);
-            }
-
-            // create, cache and return
-            CoverageSourceDescriptor cd = createCoverageDescriptor(name);
-            coverageSourceDescriptorsCache.put(name_, cd);
-            return cd;
-        }
-    }
+    public abstract CoverageSourceDescriptor getCoverageDescriptor(Name name);
 
     
     protected void setCatalog(CoverageSlicesCatalog catalog) {
+        if(slicesCatalog!=null){
+            slicesCatalog.dispose();
+        }
         slicesCatalog = catalog;
     }
 

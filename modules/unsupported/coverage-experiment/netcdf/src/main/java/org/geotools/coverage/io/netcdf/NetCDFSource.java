@@ -24,7 +24,6 @@ import java.util.logging.Logger;
 
 import org.geotools.coverage.io.CoverageReadRequest;
 import org.geotools.coverage.io.CoverageResponse;
-import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.impl.DefaultCoverageSource;
 import org.geotools.imageio.netcdf.NetCDFImageReader;
 import org.geotools.parameter.DefaultParameterDescriptor;
@@ -49,7 +48,7 @@ public class NetCDFSource extends DefaultCoverageSource {
     Set<ParameterDescriptor<List>> dynamicParameters = null;
 
     public NetCDFSource(final NetCDFImageReader reader, final Name name ) {
-        super(name, reader.createCoverageDescriptor(name));
+        super(name, reader.getCoverageDescriptor(name));
         this.reader = reader;
     }
 

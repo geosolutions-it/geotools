@@ -288,19 +288,9 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
     
     private VariableDS variableDS;
 
-    private ucar.nc2.dataset.CoordinateSystem coordinateSystem;
-
     private UnidataImageReader reader;
 
     private final static java.util.logging.Logger LOGGER = Logging.getLogger(UnidataCoverageDescriptor.class);
-
-    protected VariableDS getVariableDS() {
-        return variableDS;
-    }
-
-    protected ucar.nc2.dataset.CoordinateSystem getCoordinateSystem() {
-        return coordinateSystem;
-    }
 
     /**
      * Extracts the compound {@link CoordinateReferenceSystem} from the unidata variable.
@@ -309,7 +299,6 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
      */
     private void init() {
         final CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variableDS);
-        this.coordinateSystem = cs;
 
         if (cs == null){
             throw new IllegalArgumentException("Provided CoordinateSystem is null");
@@ -601,7 +590,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             double[][] offsetVectors = new double[rank][rank];
     
             for( Dimension dim : dimensions ) {
-                final Variable axisVar = reader.getCoordinate(dim.getName());
+                final Variable axisVar = reader.coordinatesVariables.get(dim.getFullName());
                 if (axisVar != null && axisVar instanceof CoordinateAxis) {
                     final CoordinateAxis coordAxis = (CoordinateAxis) axisVar;
                     final AxisType axisType = coordAxis.getAxisType();
@@ -611,7 +600,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
                             low[i] = 0;
                             high[i] = dim.getLength();
                         } 
-                        if (i < 4 && reader.getCoordinate(dim.getName()) != null) {
+                        if (i < 4 &&  reader.coordinatesVariables.get(dim.getFullName()) != null) {
                             if (coordAxis.isNumeric() && coordAxis instanceof CoordinateAxis1D) {
                                 final CoordinateAxis1D axis1D = (CoordinateAxis1D) coordAxis;
                                 final int length = axis1D.getDimension(0).getLength();

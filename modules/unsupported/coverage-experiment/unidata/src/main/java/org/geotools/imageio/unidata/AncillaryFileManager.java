@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,7 +34,6 @@ import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
-import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
@@ -63,8 +61,6 @@ class AncillaryFileManager {
 
     private static Unmarshaller UNMARSHALLER;
     
-    private static CoordinateReferenceSystem WGS84;
-
     /** Default schema name */
     static final String DEFAULT_SCHEMA_NAME = "def";
     
@@ -76,7 +72,6 @@ class AncillaryFileManager {
             jc = JAXBContext.newInstance("org.geotools.gce.imagemosaic.catalog.index");
             MARSHALLER = jc.createMarshaller();
             UNMARSHALLER = jc.createUnmarshaller();
-            WGS84 = CRS.decode("EPSG:4326", true);
         } catch (Exception e) {
             LOGGER.log(Level.INFO, e.getMessage(), e);
         } 
@@ -91,7 +86,7 @@ class AncillaryFileManager {
     /**
      * The list of Slice2D indexes
      */
-    protected List<UnidataSlice2DIndex> slicesIndexList;
+    private final List<UnidataSlice2DIndex> slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
     
     /** 
      * The Slice2D index manager
@@ -121,19 +116,14 @@ class AncillaryFileManager {
     /** File storing the coverages indexer */
     private File indexerFile;
     
-    /** 
-     * The datastore containing the {@link CoverageSlice} index
-     */
-    protected Properties datastoreProps = null;
-
-    public AncillaryFileManager(final File file, final String indexFilePath) {
-        org.geotools.util.Utilities.ensureNonNull("file", file);
-        if (!file.exists()) {
-            throw new IllegalArgumentException("The specified file doesn't exist: " + file);
+    public AncillaryFileManager(final File netcdfFile, final String indexFilePath) throws IOException, JAXBException {
+        org.geotools.util.Utilities.ensureNonNull("file", netcdfFile);
+        if (!netcdfFile.exists()) {
+            throw new IllegalArgumentException("The specified file doesn't exist: " + netcdfFile);
         }
 
         // Set files  
-        mainFile = file;
+        mainFile = netcdfFile;
         parentDirectory = new File(mainFile.getParent());
 
         // Look for external folder configuration
@@ -145,45 +135,40 @@ class AncillaryFileManager {
             baseDir = UnidataUtilities.isValid(baseDir) ? baseDir : null;
         }
 
-        try {
-            String mainFilePath = mainFile.getCanonicalPath();
-            String baseName = FilenameUtils.removeExtension(FilenameUtils.getName(mainFilePath));
-            String outputLocalFolder = "." + baseName;
-            destinationDir = new File(parentDirectory, outputLocalFolder);
+        String mainFilePath = mainFile.getCanonicalPath();
+        String baseName = FilenameUtils.removeExtension(FilenameUtils.getName(mainFilePath));
+        String outputLocalFolder = "." + baseName;
+        destinationDir = new File(parentDirectory, outputLocalFolder);
 
-            // append base file folder tree to the optional external data dir
-            if (baseDir != null) {
-                destinationDir = new File(baseDir, outputLocalFolder);
-            }
+        // append base file folder tree to the optional external data dir
+        if (baseDir != null) {
+            destinationDir = new File(baseDir, outputLocalFolder);
+        }
 
-            boolean createdDir = false;
-            if (!destinationDir.exists()) {
-                createdDir = destinationDir.mkdirs();
-            }
+        boolean createdDir = false;
+        if (!destinationDir.exists()) {
+            createdDir = destinationDir.mkdirs();
+        }
 
-            // Init auxiliary file names
-            slicesIndexFile = new File(destinationDir, baseName + ".idx");
-            if (indexFilePath != null) {
-                indexerFile = new File(indexFilePath);
-                if (!indexerFile.exists() || !indexerFile.canRead()) {
-                    indexerFile = null;
-                }
+        // Init auxiliary file names
+        slicesIndexFile = new File(destinationDir, baseName + ".idx");
+        if (indexFilePath != null) {
+            indexerFile = new File(indexFilePath);
+            if (!indexerFile.exists() || !indexerFile.canRead()) {
+                indexerFile = null;
             }
-            if (indexerFile == null) {
-                indexerFile = new File(destinationDir, baseName + INDEX_SUFFIX);
-            }
-            slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
-            
-            if (!createdDir) {
-                // Check for index to be reset only in case we didn't created a new directory.
-                checkReset(mainFile, slicesIndexFile, destinationDir);
-            }
+        }
+        if (indexerFile == null) {
+            indexerFile = new File(destinationDir, baseName + INDEX_SUFFIX);
+        }
+        
+        if (!createdDir) {
+            // Check for index to be reset only in case we didn't created a new directory.
+            checkReset(mainFile, slicesIndexFile, destinationDir);
+        }
 
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING, e.getMessage(), e);
-            }
-        } 
+        // init
+        initIndexer();
     }
 
     /**
@@ -319,7 +304,7 @@ class AncillaryFileManager {
         String schemaAttributes = schemaElement.getAttributes(); 
 
         // for the moment we only handle data in 4326
-        final CoordinateReferenceSystem actualCRS = WGS84;
+        final CoordinateReferenceSystem actualCRS = UnidataCRSUtilities.WGS84;
         SimpleFeatureType indexSchema = null;
 
         // Use default attributes if schema isn't defined yet
@@ -410,9 +395,7 @@ class AncillaryFileManager {
      */
     public void dispose() {
         try {
-            if (slicesIndexList != null) {
-                slicesIndexList = null;
-            }
+            slicesIndexList.clear();
             
             if (slicesIndexManager != null) {
                 slicesIndexManager.dispose();
@@ -423,7 +406,6 @@ class AncillaryFileManager {
             }
         } finally {
             slicesIndexManager = null;
-            slicesIndexList = null;
         }
     }
 
@@ -451,7 +433,7 @@ class AncillaryFileManager {
         return indexerFile;
     }
 
-    public void addVariable(final UnidataSlice2DIndex variableIndex) {
+    public void addSlice(final UnidataSlice2DIndex variableIndex) {
         slicesIndexList.add(variableIndex);
     }
 
@@ -463,7 +445,7 @@ class AncillaryFileManager {
         addCoverage(coverage);
     }
 
-    public void addCoverage(Coverage coverage) {
+    private void addCoverage(Coverage coverage) {
         if (variablesMap == null) {
             variablesMap = new HashMap<Name, String>();
             coveragesMapping = new HashMap<String, Coverage>();
@@ -482,7 +464,7 @@ class AncillaryFileManager {
             slicesIndexManager.dispose();
         }
         // clean existing index
-        slicesIndexList = new ArrayList<UnidataSlice2DIndex>();
+        slicesIndexList.clear();
     }
 
     /** 
@@ -503,7 +485,7 @@ class AncillaryFileManager {
      * Retrieve basic indexer properties by scanning the indexer XML instance.
      * @throws JAXBException
      */
-    public void initIndexer() throws JAXBException {
+    private void initIndexer() throws JAXBException {
         if (indexerFile.exists() && indexerFile.canRead()) {
             if (UNMARSHALLER != null) {
                 indexer = (Indexer) UNMARSHALLER.unmarshal(indexerFile);

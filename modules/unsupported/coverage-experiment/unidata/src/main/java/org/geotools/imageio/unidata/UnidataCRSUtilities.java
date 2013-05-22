@@ -667,13 +667,12 @@ class UnidataCRSUtilities {
         return GEOM_FACTORY.toGeometry(referencedEnvelope);
     }
     
-    public static ucar.nc2.dataset.CoordinateSystem getCoordinateSystem(VariableDS variableDS) {
+    static ucar.nc2.dataset.CoordinateSystem getCoordinateSystem(VariableDS variableDS) {
         final List<ucar.nc2.dataset.CoordinateSystem> systems = variableDS.getCoordinateSystems();
         if (systems.isEmpty()) {
-            throw new RuntimeException("Coordinate system for Variable " + variableDS.getName() + " haven't been found");
+            throw new RuntimeException("Coordinate system for Variable " + variableDS.getFullName() + " haven't been found");
         }
-        ucar.nc2.dataset.CoordinateSystem cs = systems.get(0);
-        return cs;
+        return systems.get(0);
     }
 
     public static double[] getEnvelope(ucar.nc2.dataset.CoordinateSystem cs ) {
