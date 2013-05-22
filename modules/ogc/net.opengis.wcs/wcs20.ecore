@@ -785,6 +785,7 @@
         <details key="documentation" value="Optional element indicating the MimeType of the response of a GetCoverage request. Only currently allowed valued is &quot;multipart/related&quot;."/>
       </eAnnotations>
     </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="filter" eType="#//Filter"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="OfferedCoverageType">
     <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
@@ -1078,4 +1079,5 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EDataType" name="VersionStringType_1" instanceClassName="java.lang.String"/>
   <eClassifiers xsi:type="ecore:EDataType" name="QName" instanceClassName="javax.xml.namespace.QName"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Filter" instanceClassName="org.opengis.filter.Filter"/>
 </ecore:EPackage>
