@@ -48,6 +48,7 @@ import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.DefaultHarvestedFile;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.HarvestedFile;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
@@ -951,5 +952,11 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         walker.run();
         
         return result;
+    }
+
+    @Override
+    public List<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
+            RasterManager manager = getRasterManager(coverageName);
+            return manager.getDimensionDescriptors();
     }
 }

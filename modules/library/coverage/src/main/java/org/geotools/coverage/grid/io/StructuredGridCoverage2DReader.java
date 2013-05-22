@@ -77,4 +77,10 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      */
     List<HarvestedFile> harvest(String defaultTargetCoverage, File source, Hints hints) throws IOException,
             UnsupportedOperationException;
+    
+    /**
+     * Describes the dimensions supported by the specified coverage, if any.
+     * (coverageName might be null, if there is only one supported coverage)
+     */
+    List<DimensionDescriptor> getDimensionDescriptors(String coverageName);
 }

@@ -16,22 +16,16 @@
  */
 package org.geotools.coverage.grid.io;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.opengis.filter.Filter;
 
 /**
- * Describes a "dimension" exposed by a structured grid coverage reader. The dimension can be either
- * a point or a range type, see PointDimensionDescriptor and RangeDomainDescriptor
+ * Describes a "dimension" exposed by a structured grid coverage reader. 
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
  * @author Andrea Aime, GeoSolutions SAS
  * @author Daniele Romagnoli, GeoSolutions SAS
  * 
- * @param <T>
  */
-public interface DimensionDescriptor<T> {
+public interface DimensionDescriptor {
 
    /**
     * The dimension name
@@ -41,44 +35,32 @@ public interface DimensionDescriptor<T> {
    String getName();
 
    /**
-    * The dimension data type
+    * The dimension unit symbol
     *
     * @return
     */
-   Class<T> getType();
+   String getUnitSymbol();
 
    /**
-    * The minimum value in the dimension domain
-    */
-   T getMinimum() throws IOException;
-
-   /**
-    * The maximum value in the dimension domain
+    * The dimension units
     *
     * @return
     */
-   T getMaximum() throws IOException;
+   String getUnits();
 
    /**
-    * The domain size
+    * The start attribute 
     *
     * @return
     */
-   int getSize() throws IOException;
+   String getStartAttribute();
 
    /**
-    * Returns the domain
+    * The end attribute (In case of dimensions with ranges) 
     *
-    * @param filter Allows to specify a filter to get a subset of the domain. The attribute names
-    *        that can be used to build the filter are specified in the {@link DimensionDescriptor}
-    *        sub-interfaces
-    *
-    * @param offset The start of the page, must be zero or positive
-    * @param limit The maximum number of items to be returned, or a negative value to pose no limit
-    * @return the returned list contains either point values (T) or range values (Range<T>)
-    *         according to the domain nature
+    * @return
     */
-   List<? extends Object> getDomain(Filter filter, int offset, int limit) throws IOException;
+   String getEndAttribute();
 
 }
 

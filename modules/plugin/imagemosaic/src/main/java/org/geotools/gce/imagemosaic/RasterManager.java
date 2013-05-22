@@ -45,6 +45,8 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.DecimationPolicy;
+import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
@@ -502,6 +504,8 @@ public class RasterManager {
     class DomainManager {
 
         private final Map<String, DomainDescriptor> domainsMap = new HashMap<String, DomainDescriptor>();
+        
+        private final List<DimensionDescriptor> dimensions = new ArrayList<DimensionDescriptor>();
 
         private final boolean attributeHasRange(String attribute) {
             return attribute.contains(Utils.RANGE_SPLITTER_CHAR);
@@ -662,6 +666,8 @@ public class RasterManager {
             final String upperCase = name.toUpperCase();
             domainsMap.put(upperCase + DomainDescriptor.DOMAIN_SUFFIX, new DomainDescriptor(name,
                     domainType, basePropertyName, additionalPropertyName));
+            final DimensionDescriptor dimensionDescriptor = new DefaultDimensionDescriptor(name, null, null, basePropertyName, additionalPropertyName);
+            dimensions.add(dimensionDescriptor);
         }
 
         private String extractAttributes(String propertyName) {
@@ -827,6 +833,8 @@ public class RasterManager {
 
     DomainManager timeDomainManager;
 
+    List<DimensionDescriptor> dimensionDescriptors = new ArrayList<DimensionDescriptor>();
+
     ImageMosaicReader parentReader;
 
     GranuleCatalog granuleCatalog;
@@ -903,6 +911,7 @@ public class RasterManager {
                 if (configuration.getAdditionalDomainAttributes() != null) {
                     domainsManager = new DomainManager(
                             configuration.getAdditionalDomainAttributes(), schema);
+                    dimensionDescriptors.addAll(domainsManager.dimensions);
                 }
 
                 // time attribute
@@ -910,12 +919,15 @@ public class RasterManager {
                     final HashMap<String, String> init = new HashMap<String, String>();
                     init.put(Utils.TIME_DOMAIN, configuration.getTimeAttribute());
                     timeDomainManager = new DomainManager(init, schema);
+                    dimensionDescriptors.addAll(timeDomainManager.dimensions);
+                
                 }
                 // elevation attribute
                 if (configuration.getElevationAttribute() != null) {
                     final HashMap<String, String> init = new HashMap<String, String>();
                     init.put(Utils.ELEVATION_DOMAIN, configuration.getElevationAttribute());
                     elevationDomainManager = new DomainManager(init, schema);
+                    dimensionDescriptors.addAll(elevationDomainManager.dimensions);
                 }
             }
             if (defaultSM == null) {
@@ -1247,6 +1259,10 @@ public class RasterManager {
         }
     }
 
+    public List<DimensionDescriptor> getDimensionDescriptors() {
+        return dimensionDescriptors;
+    }
+
     public MosaicConfigurationBean getConfiguration() {
         return configuration;
     }
@@ -1329,11 +1345,13 @@ public class RasterManager {
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+
         if (domainsManager != null) {
             metadataNames.addAll(domainsManager.getMetadataNames());
         }

@@ -61,6 +61,7 @@ import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.HarvestedFile;
@@ -903,13 +904,52 @@ public class ImageMosaicReaderTest extends Assert{
         final GridCoverage2D coverage = TestUtils.getCoverage(reader, values, true);
         final String fileSource = (String) coverage
                 .getProperty(AbstractGridCoverage2DReader.FILE_SOURCE_PROPERTY);
-    
+
         // Check the proper granule has been read
         final String baseName = FilenameUtils.getBaseName(fileSource);
         assertEquals(baseName, "temp_020_099_20081031T000000_20081103T000000_12_24");
         TestUtils.testCoverage(reader, values, "domain test", coverage, null);
     }
-    
+
+    /**
+     * Simple test method testing dimensions Descriptor for the sample
+     * dataset
+     * @throws IOException
+     * @throws FactoryException 
+     * @throws NoSuchAuthorityCodeException 
+     * @throws ParseException +
+     */
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void testDimensionsDescriptor() throws Exception {
+        final AbstractGridFormat format = TestUtils.getFormat(timeAdditionalDomainsRangeURL);
+        ImageMosaicReader reader = TestUtils.getReader(timeAdditionalDomainsRangeURL, format);
+        List<DimensionDescriptor> descriptors = ((StructuredGridCoverage2DReader)reader).getDimensionDescriptors("time_domainsRanges");
+        assertNotNull(descriptors);
+        assertEquals(4, descriptors.size());
+
+        DimensionDescriptor descriptor = descriptors.get(0);
+        assertEquals("wavelength", descriptor.getName());
+        assertEquals("loww", descriptor.getStartAttribute());
+        assertEquals("highw", descriptor.getEndAttribute());
+
+        descriptor = descriptors.get(1);
+        assertEquals("date", descriptor.getName());
+        assertEquals("date", descriptor.getStartAttribute());
+        assertNull(descriptor.getEndAttribute());
+
+        descriptor = descriptors.get(2);
+        assertEquals("TIME", descriptor.getName());
+        assertEquals("time", descriptor.getStartAttribute());
+        assertEquals("endtime", descriptor.getEndAttribute());
+        
+        descriptor = descriptors.get(3);
+        assertEquals("ELEVATION", descriptor.getName());
+        assertEquals("lowz", descriptor.getStartAttribute());
+        assertEquals("highz", descriptor.getEndAttribute());
+        
+    }
+
     @Test
     public void testAdditionalDimRangesNoTimestamp() throws Exception {
         System.setProperty("org.geotools.shapefile.datetime", "false");
