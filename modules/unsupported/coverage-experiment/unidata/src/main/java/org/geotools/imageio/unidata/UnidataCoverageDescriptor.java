@@ -588,7 +588,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             //TODO: Map ZAxis unit to UCUM UNIT (depending on type... elevation, level, pressure, ...)
             //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code 
             dimensions.add(new DefaultDimensionDescriptor(Utils.ELEVATION_DOMAIN, 
-                    DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
+                    DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getName(), DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
         }
     }
 
