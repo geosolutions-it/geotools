@@ -54,16 +54,19 @@ import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.feature.NameImpl;
+import org.geotools.feature.SchemaException;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
+import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.Name;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.Array;
 import ucar.ma2.IndexIterator;
@@ -71,6 +74,7 @@ import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
 import ucar.ma2.Section;
 import ucar.nc2.Variable;
+import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
@@ -189,7 +193,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     final List<Name> coverages = new ArrayList<Name>();
 
     @Override
-    public List<Name> getNames() {
+    public List<Name> getCoveragesNames() {
         return Collections.unmodifiableList(coverages);
     }
 
@@ -204,7 +208,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      */
     private NetcdfDataset dataset;
 
-    final Map<String, Variable> coordinatesVariables = new HashMap<String, Variable>();
+    final Map<String, CoordinateVariable<?>> coordinatesVariables = new HashMap<String, CoordinateVariable<?>>();
     
     private CheckType checkType = CheckType.UNSET;
     
@@ -285,52 +289,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return -1;
     }
 
-//    /**
-//     * Get an {@link Attribute} value as string by name and image index.
-//     * 
-//     * @param imageIndex the image index.
-//     * @param attributeName the name of the {@link Attribute}.
-//     * @return the attribute value as string.
-//     */
-//    public String getAttributeAsString( final int imageIndex, final String attributeName ) {
-//        return getAttributeAsString(imageIndex, attributeName, false);
-//    }
-//
-//    /**
-//     * Get an {@link Attribute} value as string by name and image index.
-//     * 
-//     * @param imageIndex the image index.
-//     * @param attributeName the name of the {@link Attribute}.
-//     * @param isUnsigned a flag that allows to handle byte
-//     *                      attributes as unsigned.
-//     * @return the attribute value as string.
-//     */
-//    public String getAttributeAsString( final int imageIndex, final String attributeName, final boolean isUnsigned ) {
-//        String attributeValue = "";
-//        final VariableWrapper wrapper = getVariableWrapper(imageIndex);
-//        final Attribute attr = wrapper.getVariable().findAttributeIgnoreCase(attributeName);
-//        if (attr != null){
-//        	attributeValue = UnidataUtilities.getAttributesAsString(attr, isUnsigned);
-//        }
-//        return attributeValue;
-//    }
-
-//    /**
-//     * Get an {@link Attribute} as a {@link KeyValuePair} representation as name/value. 
-//     * 
-//     * @param imageIndex the image index.
-//     * @param attributeIndex the attribute index.
-//     * @return the key/value pair of the attribute.
-//     * @throws IOException
-//     */
-//    public KeyValuePair getAttribute( final int imageIndex, final int attributeIndex ) throws IOException {
-//        KeyValuePair attributePair = null;
-//        final Variable var = getVariable(imageIndex);
-//        if (var != null){
-//        	attributePair = UnidataUtilities.getAttribute(var, attributeIndex);
-//        }
-//        return attributePair;
-//    }
 
     /**
      * Get a {@link Variable} by image index.
@@ -361,109 +319,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return null;
     }
 
-//    /**
-//     * Get the number of available attributes of a variable identified by the image index.
-//     * 
-//     * @param imageIndex the image index.
-//     * @return the number of {@link Attribute}s.
-//     */
-//    public int getNumAttributes( int imageIndex ) {
-//        int numAttribs = 0;
-//        final Variable var = getVariable(imageIndex);
-//        if (var != null) {
-//            final List<Attribute> attributes = var.getAttributes();
-//            if (attributes != null && !attributes.isEmpty())
-//                numAttribs = attributes.size();
-//        }
-//        return numAttribs;
-//    }
-//
-//    /**
-//     * Get a Global{@link Attribute} as a {@link KeyValuePair} representation as name/value
-//     * by index. 
-//     * 
-//     * @param attributeIndex the attribute index.
-//     * @return the global attribute identified by the index.
-//     * @throws IOException
-//     */
-//    public KeyValuePair getGlobalAttribute( final int attributeIndex ) throws IOException {
-//        return UnidataUtilities.getGlobalAttribute(dataset, attributeIndex);
-//    }
-
-//    /**
-//     * Retrieve the scale factor for the specified imageIndex. Return
-//     * {@code Double.NaN} if parameter isn't available
-//     * 
-//     * @throws IOException
-//     */
-//    public double getScale( final int imageIndex ) throws IOException {
-//        checkImageIndex(imageIndex);
-//        double scale = Double.NaN;
-//        final String scaleS = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.SCALE_FACTOR);
-//        if (scaleS != null && scaleS.trim().length() > 0)
-//            scale = Double.parseDouble(scaleS);
-//        return scale;
-//    }
-
-//    /**
-//     * Retrieve the fill value for the specified imageIndex. Return
-//     * {@code Double.NaN} if parameter isn't available
-//     * 
-//     * @throws IOException
-//     */
-//    public double getFillValue( final int imageIndex ) throws IOException {
-//        checkImageIndex(imageIndex);
-//        double fillValue = Double.NaN;
-//        final String fillValueS = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.FILL_VALUE);
-//        if (fillValueS != null && fillValueS.trim().length() > 0)
-//            fillValue = Double.parseDouble(fillValueS);
-//        return fillValue;
-//    }
-
-//    /**
-//     * Retrieve the offset factor for the specified imageIndex. Return
-//     * {@code Double.NaN} if parameter isn't available
-//     * 
-//     * @throws IOException
-//     */
-//    public double getOffset( final int imageIndex ) throws IOException {
-//        checkImageIndex(imageIndex);
-//        double offset = Double.NaN;
-//        final String offsetS = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.ADD_OFFSET);
-//        if (offsetS != null && offsetS.trim().length() > 0)
-//            offset = Double.parseDouble(offsetS);
-//        return offset;
-//    }
-//
-//    /**
-//     * Retrieve the valid Range for the specified imageIndex. Return null if
-//     * parameters aren't available
-//     * 
-//     * @throws IOException
-//     */
-//    public double[] getValidRange( final int imageIndex ) throws IOException {
-//        checkImageIndex(imageIndex);
-//        double range[] = null;
-//
-//        final String validRange = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.VALID_RANGE, true);
-//        if (validRange != null && validRange.trim().length() > 0) {
-//            String validRanges[] = validRange.split(",");
-//            if (validRanges.length == 2) {
-//                range = new double[2];
-//                range[0] = Double.parseDouble(validRanges[0]);
-//                range[1] = Double.parseDouble(validRanges[1]);
-//            }
-//        } else {
-//            final String validMin = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.VALID_MIN, true);
-//            final String validMax = getAttributeAsString(imageIndex, UnidataUtilities.DatasetAttribs.VALID_MAX, true);
-//            if (validMax != null && validMax.trim().length() > 0 && validMin != null && validMin.trim().length() > 0) {
-//                range = new double[2];
-//                range[0] = Double.parseDouble(validMin);
-//                range[1] = Double.parseDouble(validMax);
-//            }
-//        }
-//        return range;
-//    }
 
     /**
      * Reset the status of this reader
@@ -499,51 +354,48 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @throws InvalidRangeException
      * @throws IOException
      */
-    protected int initIndex( final List<Variable> variables ) throws InvalidRangeException, IOException {
+    protected int initIndex( ) throws InvalidRangeException, IOException {
         DefaultTransaction transaction = new DefaultTransaction("indexTransaction" + System.nanoTime());
         int numImages = 0;
         try {
             
             final File indexerFile = ancillaryFileManager.getIndexerFile();
+            // init slice catalog
             initCatalog(
                     DataUtilities.fileToURL(indexerFile.getParentFile()),
                             FilenameUtils.removeExtension(FilenameUtils.getName(indexerFile.getCanonicalPath())).replace(".", ""));
-            List<Coverage> filteringCoverages = null;
-            if (ancillaryFileManager.indexer != null) {
-                filteringCoverages = ancillaryFileManager.indexer.getCoverages().getCoverage();
-            }
+            final List<Variable> variables = dataset.getVariables();
             if (variables != null) {
-                for (final Variable variable : variables) {
-                    if (variable != null && variable instanceof VariableDS) {
+                
+                // cycle on all variables to get parse them
+                for (final Variable var_ : variables) {
+                    if (var_ != null && var_ instanceof VariableDS) {
+                        final VariableDS variable= (VariableDS) var_;
+                        
+                        // get the name
+                        // check if it is filtered or not
                         String varName = variable.getFullName();
+                        if (!ancillaryFileManager.acceptsVariable(varName)) {
+                            continue;
+                        }
+                        
+                        // is it acceptable?
                         if (!UnidataUtilities.isVariableAccepted(variable, checkType)) {
                             continue;
                         }
                         
-                        boolean filtered = false;
-                        if (filteringCoverages != null) {
-                            filtered = true;
-                            for (Coverage filteringCoverage: filteringCoverages) {
-                                if (varName.equalsIgnoreCase(filteringCoverage.getName()) || 
-                                        varName.equalsIgnoreCase(filteringCoverage.getOrigName())) {
-                                    filtered = false;
-                                    break;
-                                } 
-                            }
-                        }
-                        if (filtered) {
-                            continue;
-                        }
-                        CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem((VariableDS) variable);
-                        
+                        // COVERAGE NAME
                         // Add the accepted variable to the list of coverages name
                         final Name coverageName = getCoverageName(varName);
-                        
+                        CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variable);
+                        // SCHEMA
                         final SimpleFeatureType indexSchema = getIndexSchema(coverageName,cs);
                         
                         // Currently, we only support Geographic CRS
-                        Geometry geometry = UnidataCRSUtilities.extractEnvelopeAsGeometry((VariableDS)variable);
+                        Geometry envelope = UnidataCRSUtilities.extractEnvelopeAsGeometry(variable);
 
+                        
+                        // IMAGE INDEXING
                         int variableImageStartIndex = numImages;
                         int variableImageNum = 0;
                         Range variableRange = null;
@@ -572,9 +424,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             continue;
                         }
 
-                        /*
-                         * extract also index information
-                         */
+                        // 2D SLICE INDEX PREPARATION
+                        // TODO Incapsulate in variable wrapper
                         final boolean hasVerticalAxis = cs.hasVerticalAxis();
                         final int rank = variable.getRank();
                         final int bandDimension = rank - UnidataUtilities.Z_DIMENSION;                        
@@ -592,7 +443,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                                     if (i == bandDimension && hasVerticalAxis) {
                                         zIndex = UnidataUtilities.getZIndex(variable, variableRange, imageIndex);
                                     } else {
-                                        tIndex = UnidataUtilities.getTIndex(variable, variableRange, imageIndex);
+                                        tIndex = UnidataTimeUtilities.getTIndex(variable, variableRange, imageIndex);
                                     }
                                     break;
                                 }
@@ -600,13 +451,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             }
 
                             //Put a new sliceIndex in the list
-                            UnidataSlice2DIndex variableIndex = new UnidataSlice2DIndex(tIndex, zIndex, varName);
+                            final UnidataSlice2DIndex variableIndex = new UnidataSlice2DIndex(tIndex, zIndex, varName);
                             ancillaryFileManager.addSlice(variableIndex);
 
                             // Create a feature for that index to be put in the CoverageSlicesCatalog
-                            SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema, geometry);
-
-                           
+                            final SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema, envelope);
                             collection.add(feature);
                             features++;
                             
@@ -624,6 +473,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                     }
                 }
             }
+            // write things to disk
             ancillaryFileManager.writeToDisk();
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine("Committing changes to the DB");
@@ -663,7 +513,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         }
         
         String [] typeNames = getCatalog().getTypeNames();
-        
         if (typeNames != null) {
             for (String typeName : typeNames) {
                 if (typeName.equalsIgnoreCase(schemaName)) {
@@ -673,10 +522,49 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
         }
         if (indexSchema == null) {
-            indexSchema = ancillaryFileManager.initializeSchema(coverage,cs);
+            indexSchema = ancillaryFileManager.suggestSchema(coverage);
+            if(indexSchema==null){
+                // TODO incapsulate in coveragedescriptor
+                indexSchema=createSchema(coverage,cs);
+            }
+            
+            // create 
             getCatalog().createType(indexSchema);
         }
         return indexSchema;
+    }
+
+    /**
+     * @param coverage
+     * @param cs
+     * @return
+     * @throws SchemaException 
+     */
+    private SimpleFeatureType createSchema(Coverage coverage, CoordinateSystem cs) throws SchemaException {
+
+        // init with base
+        String schemaAttributes = CoverageSlice.Attributes.BASE_SCHEMA;
+        
+        // check other dimensions
+        for (CoordinateAxis axis:cs.getCoordinateAxes()) {
+            // get from coordinate vars
+            final CoordinateVariable<?> cv = this.coordinatesVariables.get(axis.getFullName());  
+            switch(cv.getAxisType()){
+            case GeoX: case GeoY: case Lat: case Lon:
+                continue;
+            }
+            schemaAttributes+=(","+cv.getName()+ ":"+cv.getType().getName());
+        }
+        
+        final SchemaType schema = coverage.getSchema();
+        schema.setAttributes(schemaAttributes);        
+        final CoordinateReferenceSystem actualCRS = UnidataCRSUtilities.WGS84;
+        
+        SimpleFeatureType indexSchema = DataUtilities.createType(schema.getName(), schemaAttributes);
+        return DataUtilities.createSubType(indexSchema,
+                        DataUtilities.attributeNames(indexSchema), actualCRS);
+        
+        
     }
 
     private Name getCoverageName(String varName) {
@@ -717,7 +605,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final int imageIndex, 
             final SimpleFeatureType indexSchema,
             final Geometry geometry) {
-        final Date startDate = UnidataUtilities.getTimeValueByIndex(this, variable, tIndex, cs);
+        final Date startDate = UnidataTimeUtilities.getTimeValueByIndex(this, variable, tIndex, cs);
         final double verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
 
         final SimpleFeature feature = DataUtilities.template(indexSchema);
@@ -751,22 +639,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return feature;
     }
 
-    protected void extractCoordinatesVariable( final List<Variable> variables ) throws IOException {
-        for( Variable variable : variables ) {
-            String varName = variable.getFullName();
-            if (variable.isCoordinateVariable()) {
-                coordinatesVariables.put(varName, variable);
-                if (variable instanceof CoordinateAxis1D) {
-
-                    // FIXME check if this is still a problem
-                    // Due to a netCDF library bug, coordinates values need to
-                    // be read to be properly obtained afterwards.
-                    // Otherwise it may return NaN in some coords.
-                    if (varName.equalsIgnoreCase(UnidataUtilities.LAT) || varName.equalsIgnoreCase(UnidataUtilities.LATITUDE)
-                            || varName.equalsIgnoreCase(UnidataUtilities.LON) || varName.equalsIgnoreCase(UnidataUtilities.LONGITUDE)) {
-                        variable.read();
-                    }
-                }                
+    private void extractCoordinatesVariable( ) throws IOException {
+        for( Variable variable : dataset.getVariables() ) {
+            final String varName = variable.getFullName();
+            if (variable.isCoordinateVariable() && variable instanceof CoordinateAxis1D) {
+                coordinatesVariables.put(varName, CoordinateVariable.create((CoordinateAxis1D)variable));             
             }
 
         }
@@ -807,15 +684,15 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @throws exception
      *                 {@link InvalidRangeException}
      */
-    private synchronized void init() throws IOException {
+    private void init() throws IOException {
         int numImages = 0;
 
         try {
             if (dataset != null) {
                 checkType = UnidataUtilities.getCheckType(dataset);
 
-                final List<Variable> variables = dataset.getVariables();
-                extractCoordinatesVariable(variables);
+                // get the coordinate variables
+                extractCoordinatesVariable();
                 final File slicesIndexFile = ancillaryFileManager.getSlicesIndexFile();
                 final File indexerFile = ancillaryFileManager.getIndexerFile();
 
@@ -838,7 +715,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         
                         // TODO: Optimize this. Why it's storing the index and reading it back??
                         ancillaryFileManager.resetSliceManager();
-                        numImages = initIndex(variables);
+                        numImages = initIndex();
 
                         // reopen file to cut caching
                         ancillaryFileManager.initSliceManager();
@@ -847,7 +724,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
                 } else {
                     // === the dataset is no file dataset, need to build memory index
-                    numImages = initIndex(variables);
+                    numImages = initIndex();
                 }
 
             } else{
@@ -913,9 +790,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
 
             // create, cache and return
-            CoverageSourceDescriptor cd=new UnidataCoverageDescriptor(
-                    this,
-                    (VariableDS) getVariableByName(ancillaryFileManager.variablesMap.get(name)));
+            CoverageSourceDescriptor cd;
+            try {
+                cd = new UnidataCoverageDescriptor(
+                        this,
+                        (VariableDS) getVariableByName(ancillaryFileManager.variablesMap.get(name)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             coverageSourceDescriptorsCache.put(name_, cd);
             return cd;
         }

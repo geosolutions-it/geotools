@@ -121,7 +121,7 @@ public class NetCDFAccess extends DefaultFileCoverageAccess implements CoverageA
 
             if (names == null) {
                 names = new ArrayList<Name>();
-                final Collection<Name> originalNames = reader.getNames();
+                final Collection<Name> originalNames = reader.getCoveragesNames();
                 for (Name name : originalNames) {
                     Name coverageName = new NameImpl(/*namePrefix + */name.toString());
                     names.add(coverageName);

@@ -606,9 +606,9 @@ class UnidataCRSUtilities {
                         }
                     }
                     if (origin != null) {
-                        origin = UnidataUtilities.trimFractionalPart(origin);
+                        origin = UnidataTimeUtilities.trimFractionalPart(origin);
                         // add 0 digits if absent
-                        origin = UnidataUtilities.checkDateDigits(origin);
+                        origin = UnidataTimeUtilities.checkDateDigits(origin);
 
                         try {
                             epoch = (Date) UnidataUtilities.getAxisFormat(type, origin).parseObject(origin);

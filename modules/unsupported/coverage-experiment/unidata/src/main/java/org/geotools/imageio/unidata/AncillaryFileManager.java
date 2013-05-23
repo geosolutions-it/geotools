@@ -34,6 +34,7 @@ import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
+import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
@@ -77,7 +78,7 @@ class AncillaryFileManager {
         } 
     }
 
-    Indexer indexer;
+    private Indexer indexer;
 
     private static final String INDEX_SUFFIX = ".xml";
 
@@ -105,7 +106,7 @@ class AncillaryFileManager {
     private File destinationDir;
 
     /** The main NetCDF file */
-    private File mainFile;
+    private File ncFile;
 
     /** The parent folder of the main File */
     private File parentDirectory;
@@ -123,8 +124,8 @@ class AncillaryFileManager {
         }
 
         // Set files  
-        mainFile = netcdfFile;
-        parentDirectory = new File(mainFile.getParent());
+        ncFile = netcdfFile;
+        parentDirectory = new File(ncFile.getParent());
 
         // Look for external folder configuration
         final String baseFolder = UnidataUtilities.EXTERNAL_DATA_DIR;
@@ -135,7 +136,7 @@ class AncillaryFileManager {
             baseDir = UnidataUtilities.isValid(baseDir) ? baseDir : null;
         }
 
-        String mainFilePath = mainFile.getCanonicalPath();
+        String mainFilePath = ncFile.getCanonicalPath();
         String baseName = FilenameUtils.removeExtension(FilenameUtils.getName(mainFilePath));
         String outputLocalFolder = "." + baseName;
         destinationDir = new File(parentDirectory, outputLocalFolder);
@@ -164,7 +165,7 @@ class AncillaryFileManager {
         
         if (!createdDir) {
             // Check for index to be reset only in case we didn't created a new directory.
-            checkReset(mainFile, slicesIndexFile, destinationDir);
+            checkReset(ncFile, slicesIndexFile, destinationDir);
         }
 
         // init
@@ -173,7 +174,7 @@ class AncillaryFileManager {
 
     /**
      * Check whether the file have been updated.
-     * @param mainFile
+     * @param ncFile
      * @param slicesIndexFile
      * @param destinationDir
      * @throws IOException
@@ -289,9 +290,8 @@ class AncillaryFileManager {
      * @throws IllegalAccessException
      * @throws ClassNotFoundException
      */
-    SimpleFeatureType initializeSchema(
-            final Coverage coverage, 
-            CoordinateSystem cs) throws Exception {
+    SimpleFeatureType suggestSchema(
+            final Coverage coverage) throws Exception {
 
         // Get the schema for that coverage (if any)
         SchemaType schemaElement = coverage.getSchema();
@@ -305,73 +305,7 @@ class AncillaryFileManager {
 
         // for the moment we only handle data in 4326
         final CoordinateReferenceSystem actualCRS = UnidataCRSUtilities.WGS84;
-        SimpleFeatureType indexSchema = null;
-
-        // Use default attributes if schema isn't defined yet
-        if (schemaAttributes == null) {
-            // init with base
-            schemaAttributes = CoverageSlice.Attributes.BASE_SCHEMA;
-            
-            // check other dimensions
-            List<CoordinateAxis> axes = cs.getCoordinateAxes();
-            for (int i = 0; i < axes.size(); i++) {
-                final CoordinateAxis axis = axes.get(i);
-                final AxisType axisType = axis.getAxisType();
-                if (AxisType.Time.equals(axisType)) {
-                    schemaAttributes+=(","+CoverageSlice.Attributes.TIME+ ":java.util.Date");
-                    continue;
-                }
-
-                // If the axis is not numeric, we can't process any further. 
-                // If it is, then adds the coordinate and index ranges.
-                if (!axis.isNumeric()) {
-                    continue;
-                }
-                if (axisType == AxisType.Height || axisType == AxisType.GeoZ || axisType == AxisType.Pressure) {
-                    
-                    //TODO: check that.
-                    String axisName = axis.getFullName();
-                    if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
-                        schemaAttributes+=(","+CoverageSlice.Attributes.ELEVATION+ ":Double");
-                        continue;
-                    }
-                }
-
-                if (axisType != AxisType.Lat && axisType != AxisType.Lon) {
-                    schemaAttributes+=(","+ axis.getFullName());
-                    
-                    // do we have scale factors
-                    if (axis instanceof CoordinateAxis1D) {
-                        final CoordinateAxis1D axis1D = (CoordinateAxis1D) axis;
-                        Attribute scaleFactor = axis1D.findAttribute("scale_factor");
-                        Attribute offset = axis1D.findAttribute("offset");
-                        if (scaleFactor != null || offset != null) {
-                            schemaAttributes+=":Double";
-                            continue;
-                        }
-                    }
-                    
-                    // no scale factors    
-                    final DataType type = axis.getDataType();
-                    switch (type) {
-                    case BYTE:case INT:case SHORT: 
-                        schemaAttributes+=":Integer";
-                        break;
-                    case LONG:
-                        schemaAttributes+=":Long";
-                        break;                        
-                    case DOUBLE:case FLOAT:
-                        schemaAttributes+=":Double";
-                        break;                        
-                    default:
-                        break;
-                    }
-                    continue;
-                }
-            }
-            
-            schemaElement.setAttributes(schemaAttributes);
-        }
+        SimpleFeatureType indexSchema = null;    
         
         // Setting up the simpleFeatureType
         if (schemaAttributes != null) {
@@ -478,7 +412,6 @@ class AncillaryFileManager {
             names.add(new NameImpl(cov.getName()));
         }
         return names;
-//        return new ArrayList<Name>(getCoverages().values());
     }
 
     /**
@@ -494,7 +427,7 @@ class AncillaryFileManager {
                 final SchemasType schemas = indexer.getSchemas();
                 Map<String, String> schemaMapping = new HashMap<String, String>();
                 if (schemas != null) {
-//                  // Map schema names to schema attributes string
+                  // Map schema names to schema attributes string
                     List<SchemaType> schemaElements = schemas.getSchema();
                     for (SchemaType schemaElement: schemaElements) {
                         schemaMapping.put(schemaElement.getName(), schemaElement.getAttributes());
@@ -597,7 +530,7 @@ class AncillaryFileManager {
         if (collectors != null && collectors.containsKey(nameCollector)) {
             Map<String, Object> keyValues = new HashMap<String, Object>();
             PropertiesCollector collector = collectors.get(nameCollector);
-            collector.collect(mainFile);
+            collector.collect(ncFile);
             collector.setProperties(keyValues);
             collector.reset();
             coverageName = (String) keyValues.get(COVERAGE_NAME);
@@ -671,5 +604,23 @@ class AncillaryFileManager {
             return schemaName;
         }
         return null;
+    }
+
+    /**
+     * @param varName
+     * @return
+     */
+    public boolean acceptsVariable(String varName) {
+        Utilities.ensureNonNull("varName", varName);
+        if(indexer==null){
+            return true;
+        }
+        for (Coverage filteringCoverage: indexer.getCoverages().getCoverage()) {
+            if (varName.equalsIgnoreCase(filteringCoverage.getName()) || 
+                    varName.equalsIgnoreCase(filteringCoverage.getOrigName())) {
+                return true;
+            } 
+        }
+        return false;
     }
 }

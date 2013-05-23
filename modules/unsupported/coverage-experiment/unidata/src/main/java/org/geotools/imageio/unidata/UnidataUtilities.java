@@ -27,26 +27,19 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.EnumSet;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
-import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 
 import ucar.ma2.DataType;
@@ -80,56 +73,8 @@ public class UnidataUtilities {
 
     private static final String NETCDF_DATA_DIR = "NETCDF_DATA_DIR";
 
-    public static class KeyValuePair implements Map.Entry<String, String> {
-
-        public KeyValuePair(final String key, final String value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        private String key;
-
-        private String value;
-
-        public String getKey() {
-            return key;
-        }
-
-        public String getValue() {
-            return value;
-        }
-
-        private boolean equal(Object a, Object b) {
-            return a == b || a != null && a.equals(b);
-        }
-
-        public boolean equals(Object o) {
-            return o instanceof KeyValuePair && equal(((KeyValuePair) o).key, key)
-                    && equal(((KeyValuePair) o).value, value);
-        }
-
-        private static int hashCode(Object a) {
-            return a == null ? 42 : a.hashCode();
-        }
-
-        public int hashCode() {
-            return hashCode(key) * 3 + hashCode(value);
-        }
-
-        public String toString() {
-            return "(" + key + "," + value + ")";
-        }
-
-        public String setValue(String value) {
-            this.value = value;
-            return value;
-        }
-    }
-
     /** The LOGGER for this class. */
     private static final Logger LOGGER = Logger.getLogger(UnidataUtilities.class.toString());
-
-    public static final int JGREG = 15 + 31 * (10 + 12 * 1582);
 
     private UnidataUtilities() {
 
@@ -175,77 +120,7 @@ public class UnidataUtilities {
 
     public static final String LONG_NAME = "long_name";
 
-    static class TimeBuilder {
-        public TimeBuilder(Variable axis) {
-            if (((CoordinateAxis) axis).isNumeric() && axis instanceof CoordinateAxis1D) {
-                axis1D = (CoordinateAxis1D) axis;
-                values = axis1D.getCoordValues();
-            } else {
-                throw new IllegalArgumentException(
-                        "The specified axis doesn't represent a valid time Axis");
-
-            }
-            units = axis.getUnitsString();
-            /*
-             * Gets the axis origin. In the particular case of time axis, units are typically written in the form "days since 1990-01-01
-             * 00:00:00". We extract the part before "since" as the units and the part after "since" as the date.
-             */
-            origin = null;
-            final String[] unitsParts = units.split("(?i)\\s+since\\s+");
-            if (unitsParts.length == 2) {
-                units = unitsParts[0].trim();
-                origin = unitsParts[1].trim();
-            } else {
-                final Attribute attribute = axis.findAttribute("time_origin");
-                if (attribute != null) {
-                    origin = attribute.getStringValue();
-                }
-            }
-            if (origin != null) {
-                origin = UnidataUtilities.trimFractionalPart(origin);
-                // add 0 digits if absent
-                origin = checkDateDigits(origin);
-
-                try {
-                    epoch = (Date) UnidataUtilities.getAxisFormat(AxisType.Time, origin)
-                            .parseObject(origin);
-                } catch (ParseException e) {
-                    LOGGER.warning("Error while parsing time Axis. Skip setting the TemporalExtent from coordinateAxis");
-                }
-            }
-        }
-
-        String units;
-
-        String origin;
-
-        Date epoch;
-
-        CoordinateAxis1D axis1D;
-
-        double[] values = null;
-
-        public Date buildTime(int timeIndex) {
-            if (epoch != null) {
-                Calendar cal = new GregorianCalendar();
-                cal.setTime(epoch);
-                int vi = (int) Math.floor(values[timeIndex]);
-                double vd = values[timeIndex] - vi;
-                cal.add(getTimeUnits(units, null), vi);
-                if (vd != 0.0) {
-                    cal.add(getTimeUnits(units, vd), getTimeSubUnitsValue(units, vd));
-                }
-                return cal.getTime();
-            }
-            return null;
-
-        }
-
-        public int getNumTimes() {
-            return values.length;
-        }
-    }
-    
+    @Deprecated // should die soon
     static class AxisValueGetter {
         
         CoordinateAxis1D axis1D;
@@ -363,36 +238,6 @@ public class UnidataUtilities {
         EXTERNAL_DATA_DIR = finalDir;
     }
 
-    /**
-     * Utility method to retrieve the t-index of a Variable coverageDescriptor stored on
-     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
-     * 
-     * @param var
-     *                {@link Variable}
-     * @param range
-     *                {@link Range}
-     * @param imageIndex
-     *                {@link int}
-     * 
-     * @return t-index {@link int} -1 if variable rank > 4
-     */
-    public static int getTIndex(Variable var, Range range, int imageIndex) {
-        final int rank = var.getRank();
-
-        if (rank > 2) {
-            if (rank == 3) {
-                return (imageIndex - range.first());
-            } else {
-                // return (imageIndex - range.first()) % var.getDimension(rank -
-                // (Z_DIMENSION + 1)).getLength();
-                return (int) Math.ceil((imageIndex - range.first())
-                        / getZDimensionLength(var));
-            }
-        }
-
-        return -1;
-    }
-
     public static boolean isValid(File file) {
         String dir = file.getAbsolutePath();
         if (!file.exists()) {
@@ -418,7 +263,7 @@ public class UnidataUtilities {
         return true;
     }
 
-    private static int getZDimensionLength(Variable var) {
+    static int getZDimensionLength(Variable var) {
         final int rank = var.getRank();
         if (rank > 2) {
             return var.getDimension(rank - Z_DIMENSION).getLength();
@@ -531,110 +376,6 @@ public class UnidataUtilities {
 
 		}
 	}
-
-    public static String getAttributesAsString(Attribute attr) {
-        return getAttributesAsString(attr, false);
-    }
-    
-    public static String getAttributesAsString(final Variable var, final String attributeName) {
-        String value = "";
-        if (var != null){
-        	Attribute attribute = var.findAttribute(attributeName);
-        	if (attribute != null)
-        		value = getAttributesAsString(attribute, false); 
-        	
-        }
-    	return value;
-    }
-    
-    public static Number getAttributesAsNumber(final Variable var, final String attributeName) {
-        Number value = null;
-        if (var != null){
-        	Attribute attribute = var.findAttribute(attributeName);
-        	if (attribute != null)
-        		value = attribute.getNumericValue(); 
-        	
-        }
-    	return value;
-    }
-
-    /**
-     * Return the value of a NetCDF {@code Attribute} instance as a
-     * {@code String}. The {@code isUnsigned} parameter allow to handle byte
-     * attributes as unsigned, in order to represent values in the range
-     * [0,255].
-     */
-    public static String getAttributesAsString(Attribute attr,
-            final boolean isUnsigned) {
-        String values[] = null;
-        if (attr != null) {
-            final int nValues = attr.getLength();
-            values = new String[nValues];
-            final DataType datatype = attr.getDataType();
-
-            // TODO: Improve the unsigned management
-            if (datatype == DataType.BYTE) {
-                if (isUnsigned)
-                    for (int i = 0; i < nValues; i++) {
-                        byte val = attr.getNumericValue(i).byteValue();
-                        int myByte = (0x000000FF & ((int) val));
-                        short anUnsignedByte = (short) myByte;
-                        values[i] = Short.toString(anUnsignedByte);
-                    }
-                else {
-                    for (int i = 0; i < nValues; i++) {
-                        byte val = attr.getNumericValue(i).byteValue();
-                        values[i] = Byte.toString(val);
-                    }
-                }
-            } else if (datatype == DataType.SHORT) {
-                for (int i = 0; i < nValues; i++) {
-                    short val = attr.getNumericValue(i).shortValue();
-                    values[i] = Short.toString(val);
-                }
-            } else if (datatype == DataType.INT) {
-                for (int i = 0; i < nValues; i++) {
-                    int val = attr.getNumericValue(i).intValue();
-                    values[i] = Integer.toString(val);
-                }
-            } else if (datatype == DataType.LONG) {
-                for (int i = 0; i < nValues; i++) {
-                    long val = attr.getNumericValue(i).longValue();
-                    values[i] = Long.toString(val);
-                }
-            } else if (datatype == DataType.DOUBLE) {
-                for (int i = 0; i < nValues; i++) {
-                    double val = attr.getNumericValue(i).doubleValue();
-                    values[i] = Double.toString(val);
-                }
-            } else if (datatype == DataType.FLOAT) {
-                for (int i = 0; i < nValues; i++) {
-                    float val = attr.getNumericValue(i).floatValue();
-                    values[i] = Float.toString(val);
-                }
-
-            } else if (datatype == DataType.STRING) {
-                for (int i = 0; i < nValues; i++) {
-                    values[i] = attr.getStringValue(i);
-                }
-            } else {
-                if (LOGGER.isLoggable(Level.WARNING))
-                    LOGGER.warning("Unhandled Attribute datatype "
-                            + attr.getDataType().getClassType().toString());
-            }
-        }
-        String value = "";
-        if (values != null) {
-            StringBuffer sb = new StringBuffer();
-            int j = 0;
-            for (; j < values.length - 1; j++) {
-                sb.append(values[j]).append(",");
-            }
-            sb.append(values[j]);
-            value = sb.toString();
-        }
-        return value;
-    }
 
     public static class ProjAttribs {
         public final static String PROJECT_TO_IMAGE_AFFINE = "proj_to_image_affine";
@@ -766,26 +507,6 @@ public class UnidataUtilities {
 //        return true;
     }
 
-    /**
-     * 
-     * @param value
-     * @return
-     */
-    public static String trimFractionalPart(String value) {
-        value = value.trim();
-        for (int i = value.length(); --i >= 0;) {
-            switch (value.charAt(i)) {
-            case '0':
-                continue;
-            case '.':
-                return value.substring(0, i);
-            default:
-                return value;
-            }
-        }
-        return value;
-    }
-    
     /**
      * Returns a {@code NetcdfDataset} given an input object
      * 
@@ -1014,371 +735,11 @@ public class UnidataUtilities {
     }
     
     /**
-     * Return a global attribute as a {@code String}. The required global
-     * attribute is specified by name
-     * 
-     * @param attributeName
-     *                the name of the required attribute.
-     * @return the value of the required attribute. Returns an empty String in
-     *         case the required attribute is not found.
-     */
-    public static String getGlobalAttributeAsString(final NetcdfDataset dataset, final String attributeName) {
-        String attributeValue = "";
-        if (dataset != null) {
-        	final Attribute attrib = dataset.findGlobalAttribute(attributeName);
-//        	final List<Attribute> globalAttributes = dataset.getGlobalAttributes();
-//            if (globalAttributes != null && !globalAttributes.isEmpty()) {
-//                for (Attribute attrib: globalAttributes){
-                    if (attrib != null && attrib.getFullName().equals(attributeName)) {
-                        attributeValue = UnidataUtilities.getAttributesAsString(attrib);
-//                        break;
-                    }
-//                }
-//            }
-        }
-        return attributeValue;
-    }
-
-    public static KeyValuePair getGlobalAttribute(final NetcdfDataset dataset, final int attributeIndex) throws IOException {
-    	KeyValuePair attributePair = null;
-        if (dataset != null) {
-        	final List<Attribute> globalAttributes = dataset.getGlobalAttributes();
-            if (globalAttributes != null && !globalAttributes.isEmpty()) {
-            	final Attribute attribute = (Attribute) globalAttributes.get(attributeIndex);
-                if (attribute != null) {
-                    attributePair = new KeyValuePair(attribute.getFullName(), UnidataUtilities.getAttributesAsString(attribute));
-                }
-            }
-        }
-        return attributePair;
-    }
-
-	public static KeyValuePair getAttribute(final Variable var, final int attributeIndex) {
-		KeyValuePair attributePair = null;
-		if (var != null){
-			final List<Attribute> attributes = var.getAttributes();
-		    if (attributes != null && !attributes.isEmpty()) {
-		    	final Attribute attribute = (Attribute) attributes.get(attributeIndex);
-		        if (attribute != null) {
-		            attributePair = new KeyValuePair(attribute.getFullName(),UnidataUtilities.getAttributesAsString(attribute));
-		        }
-		    }
-		}
-	    return attributePair;
-	}
-
-    /**
-     * @param origin
-     */
-    public static String checkDateDigits( String origin ) {
-        String digitsCheckedOrigin = "";
-        if (origin.indexOf("-") > 0) {
-            String tmp = (origin.indexOf(" ") > 0 ? origin.substring(0, origin.indexOf(" ")) : origin);
-            String[] originDateParts = tmp.split("-");
-            for( int l = 0; l < originDateParts.length; l++ ) {
-                String datePart = originDateParts[l];
-                while( datePart.length() % 2 != 0 ) {
-                    datePart = "0" + datePart;
-                }
-    
-                digitsCheckedOrigin += datePart;
-                digitsCheckedOrigin += (l < (originDateParts.length - 1) ? "-" : "");
-            }
-        }
-    
-        if (origin.indexOf(":") > 0) {
-            digitsCheckedOrigin += " ";
-            String tmp = (origin.indexOf(" ") > 0 ? origin.substring(origin.indexOf(" ") + 1) : origin);
-            String[] originDateParts = tmp.split(":");
-            for( int l = 0; l < originDateParts.length; l++ ) {
-                String datePart = originDateParts[l];
-                while( datePart.length() % 2 != 0 ) {
-                    datePart = "0" + datePart;
-                }
-    
-                digitsCheckedOrigin += datePart;
-                digitsCheckedOrigin += (l < (originDateParts.length - 1) ? ":" : "");
-            }
-        }
-    
-        if (digitsCheckedOrigin.length() > 0)
-            return digitsCheckedOrigin;
-    
-        return origin;
-    }
-
-    // public static double HALFSECOND = 0.5;
-    
-    public static GregorianCalendar fromJulian( double injulian ) {
-        int jalpha, ja, jb, jc, jd, je, year, month, day;
-        // double julian = injulian + HALFSECOND / 86400.0;
-        ja = (int) injulian;
-        if (ja >= JGREG) {
-            jalpha = (int) (((ja - 1867216) - 0.25) / 36524.25);
-            ja = ja + 1 + jalpha - jalpha / 4;
-        }
-    
-        jb = ja + 1524;
-        jc = (int) (6680.0 + ((jb - 2439870) - 122.1) / 365.25);
-        jd = 365 * jc + jc / 4;
-        je = (int) ((jb - jd) / 30.6001);
-        day = jb - jd - (int) (30.6001 * je);
-        month = je - 1;
-        if (month > 12)
-            month = month - 12;
-        year = jc - 4715;
-        if (month > 2)
-            year--;
-        if (year <= 0)
-            year--;
-    
-        // Calendar Months are 0 based
-        return new GregorianCalendar(year, month - 1, day);
-    }
-
-    /**
-     * Gets the name, as the "description", "title" or "standard name" attribute
-     * if possible, or as the variable name otherwise.
-     */
-    public static String getName( final Variable variable ) {
-        String name = variable.getDescription();
-        if (name == null || (name = name.trim()).length() == 0) {
-            name = variable.getFullName();
-        }
-        return name;
-    }
-
-    /**
-     * 
-     */
-    private static int getTimeSubUnitsValue( String units, Double vd ) {
-        if ("days".equalsIgnoreCase(units)) {
-            int subUnit = getTimeUnits(units, vd);
-            if (subUnit == Calendar.HOUR) {
-                double hours = vd * 24;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.MINUTE) {
-                double hours = vd * 24 * 60;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.SECOND) {
-                double hours = vd * 24 * 60 * 60;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.MILLISECOND) {
-                double hours = vd * 24 * 60 * 60 * 1000;
-                return (int) hours;
-            }
-    
-            return 0;
-        }
-    
-        if ("hours".equalsIgnoreCase(units) || "hour".equalsIgnoreCase(units)) {
-            int subUnit = getTimeUnits(units, vd);
-            if (subUnit == Calendar.MINUTE) {
-                double hours = vd * 24 * 60;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.SECOND) {
-                double hours = vd * 24 * 60 * 60;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.MILLISECOND) {
-                double hours = vd * 24 * 60 * 60 * 1000;
-                return (int) hours;
-            }
-    
-            return 0;
-        }
-    
-        if ("minutes".equalsIgnoreCase(units)) {
-            int subUnit = getTimeUnits(units, vd);
-            if (subUnit == Calendar.SECOND) {
-                double hours = vd * 24 * 60 * 60;
-                return (int) hours;
-            }
-    
-            if (subUnit == Calendar.MILLISECOND) {
-                double hours = vd * 24 * 60 * 60 * 1000;
-                return (int) hours;
-            }
-    
-            return 0;
-        }
-    
-        if ("seconds".equalsIgnoreCase(units)) {
-            int subUnit = getTimeUnits(units, vd);
-            if (subUnit == Calendar.MILLISECOND) {
-                double hours = vd * 24 * 60 * 60 * 1000;
-                return (int) hours;
-            }
-    
-            return 0;
-        }
-    
-        return 0;
-    }
-
-    /**
-     * Converts NetCDF time units into opportune Calendar ones.
-     * 
-     * @param units
-     *                {@link String}
-     * @param d
-     * @return int
-     */
-    private static int getTimeUnits( String units, Double vd ) {
-        if ("months".equalsIgnoreCase(units)) {
-            if (vd == null || vd == 0.0)
-                // if no day, it is the first day
-                return 1;
-            else {
-                // TODO: FIXME
-            }
-        } else if ("days".equalsIgnoreCase(units)) {
-            if (vd == null || vd == 0.0)
-                return Calendar.DATE;
-            else {
-                double hours = vd * 24;
-                if (hours - Math.floor(hours) == 0.0)
-                    return Calendar.HOUR;
-    
-                double minutes = vd * 24 * 60;
-                if (minutes - Math.floor(minutes) == 0.0)
-                    return Calendar.MINUTE;
-    
-                double seconds = vd * 24 * 60 * 60;
-                if (seconds - Math.floor(seconds) == 0.0)
-                    return Calendar.SECOND;
-    
-                return Calendar.MILLISECOND;
-            }
-        }
-        if ("hours".equalsIgnoreCase(units) || "hour".equalsIgnoreCase(units)) {
-            if (vd == null || vd == 0.0)
-                return Calendar.HOUR;
-            else {
-                double minutes = vd * 24 * 60;
-                if (minutes - Math.floor(minutes) == 0.0)
-                    return Calendar.MINUTE;
-    
-                double seconds = vd * 24 * 60 * 60;
-                if (seconds - Math.floor(seconds) == 0.0)
-                    return Calendar.SECOND;
-    
-                return Calendar.MILLISECOND;
-            }
-        }
-        if ("minutes".equalsIgnoreCase(units)) {
-            if (vd == null || vd == 0.0)
-                return Calendar.MINUTE;
-            else {
-                double seconds = vd * 24 * 60 * 60;
-                if (seconds - Math.floor(seconds) == 0.0)
-                    return Calendar.SECOND;
-    
-                return Calendar.MILLISECOND;
-            }
-        }
-        if ("seconds".equalsIgnoreCase(units)) {
-            if (vd == null || vd == 0.0)
-                return Calendar.SECOND;
-            else {
-                return Calendar.MILLISECOND;
-            }
-        }
-    
-        return -1;
-    }
-
-    /** Return the timeIndex-th value of the time dimension of the specified variable, as a Date, or null in case that
-     * variable doesn't have a time axis.
-     * 
-     * @param unidataReader the reader to be used for that search
-     * @param variable the variable to be accessed
-     * @param timeIndex the requested index
-     * @param cs the coordinateSystem to be scan
-     * @return
-     */
-    static Date getTimeValueByIndex( final UnidataImageReader unidataReader, Variable variable, int timeIndex,
-            final CoordinateSystem cs ) {
-    
-        if (cs != null && cs.hasTimeAxis()) {
-            final int rank = variable.getRank();
-            final Dimension temporalDimension = variable.getDimension(rank
-                    - ((cs.hasVerticalAxis() ? UnidataUtilities.Z_DIMENSION : 2) + 1));
-            final Variable axis = unidataReader.coordinatesVariables.get(temporalDimension.getFullName());
-            if ((axis != null) && axis.isCoordinateVariable()) {
-    
-                // for (Variable axis : coordVars) {
-                final AxisType type = ((CoordinateAxis) axis).getAxisType();
-                if (!AxisType.Time.equals(type))
-                    return null;
-                return getTime(axis, timeIndex);
-            }
-        }
-    
-        return null;
-    }
-
-    /**
-     * Return the specified timeIndex-th value from the specified Axis, as a {@link Date}.
-     * @param axis
-     * @param timeIndex
-     * @return
-     */
-    private static Date getTime(Variable axis, int timeIndex) {
-        TimeBuilder timeBuilder = new TimeBuilder(axis);
-        return timeBuilder.buildTime(timeIndex);
-    }
-    
-    /**
-     * Return the temporal extent related to that coordinateAxis-
-     * @param axis
-     * @return
-     */
-    public static DateRange getTemporalExtent(CoordinateAxis axis) {
-        if (axis == null || !AxisType.Time.equals(axis.getAxisType())) {
-            throw new IllegalArgumentException("The specified axis is not a time axis");
-        }
-        TimeBuilder timeBuilder = new TimeBuilder(axis);
-        Date startTime = timeBuilder.buildTime(0);
-        Date endTime = timeBuilder.buildTime(timeBuilder.getNumTimes() - 1);
-        return new DateRange(startTime, endTime);
-    }
-
-    /**
-     * Return the full temporal extent set related to that coordinateAxis-
-     * @param axis
-     * @return
-     */    
-    public static SortedSet<DateRange> getTemporalExtentSet(CoordinateAxis axis) {
-        if (axis == null || !AxisType.Time.equals(axis.getAxisType())) {
-            throw new IllegalArgumentException("The specified axis is not a time axis");
-        }
-
-        TimeBuilder timeBuilder = new TimeBuilder(axis);
-        SortedSet<DateRange> sorted = new DateRangeTreeSet();
-        final int numTimes = timeBuilder.getNumTimes();
-        for (int i = 0; i < numTimes; i++) {
-            Date startTime = timeBuilder.buildTime(i);
-            sorted.add(new DateRange(startTime, startTime));
-        }
-        return sorted;
-    }
-
-    /**
      * Return the vertical extent related to that coordinateAxis-
      * @param axis
      * @return
      */
-    public static NumberRange<Double> getVerticalExtent(CoordinateAxis zAxis) {
+    private static NumberRange<Double> getVerticalExtent(CoordinateAxis zAxis) {
         AxisType axisType = null;
         if (zAxis == null
                 || ((axisType = zAxis.getAxisType()) != AxisType.Height
@@ -1396,7 +757,7 @@ public class UnidataUtilities {
      * @param axis
      * @return
      */  
-    public static SortedSet<NumberRange<Double>> getVerticalExtentSet(CoordinateAxis zAxis) {
+    private static SortedSet<NumberRange<Double>> getVerticalExtentSet(CoordinateAxis zAxis) {
         AxisType axisType = null;
         if (zAxis == null
                 || ((axisType = zAxis.getAxisType()) != AxisType.Height
@@ -1429,15 +790,7 @@ public class UnidataUtilities {
             final int rank = variable.getRank();
     
             final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
-            final Variable axis = unidataReader.coordinatesVariables.get(verticalDimension.getFullName());
-            if ((axis != null) && axis.isCoordinateVariable()) {
-                final AxisType type = ((CoordinateAxis) axis).getAxisType();
-                if (!AxisType.GeoZ.equals(type) && !AxisType.Pressure.equals(type) && !AxisType.Height.equals(type))
-                    return ve;
-                
-                AxisValueGetter zetaBuilder = new AxisValueGetter((CoordinateAxis) axis);
-                return zetaBuilder.build(zIndex);
-            }
+            return (Double) unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
         }
         return ve;
     }

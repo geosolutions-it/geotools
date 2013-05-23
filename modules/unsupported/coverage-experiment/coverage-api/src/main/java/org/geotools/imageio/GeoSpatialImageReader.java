@@ -105,7 +105,7 @@ public abstract class GeoSpatialImageReader extends ImageReader {
     /**
      * Return the name of coverages made available by this provider
      */
-    public abstract Collection<Name> getNames();
+    public abstract Collection<Name> getCoveragesNames();
 
     /**
      * The number of coverages made available by this provider.
