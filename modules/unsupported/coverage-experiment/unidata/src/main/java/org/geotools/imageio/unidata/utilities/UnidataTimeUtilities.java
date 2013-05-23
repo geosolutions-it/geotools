@@ -14,27 +14,14 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.imageio.unidata;
+package org.geotools.imageio.unidata.utilities;
 
-import java.text.ParseException;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.SortedSet;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.io.util.DateRangeTreeSet;
-import org.geotools.util.DateRange;
 
-import ucar.ma2.Range;
-import ucar.nc2.Attribute;
-import ucar.nc2.Dimension;
-import ucar.nc2.Variable;
-import ucar.nc2.constants.AxisType;
-import ucar.nc2.dataset.CoordinateAxis;
-import ucar.nc2.dataset.CoordinateAxis1D;
-import ucar.nc2.dataset.CoordinateSystem;
+
 
 /**
  * @author User
@@ -43,74 +30,6 @@ import ucar.nc2.dataset.CoordinateSystem;
 public class UnidataTimeUtilities {
     /** The LOGGER for this class. */
     private static final Logger LOGGER = Logger.getLogger(UnidataTimeUtilities.class.toString());
-
-    @Deprecated // should die soon
-    static class TimeBuilder {
-        public TimeBuilder(CoordinateAxis1D axis) {
-            axis1D = axis;
-            values = axis1D.getCoordValues();
-            units = axis.getUnitsString();
-            /*
-             * Gets the axis origin. In the particular case of time axis, units are typically written in the form "days since 1990-01-01
-             * 00:00:00". We extract the part before "since" as the units and the part after "since" as the date.
-             */
-            origin = null;
-            final String[] unitsParts = units.split("(?i)\\s+since\\s+");
-            if (unitsParts.length == 2) {
-                units = unitsParts[0].trim();
-                origin = unitsParts[1].trim();
-            } else {
-                final Attribute attribute = axis.findAttribute("time_origin");
-                if (attribute != null) {
-                    origin = attribute.getStringValue();
-                }
-            }
-            if (origin != null) {
-                origin = UnidataTimeUtilities.trimFractionalPart(origin);
-                // add 0 digits if absent
-                origin = UnidataTimeUtilities.checkDateDigits(origin);
-    
-                try {
-                    epoch = (Date) UnidataUtilities.getAxisFormat(AxisType.Time, origin)
-                            .parseObject(origin);
-                } catch (ParseException e) {
-                    LOGGER.warning("Error while parsing time Axis. Skip setting the TemporalExtent from coordinateAxis");
-                }
-            }
-        }
-    
-        String units;
-    
-        String origin;
-    
-        Date epoch;
-    
-        CoordinateAxis1D axis1D;
-    
-        double[] values = null;
-
-        public static final int JGREG = 15 + 31 * (10 + 12 * 1582);
-    
-        public Date buildTime(int timeIndex) {
-            if (epoch != null) {
-                Calendar cal = new GregorianCalendar();
-                cal.setTime(epoch);
-                int vi = (int) Math.floor(values[timeIndex]);
-                double vd = values[timeIndex] - vi;
-                cal.add(UnidataTimeUtilities.getTimeUnits(units, null), vi);
-                if (vd != 0.0) {
-                    cal.add(UnidataTimeUtilities.getTimeUnits(units, vd), UnidataTimeUtilities.getTimeSubUnitsValue(units, vd));
-                }
-                return cal.getTime();
-            }
-            return null;
-    
-        }
-    
-        public int getNumTimes() {
-            return values.length;
-        }
-    }
 
     public static final int JGREG = 15 + 31 * (10 + 12 * 1582);
 
@@ -331,93 +250,6 @@ public class UnidataTimeUtilities {
                 return Calendar.SECOND;
             else {
                 return Calendar.MILLISECOND;
-            }
-        }
-    
-        return -1;
-    }
-
-    /** Return the timeIndex-th value of the time dimension of the specified variable, as a Date, or null in case that
-     * variable doesn't have a time axis.
-     * 
-     * @param unidataReader the reader to be used for that search
-     * @param variable the variable to be accessed
-     * @param timeIndex the requested index
-     * @param cs the coordinateSystem to be scan
-     * @return
-     */
-    public static Date getTimeValueByIndex( final UnidataImageReader unidataReader, Variable variable, int timeIndex,
-            final CoordinateSystem cs ) {
-    
-        if (cs != null && cs.hasTimeAxis()) {
-            final int rank = variable.getRank();
-            final Dimension temporalDimension = variable.getDimension(rank
-                    - ((cs.hasVerticalAxis() ? UnidataUtilities.Z_DIMENSION : 2) + 1));
-            return (Date) unidataReader.coordinatesVariables.get(temporalDimension.getFullName()).read(timeIndex);
-        }
-    
-        return null;
-    }
-
-    /**
-     * Return the temporal extent related to that coordinateAxis-
-     * @param axis
-     * @return
-     */
-    private static DateRange getTemporalExtent(CoordinateAxis axis) {
-        if (axis == null || !AxisType.Time.equals(axis.getAxisType())) {
-            throw new IllegalArgumentException("The specified axis is not a time axis");
-        }
-        TimeBuilder timeBuilder = new TimeBuilder((CoordinateAxis1D)axis);
-        Date startTime = timeBuilder.buildTime(0);
-        Date endTime = timeBuilder.buildTime(timeBuilder.getNumTimes() - 1);
-        return new DateRange(startTime, endTime);
-    }
-
-    /**
-     * Return the full temporal extent set related to that coordinateAxis-
-     * @param axis
-     * @return
-     */    
-    private static SortedSet<DateRange> getTemporalExtentSet(CoordinateAxis axis) {
-        if (axis == null || !AxisType.Time.equals(axis.getAxisType())) {
-            throw new IllegalArgumentException("The specified axis is not a time axis");
-        }
-    
-        TimeBuilder timeBuilder = new TimeBuilder((CoordinateAxis1D)axis);
-        SortedSet<DateRange> sorted = new DateRangeTreeSet();
-        final int numTimes = timeBuilder.getNumTimes();
-        for (int i = 0; i < numTimes; i++) {
-            Date startTime = timeBuilder.buildTime(i);
-            sorted.add(new DateRange(startTime, startTime));
-        }
-        return sorted;
-    }
-
-    /**
-     * Utility method to retrieve the t-index of a Variable coverageDescriptor stored on
-     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
-     * 
-     * @param var
-     *                {@link Variable}
-     * @param range
-     *                {@link Range}
-     * @param imageIndex
-     *                {@link int}
-     * 
-     * @return t-index {@link int} -1 if variable rank > 4
-     */
-    public static int getTIndex(Variable var, Range range, int imageIndex) {
-        final int rank = var.getRank();
-    
-        if (rank > 2) {
-            if (rank == 3) {
-                return (imageIndex - range.first());
-            } else {
-                // return (imageIndex - range.first()) % var.getDimension(rank -
-                // (Z_DIMENSION + 1)).getLength();
-                return (int) Math.ceil((imageIndex - range.first())
-                        / UnidataUtilities.getZDimensionLength(var));
             }
         }
     

@@ -25,10 +25,9 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.geotools.imageio.unidata.UnidataTimeUtilities;
 import org.geotools.imageio.unidata.UnidataUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
 
-import ucar.ma2.Range;
 import ucar.nc2.Attribute;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis1D;
@@ -124,7 +123,7 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
 
     @Override
     public Date getMaximum() throws IOException {
-        return timeBuilder.buildTime(timeBuilder.getNumTimes());
+        return timeBuilder.buildTime(timeBuilder.getNumTimes()-1);
     }
 
     @Override

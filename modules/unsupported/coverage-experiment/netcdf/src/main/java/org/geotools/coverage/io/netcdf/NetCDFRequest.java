@@ -35,7 +35,7 @@ import org.geotools.coverage.io.SpatialRequestHelper.CoverageProperties;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.imageio.unidata.VariableAdapter;
+import org.geotools.imageio.unidata.UnidataVariableAdapter;
 import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
@@ -106,7 +106,7 @@ class NetCDFRequest extends CoverageReadRequest{
      * @throws IOException
      */
     private void initInputCoverageProperties() throws IOException {
-        VariableAdapter.UnidataSpatialDomain spatialDomain = (org.geotools.imageio.unidata.VariableAdapter.UnidataSpatialDomain) (source.getSpatialDomain());
+        UnidataVariableAdapter.UnidataSpatialDomain spatialDomain = (org.geotools.imageio.unidata.UnidataVariableAdapter.UnidataSpatialDomain) (source.getSpatialDomain());
 
         // Getting spatial context
         final Set<? extends RasterLayout> rasterElements = spatialDomain.getRasterElements(false, null);
@@ -143,9 +143,9 @@ class NetCDFRequest extends CoverageReadRequest{
         //
         // //
         Rectangle requestedRasterArea = request.getRasterArea();
-        VariableAdapter.UnidataSpatialDomain horizontalDomain = (VariableAdapter.UnidataSpatialDomain)source.getSpatialDomain();
-        VariableAdapter.UnidataTemporalDomain temporalDomain = (VariableAdapter.UnidataTemporalDomain) source.getTemporalDomain();
-        VariableAdapter.UnidataVerticalDomain verticalDomain = (VariableAdapter.UnidataVerticalDomain) source.getVerticalDomain();
+        UnidataVariableAdapter.UnidataSpatialDomain horizontalDomain = (UnidataVariableAdapter.UnidataSpatialDomain)source.getSpatialDomain();
+        UnidataVariableAdapter.UnidataTemporalDomain temporalDomain = (UnidataVariableAdapter.UnidataTemporalDomain) source.getTemporalDomain();
+        UnidataVariableAdapter.UnidataVerticalDomain verticalDomain = (UnidataVariableAdapter.UnidataVerticalDomain) source.getVerticalDomain();
         
         
         if (requestedRasterArea == null || requestedBoundingBox == null) {

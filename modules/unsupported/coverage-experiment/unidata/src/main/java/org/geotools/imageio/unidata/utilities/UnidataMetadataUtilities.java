@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.imageio.unidata;
+package org.geotools.imageio.unidata.utilities;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ import org.opengis.referencing.cs.CoordinateSystem;
  *
  * @source $URL$
  */
-final class UnidataMetadataUtilities {
+public class UnidataMetadataUtilities {
 
     public static final String FORMAT_NAME = "org_geotools_gce_nplugin_geospatialMetadata_1.0";
 

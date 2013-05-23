@@ -19,7 +19,6 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.data.DataUtilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
@@ -34,18 +33,12 @@ import org.geotools.gce.imagemosaic.properties.DefaultPropertiesCollectorSPI;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollector;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorFinder;
 import org.geotools.gce.imagemosaic.properties.PropertiesCollectorSPI;
+import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import ucar.ma2.DataType;
-import ucar.nc2.Attribute;
-import ucar.nc2.constants.AxisType;
-import ucar.nc2.dataset.CoordinateAxis;
-import ucar.nc2.dataset.CoordinateAxis1D;
-import ucar.nc2.dataset.CoordinateSystem;
 
 /** 
  * A class used to store any auxiliary indexing information

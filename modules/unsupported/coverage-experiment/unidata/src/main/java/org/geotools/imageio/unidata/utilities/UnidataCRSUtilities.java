@@ -1,4 +1,4 @@
-package org.geotools.imageio.unidata;
+package org.geotools.imageio.unidata.utilities;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -20,6 +20,7 @@ import javax.measure.unit.UnitFormat;
 import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.Identification;
+import org.geotools.imageio.unidata.UnidataUtilities;
 import org.geotools.metadata.sql.MetadataException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -32,7 +33,6 @@ import org.geotools.temporal.object.DefaultInstant;
 import org.geotools.temporal.object.DefaultPosition;
 import org.geotools.util.SimpleInternationalString;
 import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CRSFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.TemporalCRS;
@@ -64,11 +64,11 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 
-class UnidataCRSUtilities {
+public class UnidataCRSUtilities {
 
     private final static java.util.logging.Logger LOGGER = Logger.getLogger("org.geotools.imageio.unidata");
     
-    static ReferencingFactoryContainer FACTORY_CONTAINER = ReferencingFactoryContainer.instance(GeoTools.getDefaultHints());
+    public static ReferencingFactoryContainer FACTORY_CONTAINER = ReferencingFactoryContainer.instance(GeoTools.getDefaultHints());
     
     final static PrecisionModel PRECISION_MODEL = new PrecisionModel(PrecisionModel.FLOATING);
     final static GeometryFactory GEOM_FACTORY = new GeometryFactory(PRECISION_MODEL);
@@ -219,7 +219,7 @@ class UnidataCRSUtilities {
      * @see #getAxis
      * @see CoordinateSystem
      */
-    static CoordinateSystem getCoordinateSystem( String csName, final List<CoordinateAxis> axes ) throws Exception {
+    public static CoordinateSystem getCoordinateSystem( String csName, final List<CoordinateAxis> axes ) throws Exception {
         int dimension = axes.size();
 
         // FIXME how to tell when baseCRS would have been null?
@@ -351,7 +351,7 @@ class UnidataCRSUtilities {
      * 
      * @see #getEllipsoid
      */
-    static Datum getDatum( String datumName, double greenwichLon, String primeMeridianName, String ellipsoidName,
+    public static Datum getDatum( String datumName, double greenwichLon, String primeMeridianName, String ellipsoidName,
             double semiMajorAxus, double inverseFlattening, String ellipsoidUnit, String secondDefiningParameter )
             throws Exception {
 
@@ -474,7 +474,7 @@ class UnidataCRSUtilities {
         return false;
     }
 
-    static VerticalCRS buildVerticalCrs( ucar.nc2.dataset.CoordinateSystem cs, String csName, CoordinateAxis zAxis,
+    public static VerticalCRS buildVerticalCrs( ucar.nc2.dataset.CoordinateSystem cs, String csName, CoordinateAxis zAxis,
             final CSFactory csFactory, final DatumFactory datumFactory, final CRSFactory crsFactory ) {
         VerticalCRS verticalCRS = null;
         try {
@@ -555,7 +555,7 @@ class UnidataCRSUtilities {
         return verticalCRS;
     }
 
-    static TemporalCRS buildTemporalCrs( String t_csName, String crsName, CoordinateAxis timeAxis, final CSFactory csFactory,
+    public static TemporalCRS buildTemporalCrs( String t_csName, String crsName, CoordinateAxis timeAxis, final CSFactory csFactory,
             final DatumFactory datumFactory, final CRSFactory crsFactory ) {
         String t_datumName = new Identification("ISO8601", null, null, null).getName();
         TemporalCRS temporalCRS = null;
@@ -667,7 +667,7 @@ class UnidataCRSUtilities {
         return GEOM_FACTORY.toGeometry(referencedEnvelope);
     }
     
-    static ucar.nc2.dataset.CoordinateSystem getCoordinateSystem(VariableDS variableDS) {
+    public static ucar.nc2.dataset.CoordinateSystem getCoordinateSystem(VariableDS variableDS) {
         final List<ucar.nc2.dataset.CoordinateSystem> systems = variableDS.getCoordinateSystems();
         if (systems.isEmpty()) {
             throw new RuntimeException("Coordinate system for Variable " + variableDS.getFullName() + " haven't been found");
@@ -791,14 +791,12 @@ class UnidataCRSUtilities {
         return crsType;
     }
 
-    static final org.opengis.referencing.crs.CoordinateReferenceSystem WGS84;
+    public static final org.opengis.referencing.crs.CoordinateReferenceSystem WGS84;
     static {
         CoordinateReferenceSystem internalWGS84 = null;
         try {
             internalWGS84 = CRS.decode("EPSG:4326", true);
-        } catch (NoSuchAuthorityCodeException e) {
-            internalWGS84 = DefaultGeographicCRS.WGS84;
-        } catch (FactoryException e) {
+        } catch (Exception e) {
             internalWGS84 = DefaultGeographicCRS.WGS84;
         }
         WGS84 = internalWGS84;

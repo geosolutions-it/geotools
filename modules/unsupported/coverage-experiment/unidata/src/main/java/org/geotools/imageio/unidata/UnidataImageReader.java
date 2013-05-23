@@ -59,6 +59,8 @@ import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
+import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
@@ -72,6 +74,7 @@ import ucar.ma2.IndexIterator;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
 import ucar.ma2.Section;
+import ucar.nc2.Dimension;
 import ucar.nc2.Variable;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
@@ -127,7 +130,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     private CheckType checkType = CheckType.UNSET;
     
     /** Internal Cache for CoverageSourceDescriptor.**/
-    private final SoftValueHashMap<String, VariableAdapter> coverageSourceDescriptorsCache= new SoftValueHashMap<String, VariableAdapter>();
+    private final SoftValueHashMap<String, UnidataVariableAdapter> coverageSourceDescriptorsCache= new SoftValueHashMap<String, UnidataVariableAdapter>();
 
     /** The source file */
     private File file;
@@ -175,7 +178,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
     @Override
     public int getHeight( int imageIndex ) throws IOException {
-        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
+        final UnidataVariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null){
         	return wrapper.getHeight();
         }
@@ -185,7 +188,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     @Override
     public Iterator<ImageTypeSpecifier> getImageTypes( int imageIndex ) throws IOException {
         final List<ImageTypeSpecifier> l = new java.util.ArrayList<ImageTypeSpecifier>();
-        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
+        final UnidataVariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null) {
             final SampleModel sampleModel = wrapper.getSampleModel();
             final ImageTypeSpecifier imageType = new ImageTypeSpecifier(ImageIOUtilities.createColorModel(sampleModel),
@@ -196,7 +199,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     }
 
     public int getWidth( int imageIndex ) throws IOException {
-        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
+        final UnidataVariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null){
             return wrapper.getWidth();
         }
@@ -342,7 +345,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                                     if (i == bandDimension && hasVerticalAxis) {
                                         zIndex = UnidataUtilities.getZIndex(variable, variableRange, imageIndex);
                                     } else {
-                                        tIndex = UnidataTimeUtilities.getTIndex(variable, variableRange, imageIndex);
+                                        tIndex = getTIndex(variable, variableRange, imageIndex);
                                     }
                                     break;
                                 }
@@ -504,7 +507,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final int imageIndex, 
             final SimpleFeatureType indexSchema,
             final Geometry geometry) {
-        final Date startDate = UnidataTimeUtilities.getTimeValueByIndex(this, variable, tIndex, cs);
+        final Date startDate = getTimeValueByIndex(this, variable, tIndex, cs);
         final double verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
 
         final SimpleFeature feature = DataUtilities.template(indexSchema);
@@ -539,10 +542,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     }
 
     private void extractCoordinatesVariable( ) throws IOException {
-        for( Variable variable : dataset.getVariables() ) {
-            final String varName = variable.getFullName();
-            if (variable.isCoordinateVariable() && variable instanceof CoordinateAxis1D) {
-                coordinatesVariables.put(varName, CoordinateVariable.create((CoordinateAxis1D)variable));             
+        
+        // get the coordinate variables
+        for( CoordinateAxis axis : dataset.getCoordinateAxes() ) {
+            if (axis instanceof CoordinateAxis1D) {
+                coordinatesVariables.put(axis.getFullName(), CoordinateVariable.create((CoordinateAxis1D)axis));             
             }
 
         }
@@ -657,7 +661,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param imageIndex
      * @return
      */
-    protected VariableAdapter getCoverageDescriptor( int imageIndex ) {
+    protected UnidataVariableAdapter getCoverageDescriptor( int imageIndex ) {
         checkImageIndex(imageIndex);
         try {
             UnidataSlice2DIndex slice2DIndex = getSlice2DIndex(imageIndex);
@@ -674,7 +678,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
 
     @Override
-    public VariableAdapter getCoverageDescriptor(Name name) {
+    public UnidataVariableAdapter getCoverageDescriptor(Name name) {
         final String name_ = name.toString();
         synchronized (coverageSourceDescriptorsCache) {
             if(coverageSourceDescriptorsCache.containsKey(name_)){
@@ -682,9 +686,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
 
             // create, cache and return
-            VariableAdapter cd;
+            UnidataVariableAdapter cd;
             try {
-                cd = new VariableAdapter(
+                cd = new UnidataVariableAdapter(
                         this,
                         (VariableDS) getVariableByName(ancillaryFileManager.variablesMap.get(name)));
             } catch (Exception e) {
@@ -704,7 +708,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
         final UnidataSlice2DIndex slice2DIndex = getSlice2DIndex(imageIndex);
         final String variableName=slice2DIndex.getVariableName();
-        final VariableAdapter wrapper=getCoverageDescriptor(new NameImpl(variableName));
+        final UnidataVariableAdapter wrapper=getCoverageDescriptor(new NameImpl(variableName));
         
     
         /*
@@ -894,5 +898,57 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
     public String getTypeName(final String coverageName) {
         return ancillaryFileManager.getTypeName(coverageName);
+    }
+
+    /**
+     * Utility method to retrieve the t-index of a Variable coverageDescriptor stored on
+     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
+     * 
+     * @param var
+     *                {@link Variable}
+     * @param range
+     *                {@link Range}
+     * @param imageIndex
+     *                {@link int}
+     * 
+     * @return t-index {@link int} -1 if variable rank > 4
+     */
+    public static int getTIndex(Variable var, Range range, int imageIndex) {
+        final int rank = var.getRank();
+    
+        if (rank > 2) {
+            if (rank == 3) {
+                return (imageIndex - range.first());
+            } else {
+                // return (imageIndex - range.first()) % var.getDimension(rank -
+                // (Z_DIMENSION + 1)).getLength();
+                return (int) Math.ceil((imageIndex - range.first())
+                        / UnidataUtilities.getZDimensionLength(var));
+            }
+        }
+    
+        return -1;
+    }
+
+    /** Return the timeIndex-th value of the time dimension of the specified variable, as a Date, or null in case that
+     * variable doesn't have a time axis.
+     * 
+     * @param unidataReader the reader to be used for that search
+     * @param variable the variable to be accessed
+     * @param timeIndex the requested index
+     * @param cs the coordinateSystem to be scan
+     * @return
+     */
+    public static Date getTimeValueByIndex( final UnidataImageReader unidataReader, Variable variable, int timeIndex,
+            final CoordinateSystem cs ) {
+    
+        if (cs != null && cs.hasTimeAxis()) {
+            final int rank = variable.getRank();
+            final Dimension temporalDimension = variable.getDimension(rank
+                    - ((cs.hasVerticalAxis() ? UnidataUtilities.Z_DIMENSION : 2) + 1));
+            return (Date) unidataReader.coordinatesVariables.get(temporalDimension.getFullName()).read(timeIndex);
+        }
+    
+        return null;
     }
 }

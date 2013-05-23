@@ -46,14 +46,17 @@ import org.geotools.coverage.io.range.FieldType;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.coverage.io.range.impl.DefaultFieldType;
 import org.geotools.coverage.io.range.impl.DefaultRangeType;
+import org.geotools.coverage.io.util.DateRangeComparator;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
+import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.coverage.io.util.Utilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.Identification;
-import org.geotools.imageio.unidata.UnidataUtilities.AxisValueGetter;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
+import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataMetadataUtilities;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -91,7 +94,7 @@ import ucar.nc2.dataset.VariableDS;
  * @todo lazy initialization
  * @todo management of data read with proper mangling
  */
-public class VariableAdapter extends CoverageSourceDescriptor {
+public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     public class UnidataSpatialDomain extends SpatialDomain {
 
@@ -233,18 +236,59 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         }
     }
 
+    /**
+     * 
+     * @author User
+     * TODO improve support for this
+     */
     public class UnidataAdditionalDomain extends AdditionalDomain {
 
         /** The detailed domain extent */
-        private Set<Object> domainExtent;
+        private final Set<Object> domainExtent = new TreeSet<Object>();
         
         /** The merged domain extent */
-        private Set<Object> globalDomainExtent;
+        private final Set<Object> globalDomainExtent = new TreeSet<Object>();
 
         /** The domain name */
-        private String name;
+        private final String name;
         
-        private DomainType type;
+        private final DomainType type;
+        
+        final CoordinateVariable<?> adaptee;
+
+        /**
+         * @param domainExtent
+         * @param globalDomainExtent
+         * @param name
+         * @param type
+         * @param adaptee
+         * TODO missing support for Range
+         * TODO missing support for String domains
+         * @throws IOException 
+         */
+        public UnidataAdditionalDomain(CoordinateVariable<?> adaptee) throws IOException {
+            this.adaptee = adaptee;
+            name=adaptee.getName();
+            
+            // type
+            Class<?> type=adaptee.getType();
+            if(Date.class.isAssignableFrom(type)){
+                this.type=DomainType.DATE;
+            } else if(Number.class.isAssignableFrom(type)){
+                this.type=DomainType.NUMBER;
+            } else {
+                throw new UnsupportedOperationException("Unsupported CoordinateVariable:"+adaptee.toString());
+            }
+            
+            // domain
+            domainExtent.addAll(adaptee.read());
+            
+            
+            // global domain
+            globalDomainExtent.add(new NumberRange<Double>(Double.class,(Double)adaptee.getMinimum(),(Double)adaptee.getMaximum()));
+            
+            
+        }
 
         @Override
         public Set<Object> getElements(boolean overall, ProgressListener listener)
@@ -269,22 +313,6 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         public Set<Object> getDomainExtent() {
             return domainExtent;
         }
-
-        public void setDomainExtent(Set<Object> domainExtent) {
-            this.domainExtent = domainExtent;
-        }
-
-        public void setGlobalDomainExtent(Set<Object> globalDomainExtent) {
-            this.globalDomainExtent = globalDomainExtent;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public void setType(DomainType type) {
-            this.type = type;
-        }
         
     }
     
@@ -306,7 +334,7 @@ public class VariableAdapter extends CoverageSourceDescriptor {
 
     private int height;
 
-    private final static java.util.logging.Logger LOGGER = Logging.getLogger(VariableAdapter.class);
+    private final static java.util.logging.Logger LOGGER = Logging.getLogger(UnidataVariableAdapter.class);
 
     /**
      * Extracts the compound {@link CoordinateReferenceSystem} from the unidata variable.
@@ -358,7 +386,7 @@ public class VariableAdapter extends CoverageSourceDescriptor {
      * 
      */
     private void initDomains() throws IOException {
-        // from VariableAdapter        
+        // from UnidataVariableAdapter        
         this.coordinateSystem = UnidataCRSUtilities.getCoordinateSystem(variableDS);
         if (coordinateSystem == null){
             throw new IllegalArgumentException("Provided CoordinateSystem is null");
@@ -520,10 +548,8 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         // ADDITIONAL DOMAINS
         if (otherAxes != null) {
             List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
+            addAdditionalDomain(additionalDomains, otherAxes);
             this.setAdditionalDomains(additionalDomains);
-            for (CoordinateAxis axis: otherAxes) {
-               addAdditionalDomain(additionalDomains, axis);
-            }
         }
     }
 
@@ -560,37 +586,25 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         
     }
 
-    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, CoordinateAxis axis) {
-        UnidataAdditionalDomain domain = new UnidataAdditionalDomain();
-        domain.setName(axis.getShortName());
-        
-        // TODO: Consider handling more types:
-        AxisValueGetter builder = new AxisValueGetter(axis);
-        final int numValues = builder.getNumValues();
-        Set<Object> extent = new TreeSet<Object>();
-        Set<Object> globalExtent = new HashSet<Object>();
-        final Double[] firstLast = new Double[2];
-        for (int i = 0; i < numValues; i++) {
-            Double value = builder.build(i);
-            if (i == 0 ) {
-                firstLast[0] = value;
-            } else if (i == numValues - 1 ) {
-                firstLast[1] = value;
+    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, List<CoordinateAxis> otherAxes) {
+        for(CoordinateAxis axis:otherAxes){
+            
+            // look for the wrapper
+            final CoordinateVariable<?> cv = reader.coordinatesVariables.get(axis.getFullName());
+            if(cv==null){
+                LOGGER.info("Unable to map axis "+axis);
+                continue;
             }
-            extent.add(value);
+            
+            // create domain
+            UnidataAdditionalDomain domain;
+            try {
+                domain = new UnidataAdditionalDomain(cv);
+                additionalDomains.add(domain);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
+            }
         }
-        domain.setDomainExtent(extent);
-        if (firstLast[0] > firstLast[1]) {
-            double t = firstLast[0];
-            firstLast[0] = firstLast[1];
-            firstLast[1] = t;
-        }
-        globalExtent.add(new NumberRange<Double>(Double.class, firstLast[0], firstLast[1]));
-        domain.setGlobalDomainExtent(globalExtent);
-        
-        domain.setType(DomainType.NUMBER);
-        additionalDomains.add(domain);
-        
     }
 
     /**
@@ -729,7 +743,7 @@ public class VariableAdapter extends CoverageSourceDescriptor {
             temporalDomain.globalTemporalExtent = Collections.unmodifiableSortedSet(globalTemporalExtent);
             
             // Getting overall Extent
-            final SortedSet<DateRange> extent = new TreeSet<DateRange>();
+            final SortedSet<DateRange> extent = new TreeSet<DateRange>(new DateRangeComparator());
             for(Date dd:timeDimension.read()){
                 extent.add(new DateRange(dd,dd));
             }
@@ -762,7 +776,7 @@ public class VariableAdapter extends CoverageSourceDescriptor {
             verticalDomain.globalVerticalExtent = Collections.unmodifiableSortedSet(globalVerticalExtent);
             
             // Getting overall Extent
-            final SortedSet<NumberRange<Double>> extent = new TreeSet<NumberRange<Double>>();
+            final SortedSet<NumberRange<Double>> extent = new TreeSet<NumberRange<Double>>(new NumberRangeComparator());
             for(Double values:verticalDimension.read()){
                 extent.add(NumberRange.create(values,values));
             }
@@ -770,7 +784,7 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         }
     }
 
-    public VariableAdapter(UnidataImageReader reader, VariableDS variable) throws Exception {
+    public UnidataVariableAdapter(UnidataImageReader reader, VariableDS variable) throws Exception {
         this.variableDS = variable;
         this.reader=reader;
         setName(variable.getFullName());
