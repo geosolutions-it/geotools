@@ -666,7 +666,17 @@ public class RasterManager {
             final String upperCase = name.toUpperCase();
             domainsMap.put(upperCase + DomainDescriptor.DOMAIN_SUFFIX, new DomainDescriptor(name,
                     domainType, basePropertyName, additionalPropertyName));
-            final DimensionDescriptor dimensionDescriptor = new DefaultDimensionDescriptor(name, null, null, basePropertyName, additionalPropertyName);
+            addDimensionDescriptor(name, upperCase, basePropertyName, additionalPropertyName);
+        }
+
+        private void addDimensionDescriptor(String name, String upperCase, String basePropertyName, String additionalPropertyName) {
+            final String unitsName = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName() 
+                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getName() : 
+                        "FIXME"; //TODO: ADD UCUM units Management
+            final String unitsSymbol = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol() 
+                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol() : 
+                        "FIXME"; //TODO: ADD UCUM units Management
+            final DimensionDescriptor dimensionDescriptor = new DefaultDimensionDescriptor(name, unitsName, unitsSymbol, basePropertyName, additionalPropertyName);
             dimensions.add(dimensionDescriptor);
         }
 

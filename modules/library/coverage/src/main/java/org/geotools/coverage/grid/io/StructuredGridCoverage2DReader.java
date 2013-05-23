@@ -82,5 +82,5 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      * Describes the dimensions supported by the specified coverage, if any.
      * (coverageName might be null, if there is only one supported coverage)
      */
-    List<DimensionDescriptor> getDimensionDescriptors(String coverageName);
+    List<DimensionDescriptor> getDimensionDescriptors(String coverageName) throws IOException;
 }

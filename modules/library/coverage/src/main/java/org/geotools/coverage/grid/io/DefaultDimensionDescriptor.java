@@ -16,12 +16,52 @@
  */
 package org.geotools.coverage.grid.io;
 
+
 /**
  * Default implementation of the {@link DimensionDescriptor} interface
  * 
  * @author Daniele Romagnoli - GeoSolutions SAS
  */
 public class DefaultDimensionDescriptor implements DimensionDescriptor {
+
+    /**
+     * UCUM Unit set
+     */
+    public static class UCUM {
+
+        /**
+         * An UCUM Unit instance simply made of name and symbol.
+         */
+        public static class UCUMUnit {
+
+            private String name;
+
+            private String symbol;
+
+            public UCUMUnit(String name, String symbol) {
+                super();
+                this.name = name;
+                this.symbol = symbol;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public String getSymbol() {
+                return symbol;
+            }
+        }
+
+        /** 
+         * Commonly used UCUM units. In case this set will grow too much, we may consider
+         * importing some UCUM specialized library.
+         */
+        public final static UCUMUnit TIME_UNITS = new UCUMUnit("second", "s");
+
+        public final static UCUMUnit ELEVATION_UNITS = new UCUMUnit("meter", "m");
+
+    }
 
     private String name;
 
@@ -33,7 +73,7 @@ public class DefaultDimensionDescriptor implements DimensionDescriptor {
 
     private String endAttribute;
 
-    public DefaultDimensionDescriptor(String name, String unitSymbol, String units,
+    public DefaultDimensionDescriptor(String name, String units, String unitSymbol, 
             String startAttribute, String endAttribute) {
         super();
         this.name = name;

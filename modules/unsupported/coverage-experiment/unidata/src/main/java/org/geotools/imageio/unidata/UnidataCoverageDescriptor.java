@@ -32,6 +32,8 @@ import java.util.logging.Level;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.DomainType;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
@@ -47,6 +49,7 @@ import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.Utilities;
 import org.geotools.feature.NameImpl;
+import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.Identification;
 import org.geotools.imageio.unidata.UnidataUtilities.AxisValueGetter;
@@ -311,6 +314,7 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         final CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variableDS);
         this.coordinateSystem = cs;
 
+        final List<DimensionDescriptor> dimensions = new ArrayList<DimensionDescriptor>();
         if (cs == null)
             throw new IllegalArgumentException("Provided CoordinateSystem is null");
 
@@ -403,11 +407,11 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
 
         // Init temporal domain
         final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(csName, crsName, timeAxis, csFactory, datumFactory, crsFactory);
-        initTemporalDomain(temporalCRS, timeAxis);
+        initTemporalDomain(temporalCRS, timeAxis, dimensions);
 
         // Init vertical domain
         final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(cs, csName, zAxis, csFactory, datumFactory, crsFactory);
-        initVerticalDomain(verticalCRS, zAxis);
+        initVerticalDomain(verticalCRS, zAxis, dimensions);
         
         
 
@@ -485,12 +489,13 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
             List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
             this.setAdditionalDomains(additionalDomains);
             for (CoordinateAxis axis: otherAxes) {
-               addAdditionalDomain(additionalDomains, axis);
+               addAdditionalDomain(additionalDomains, axis, dimensions);
             }
         }
+        setDimensionDescriptors(dimensions);
     }
 
-    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, CoordinateAxis axis) {
+    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, CoordinateAxis axis, List<DimensionDescriptor> dimensions) {
         UnidataAdditionalDomain domain = new UnidataAdditionalDomain();
         domain.setName(axis.getShortName());
         
@@ -520,7 +525,8 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
         
         domain.setType(DomainType.NUMBER);
         additionalDomains.add(domain);
-        
+        // TODO: Parse Units from axis and map them to UCUM units
+        dimensions.add(new DefaultDimensionDescriptor(axis.getShortName(), "FIXME_UNIT", "FIXME_UNITSYMBOL", axis.getShortName(), null));
     }
 
     /**
@@ -528,26 +534,29 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
      * @param wrapper
      * @param temporalCRS
      * @param timeAxis
+     * @param dimensions 
      */
-    private void initTemporalDomain(final TemporalCRS temporalCRS,
-            final CoordinateAxis timeAxis) {
+    private void initTemporalDomain(final TemporalCRS temporalCRS, final CoordinateAxis timeAxis, final List<DimensionDescriptor> dimensions) {
         final boolean hasTemporalCRS = temporalCRS != null;
         this.setHasTemporalDomain(hasTemporalCRS);
         if (hasTemporalCRS) {
             final UnidataTemporalDomain temporalDomain = new UnidataTemporalDomain();
             this.setTemporalDomain(temporalDomain);
             temporalDomain.setTemporalCRS(temporalCRS);
-            
+
             // Getting global Extent
             final DateRange global = UnidataUtilities.getTemporalExtent(timeAxis);
             final SortedSet<DateRange> globalTemporalExtent = new DateRangeTreeSet();
             globalTemporalExtent.add(global);
             temporalDomain.globalTemporalExtent = Collections.unmodifiableSortedSet(globalTemporalExtent);
-            
+
             // Getting overall Extent
             final SortedSet<DateRange> extent = UnidataUtilities.getTemporalExtentSet(timeAxis);
             extent.add(global);
             temporalDomain.setTemporalExtent(extent); 
+            //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code
+            dimensions.add(new DefaultDimensionDescriptor(Utils.TIME_DOMAIN, 
+                    DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), Utils.TIME_DOMAIN.toLowerCase(), null));
         }
     }
 
@@ -556,25 +565,30 @@ public class UnidataCoverageDescriptor extends CoverageSourceDescriptor {
      * @param wrapper
      * @param verticalCRS
      * @param zAxis
+     * @param dimensions 
      */
-    private void initVerticalDomain(final VerticalCRS verticalCRS, final CoordinateAxis zAxis) {
+    private void initVerticalDomain(final VerticalCRS verticalCRS, final CoordinateAxis zAxis, final List<DimensionDescriptor> dimensions) {
         final boolean hasVerticalCRS = verticalCRS != null;
         this.setHasVerticalDomain(hasVerticalCRS);
         if (hasVerticalCRS) {
             final UnidataVerticalDomain verticalDomain = new UnidataVerticalDomain();
             this.setVerticalDomain(verticalDomain);
             verticalDomain.setVerticalCRS(verticalCRS);
-            
+
             // Getting global Extent
             final NumberRange<Double> global = UnidataUtilities.getVerticalExtent(zAxis);
             final SortedSet<NumberRange<Double>> globalVerticalExtent = new DoubleRangeTreeSet();
             globalVerticalExtent.add(global);
             verticalDomain.globalVerticalExtent = Collections.unmodifiableSortedSet(globalVerticalExtent);
-            
+
             // Getting overall Extent
             final SortedSet<NumberRange<Double>> extent = UnidataUtilities.getVerticalExtentSet(zAxis);
             extent.add(global);
-            verticalDomain.setVerticalExtent(extent); 
+            verticalDomain.setVerticalExtent(extent);
+            //TODO: Map ZAxis unit to UCUM UNIT (depending on type... elevation, level, pressure, ...)
+            //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code 
+            dimensions.add(new DefaultDimensionDescriptor(Utils.ELEVATION_DOMAIN, 
+                    DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
         }
     }
 

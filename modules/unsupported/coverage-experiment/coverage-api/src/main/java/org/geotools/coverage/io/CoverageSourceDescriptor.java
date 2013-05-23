@@ -16,8 +16,10 @@
  */
 package org.geotools.coverage.io;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
 import org.geotools.coverage.io.CoverageSource.TemporalDomain;
@@ -48,6 +50,8 @@ public class CoverageSourceDescriptor {
 
     /** additional domains of the wrapped coverage source */
     private List<AdditionalDomain> additionalDomains;
+
+    private List<DimensionDescriptor> dimensionDescriptors;
 
     public String getName() {
         return name;
@@ -119,6 +123,14 @@ public class CoverageSourceDescriptor {
 
     public void setAdditionalDomains(List<AdditionalDomain> additionalDomains) {
         this.additionalDomains = additionalDomains;
+    }
+
+    public List<DimensionDescriptor> getDimensionDescriptors() throws IOException {
+        return dimensionDescriptors;
+    }
+
+    public void setDimensionDescriptors(List<DimensionDescriptor> dimensionDescriptors) {
+        this.dimensionDescriptors = dimensionDescriptors;
     }
 
     /**

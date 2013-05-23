@@ -61,6 +61,7 @@ import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridFormatFinder;
@@ -942,6 +943,8 @@ public class ImageMosaicReaderTest extends Assert{
         assertEquals("TIME", descriptor.getName());
         assertEquals("time", descriptor.getStartAttribute());
         assertEquals("endtime", descriptor.getEndAttribute());
+        assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), descriptor.getUnits());
+        assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), descriptor.getUnitSymbol());
         
         descriptor = descriptors.get(3);
         assertEquals("ELEVATION", descriptor.getName());

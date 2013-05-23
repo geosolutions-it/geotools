@@ -27,7 +27,7 @@ package org.geotools.coverage.grid.io;
  */
 public interface DimensionDescriptor {
 
-   /**
+    /**
     * The dimension name
     *
     * @return

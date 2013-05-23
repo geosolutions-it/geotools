@@ -211,19 +211,15 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             if (domains != null && !domains.isEmpty()) {
                 for (AdditionalDomain domain: domains) {
                     String domainName = domain.getName().toUpperCase();
-                    metadataNames.add(HAS_PREFIX + domainName);
+                    metadataNames.add(HAS_PREFIX + domainName + DOMAIN_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MINIMUM_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MAXIMUM_SUFFIX);
-                    
                 }
-                
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        
-        
     }
 
     @Override
@@ -779,6 +775,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         // TODO Improve that
         try {
             final CoverageSource source = getGridCoverageSource(coverageName);
+            // Make sure that coverageName exists
             return 0;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -895,8 +892,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     }
 
     @Override
-    public List<DimensionDescriptor> getDimensionDescriptors(String coverageName) {
-        //TODO: implement me
-        return null;
+    public List<DimensionDescriptor> getDimensionDescriptors(String coverageName) throws IOException {
+        final CoverageSource source = (CoverageSource) getGridCoverageSource(coverageName);
+        return source.getDimensionDescriptors();
     }
 }
