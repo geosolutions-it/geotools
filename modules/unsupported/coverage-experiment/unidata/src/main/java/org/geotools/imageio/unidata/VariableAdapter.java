@@ -796,16 +796,14 @@ public class VariableAdapter extends CoverageSourceDescriptor {
      * @return
      */
     int getWidth() {
-        // TODO Auto-generated method stub
-        return 0;
+        return width;
     }
 
     /**
      * @return
      */
     int getHeight() {
-        // TODO Auto-generated method stub
-        return 0;
+        return height;
     }
     
 }
