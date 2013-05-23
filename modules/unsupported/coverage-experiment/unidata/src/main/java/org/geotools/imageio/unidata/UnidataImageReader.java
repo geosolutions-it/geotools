@@ -21,7 +21,6 @@ import it.geosolutions.imageio.utilities.ImageIOUtilities;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.image.BandedSampleModel;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -98,91 +97,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
     private final static Logger LOGGER = Logging.getLogger(UnidataImageReader.class.toString());
 
-    protected static class VariableWrapper {
-
-        private Variable variable;
-
-        private String name;
-
-        private int width;
-
-        private int height;
-
-        private int tileHeight;
-
-        private int tileWidth;
-
-        private int rank;
-
-        private int numBands;
-
-        private SampleModel sampleModel;
-
-        public void setSampleModel(SampleModel sampleModel) {
-            this.sampleModel = sampleModel;
-        }
-
-        public VariableWrapper(Variable variable) {
-            this.variable = variable;
-            rank = variable.getRank();
-            width = variable.getDimension(rank - UnidataUtilities.X_DIMENSION).getLength();
-            height = variable.getDimension(rank - UnidataUtilities.Y_DIMENSION).getLength();
-            numBands = rank > 2 ? variable.getDimension(2).getLength() : 1;
-            tileHeight = height;
-            tileWidth = width;
-            name = variable.getFullName();
-            final int bufferType = UnidataUtilities.getRawDataType(variable);
-            sampleModel = new BandedSampleModel(bufferType, getWidth(), getHeight(), 1);
-        }
-
-        public int getHeight() {
-            return height;
-        }
-
-        public int getWidth() {
-            return width;
-        }
-
-        public SampleModel getSampleModel() {
-            return sampleModel;
-        }
-
-        public int getNumBands() {
-            return numBands;
-        }
-
-        public int getTileHeight() {
-            return tileHeight;
-        }
-
-        public int getTileWidth() {
-            return tileWidth;
-        }
-
-        public void setTileHeight(int tileHeight) {
-            this.tileHeight = tileHeight;
-        }
-
-        public void setTileWidth(int tileWidth) {
-            this.tileWidth = tileWidth;
-        }
-
-        public Variable getVariable() {
-            return variable;
-        }
-
-        /**
-         * @return the number of dimensions in the variable.
-         */
-        public int getRank() {
-            return rank;
-        }
-
-        public String getName() {
-            return name;
-        }
-    }
-
     /** 
      * An instance of {@link AncillaryFileManager} which takes care of handling all the auxiliary index
      * files and initializations.
@@ -213,7 +127,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     private CheckType checkType = CheckType.UNSET;
     
     /** Internal Cache for CoverageSourceDescriptor.**/
-    private final SoftValueHashMap<String, CoverageSourceDescriptor> coverageSourceDescriptorsCache= new SoftValueHashMap<String, CoverageSourceDescriptor>();
+    private final SoftValueHashMap<String, VariableAdapter> coverageSourceDescriptorsCache= new SoftValueHashMap<String, VariableAdapter>();
 
     /** The source file */
     private File file;
@@ -261,7 +175,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
     @Override
     public int getHeight( int imageIndex ) throws IOException {
-        final VariableWrapper wrapper = getVariableWrapper(imageIndex);
+        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null){
         	return wrapper.getHeight();
         }
@@ -271,7 +185,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     @Override
     public Iterator<ImageTypeSpecifier> getImageTypes( int imageIndex ) throws IOException {
         final List<ImageTypeSpecifier> l = new java.util.ArrayList<ImageTypeSpecifier>();
-        final VariableWrapper wrapper = getVariableWrapper(imageIndex);
+        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null) {
             final SampleModel sampleModel = wrapper.getSampleModel();
             final ImageTypeSpecifier imageType = new ImageTypeSpecifier(ImageIOUtilities.createColorModel(sampleModel),
@@ -282,26 +196,11 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     }
 
     public int getWidth( int imageIndex ) throws IOException {
-        final VariableWrapper wrapper = getVariableWrapper(imageIndex);
+        final VariableAdapter wrapper = getCoverageDescriptor(imageIndex);
         if (wrapper != null){
-        	return wrapper.getWidth();
+            return wrapper.getWidth();
         }
         return -1;
-    }
-
-
-    /**
-     * Get a {@link Variable} by image index.
-     * 
-     * @param imageIndex the image index.
-     * @return the {@link Variable}.
-     */
-    public Variable getVariable( final int imageIndex ) {
-        Variable var = null;
-        final VariableWrapper wrapper = getVariableWrapper(imageIndex);
-        if (wrapper != null)
-            var = wrapper.getVariable();
-        return var;
     }
 
     /**
@@ -743,10 +642,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         return new IIOException(new StringBuilder("Can't read file ").append(dataset.getLocation()).toString(), e);
     }
 
-    protected VariableWrapper createVariableWrapper( Variable variable ){
-        return new VariableWrapper(variable);
-    }
-
     /**
      * Return the {@link UnidataSlice2DIndex} associated to the specified imageIndex
      * @param imageIndex
@@ -762,15 +657,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param imageIndex
      * @return
      */
-    protected VariableWrapper getVariableWrapper( int imageIndex ) {
+    protected VariableAdapter getCoverageDescriptor( int imageIndex ) {
         checkImageIndex(imageIndex);
         try {
             UnidataSlice2DIndex slice2DIndex = getSlice2DIndex(imageIndex);
             if (slice2DIndex != null) {
-                Variable variable = dataset.findVariable(slice2DIndex.getVariableName());
-                if (variable != null) {
-                    return createVariableWrapper(variable);
-                }
+                return getCoverageDescriptor(new NameImpl(slice2DIndex.getVariableName()));
             }
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -782,7 +674,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
 
     @Override
-    public CoverageSourceDescriptor getCoverageDescriptor(Name name) {
+    public VariableAdapter getCoverageDescriptor(Name name) {
         final String name_ = name.toString();
         synchronized (coverageSourceDescriptorsCache) {
             if(coverageSourceDescriptorsCache.containsKey(name_)){
@@ -790,12 +682,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
 
             // create, cache and return
-            CoverageSourceDescriptor cd;
+            VariableAdapter cd;
             try {
-                cd = new UnidataCoverageDescriptor(
+                cd = new VariableAdapter(
                         this,
                         (VariableDS) getVariableByName(ancillaryFileManager.variablesMap.get(name)));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             coverageSourceDescriptorsCache.put(name_, cd);
@@ -811,8 +703,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         clearAbortRequest();
     
         final UnidataSlice2DIndex slice2DIndex = getSlice2DIndex(imageIndex);
-        final Variable variable = dataset.findVariable(slice2DIndex.getVariableName());
-        final VariableWrapper wrapper = new VariableWrapper(variable);
+        final String variableName=slice2DIndex.getVariableName();
+        final VariableAdapter wrapper=getCoverageDescriptor(new NameImpl(variableName));
+        
     
         /*
          * Fetches the parameters that are not already processed by utility
@@ -916,7 +809,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final int dstBand = (dstBands == null) ? zi : dstBands[zi];
             final Array array;
             try {
-                array = variable.read(section);
+                // TODO leak through
+                array = 
+                    wrapper.variableDS.read(section);
             } catch (InvalidRangeException e) {
                 throw netcdfFailure(e);
             }
