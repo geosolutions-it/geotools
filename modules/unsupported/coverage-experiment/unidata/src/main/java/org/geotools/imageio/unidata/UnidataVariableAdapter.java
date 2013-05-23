@@ -36,6 +36,8 @@ import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.DomainType;
 import org.geotools.coverage.io.CoverageSource.SpatialDomain;
@@ -53,6 +55,7 @@ import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.factory.GeoTools;
 import org.geotools.feature.NameImpl;
+import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
@@ -414,23 +417,26 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      */
     private void initSpatialElements() throws Exception {
         
-        List<CoordinateVariable<?>> otherAxes = initCRS();
+        final List<DimensionDescriptor> dimensions = new ArrayList<DimensionDescriptor>();
+        List<CoordinateVariable<?>> otherAxes = initCRS(dimensions);
         
         initSpatialDomain();
 
 
         // ADDITIONAL DOMAINS
-        addAdditionalDomain(otherAxes);
+        addAdditionalDomain(otherAxes, dimensions);
+        setDimensionDescriptors(dimensions);
     }
 
     /**
+     * @param dimensions 
      * @return
      * @throws IllegalArgumentException
      * @throws RuntimeException
      * @throws IOException
      * @throws IllegalStateException
      */
-    private List<CoordinateVariable<?>> initCRS() throws IllegalArgumentException, RuntimeException,
+    private List<CoordinateVariable<?>> initCRS(List<DimensionDescriptor> dimensions) throws IllegalArgumentException, RuntimeException,
             IOException, IllegalStateException {
         // from UnidataVariableAdapter        
         this.coordinateSystem = UnidataCRSUtilities.getCoordinateSystem(variableDS);
@@ -452,12 +458,12 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
             CoordinateVariable<?> cv=reader.coordinatesVariables.get(axis.getShortName());
             switch(cv.getAxisType()){
             case Time:case RunTime:
-                initTemporalDomain(cv);
+                initTemporalDomain(cv, dimensions);
                 continue;
             case GeoZ:case Height:case Pressure:
                 String axisName = cv.getName();
                 if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
-                    initVerticalDomain(cv);
+                    initVerticalDomain(cv, dimensions);
                 }else{
                     otherAxes.add(cv);
                 }
@@ -475,19 +481,25 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     /**
      * @param cv
+     * @param dimensions 
      * @throws IOException 
      */
-    private void initVerticalDomain(CoordinateVariable<?> cv) throws IOException {
+    private void initVerticalDomain(CoordinateVariable<?> cv, List<DimensionDescriptor> dimensions) throws IOException {
         this.setHasVerticalDomain(true);
         final UnidataVerticalDomain verticalDomain = new UnidataVerticalDomain(cv);
         this.setVerticalDomain(verticalDomain);
+        //TODO: Map ZAxis unit to UCUM UNIT (depending on type... elevation, level, pressure, ...)
+        //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code 
+        dimensions.add(new DefaultDimensionDescriptor(Utils.ELEVATION_DOMAIN, 
+                DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
     }
 
     /**
      * @param cv
+     * @param dimensions 
      * @throws IOException 
      */
-    private void initTemporalDomain(CoordinateVariable<?> cv) throws IOException {
+    private void initTemporalDomain(CoordinateVariable<?> cv, List<DimensionDescriptor> dimensions) throws IOException {
        if(!cv.getType().equals(Date.class)){
            throw new IllegalArgumentException("Unable to init temporal domani from CoordinateVariable that does not bind to Date");
        }
@@ -496,7 +508,10 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
        }
        this.setHasTemporalDomain(true);
        final UnidataTemporalDomain temporalDomain = new UnidataTemporalDomain(cv);
-       this.setTemporalDomain(temporalDomain);   
+       this.setTemporalDomain(temporalDomain);
+     //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code
+       dimensions.add(new DefaultDimensionDescriptor(Utils.TIME_DOMAIN, 
+               DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), Utils.TIME_DOMAIN.toLowerCase(), null));
     }
 
     /**
@@ -548,7 +563,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         
     }
 
-    private void addAdditionalDomain(List<CoordinateVariable<?>> otherAxes) {
+    private void addAdditionalDomain(List<CoordinateVariable<?>> otherAxes, List<DimensionDescriptor> dimensions) {
 
         if (otherAxes == null||otherAxes.isEmpty()) {
             return;
@@ -562,6 +577,8 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
             try {
                 domain = new UnidataAdditionalDomain(cv);
                 additionalDomains.add(domain);
+             // TODO: Parse Units from axis and map them to UCUM units
+                dimensions.add(new DefaultDimensionDescriptor(cv.getName(), "FIXME_UNIT", "FIXME_UNITSYMBOL", cv.getName(), null));
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, e.getMessage(), e);
             }

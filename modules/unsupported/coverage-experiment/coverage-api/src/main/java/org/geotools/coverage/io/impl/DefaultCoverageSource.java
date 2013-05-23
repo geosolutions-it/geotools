@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.io.CoverageCapabilities;
 import org.geotools.coverage.io.CoverageSource;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
@@ -53,7 +54,7 @@ public abstract class DefaultCoverageSource implements CoverageSource {
     }
     
     protected final Name name;
-    
+
     protected final CoverageSourceDescriptor coverageDescriptor;
 
     private boolean disposed;
@@ -139,6 +140,11 @@ public abstract class DefaultCoverageSource implements CoverageSource {
     @Override
     public List<AdditionalDomain> getAdditionalDomains() throws IOException {
         return coverageDescriptor.getAdditionalDomains();
+    }
+
+    @Override
+    public List<DimensionDescriptor> getDimensionDescriptors() throws IOException {
+        return coverageDescriptor.getDimensionDescriptors();
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
+import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.io.metadata.MetadataNode;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.data.Parameter;
@@ -281,12 +282,14 @@ public interface CoverageSource{
     public TemporalDomain getTemporalDomain() throws IOException;
 
     public VerticalDomain getVerticalDomain() throws IOException;
-    
+
     public List<AdditionalDomain> getAdditionalDomains() throws IOException;
 
     public List<? extends RasterLayout> getOverviewsLayouts(final ProgressListener listener) throws IOException;
-    
+
     public int getOverviewsNumber (final ProgressListener listener) throws IOException;
+
+    public List<DimensionDescriptor> getDimensionDescriptors() throws IOException;
 	
 //	/**
 //	 * @todo TBD, I am not even sure this should leave at the general interface level!
