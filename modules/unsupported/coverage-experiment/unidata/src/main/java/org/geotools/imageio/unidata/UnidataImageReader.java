@@ -56,17 +56,18 @@ import org.geotools.feature.NameImpl;
 import org.geotools.feature.SchemaException;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
-import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.Name;
+import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.Array;
@@ -76,6 +77,7 @@ import ucar.ma2.Range;
 import ucar.ma2.Section;
 import ucar.nc2.Dimension;
 import ucar.nc2.Variable;
+import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
@@ -104,9 +106,10 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * An instance of {@link AncillaryFileManager} which takes care of handling all the auxiliary index
      * files and initializations.
      */
-    private AncillaryFileManager ancillaryFileManager;
+    AncillaryFileManager ancillaryFileManager;
 
     /** Summary set of coverage names */
+    // TODO this duplicates the info that we have in the AncillaryFileManager
     final List<Name> coverages = new ArrayList<Name>();
 
     @Override
@@ -134,6 +137,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
     /** The source file */
     private File file;
+
+    private ReferencedEnvelope boundingBox;
 
     public UnidataImageReader( ImageReaderSpi originatingProvider ) {
         super(originatingProvider);
@@ -292,9 +297,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variable);
                         // SCHEMA
                         final SimpleFeatureType indexSchema = getIndexSchema(coverageName,cs);
-                        
-                        // Currently, we only support Geographic CRS
-                        Geometry envelope = UnidataCRSUtilities.extractEnvelopeAsGeometry(variable);
+                        if(indexSchema==null) {
+                            throw new IllegalStateException("Unable to created index schema for coverage:"+coverageName);
+                        }
+                        // create 
+                        getCatalog().createType(indexSchema);
+//                        
+//                        // Currently, we only support Geographic CRS
+//                        Geometry envelope = UnidataCRSUtilities.extractEnvelopeAsGeometry(variable);
 
                         
                         // IMAGE INDEXING
@@ -327,7 +337,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         }
 
                         // 2D SLICE INDEX PREPARATION
-                        // TODO Incapsulate in variable wrapper
+                        // TODO Embed into variable wrapper
                         final boolean hasVerticalAxis = cs.hasVerticalAxis();
                         final int rank = variable.getRank();
                         final int bandDimension = rank - UnidataUtilities.Z_DIMENSION;                        
@@ -357,7 +367,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             ancillaryFileManager.addSlice(variableIndex);
 
                             // Create a feature for that index to be put in the CoverageSlicesCatalog
-                            final SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema, envelope);
+                            final SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema);
                             collection.add(feature);
                             features++;
                             
@@ -408,31 +418,19 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             schemaName = schema.getName();
         }
         
+        // no schema was defined yet, let's create a default one
         if (schemaName == null) {
-            ancillaryFileManager.addDefaultSchema(coverage);
-            coverage.getSchema().setName(coverageName); // add the coveragename
-            schemaName=coverageName;
+            ancillaryFileManager.setSchemaName(coverage,coverageName);
+        } else {
+            // we might have a schema suggested from the indexer
+            indexSchema = ancillaryFileManager.suggestSchema(coverage);
         }
         
-        String [] typeNames = getCatalog().getTypeNames();
-        if (typeNames != null) {
-            for (String typeName : typeNames) {
-                if (typeName.equalsIgnoreCase(schemaName)) {
-                    indexSchema = getCatalog().getSchema(schemaName);
-                    break;
-                }
-            }
+        if(indexSchema==null){
+            // TODO incapsulate in coveragedescriptor
+            indexSchema=createSchema(coverage,cs);
         }
-        if (indexSchema == null) {
-            indexSchema = ancillaryFileManager.suggestSchema(coverage);
-            if(indexSchema==null){
-                // TODO incapsulate in coveragedescriptor
-                indexSchema=createSchema(coverage,cs);
-            }
-            
-            // create 
-            getCatalog().createType(indexSchema);
-        }
+        
         return indexSchema;
     }
 
@@ -442,7 +440,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @return
      * @throws SchemaException 
      */
-    private SimpleFeatureType createSchema(Coverage coverage, CoordinateSystem cs) throws SchemaException {
+    SimpleFeatureType createSchema(Coverage coverage, CoordinateSystem cs) throws SchemaException {
 
         // init with base
         String schemaAttributes = CoverageSlice.Attributes.BASE_SCHEMA;
@@ -470,19 +468,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     }
 
     private Name getCoverageName(String varName) {
-        Map<String, Coverage> coveragesMap = ancillaryFileManager.getCoverages();
-        Name coverageName = null;
-        if (coverages.isEmpty() || coverages.size() <= coveragesMap.size()) {
-            coverageName = null;
-            if (coveragesMap != null && !coveragesMap.isEmpty()) {
-                coverageName = ancillaryFileManager.getCoverageName(varName);
-            } 
-            if (coverageName == null) {
-                ancillaryFileManager.addCoverage(varName);
-                coverageName = new NameImpl(varName);
-            }
-            coverages.add(coverageName);
+        Name coverageName = ancillaryFileManager.getCoverageName(varName);
+        if (coverageName == null) {
+            ancillaryFileManager.addCoverage(varName);
+            coverageName = new NameImpl(varName);
         }
+        coverages.add(coverageName);
         return coverageName;
     }
 
@@ -505,13 +496,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final int zIndex,
             final CoordinateSystem cs,
             final int imageIndex, 
-            final SimpleFeatureType indexSchema,
-            final Geometry geometry) {
+            final SimpleFeatureType indexSchema) {
         final Date startDate = getTimeValueByIndex(this, variable, tIndex, cs);
-        final double verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
+        final Number verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
 
         final SimpleFeature feature = DataUtilities.template(indexSchema);
-        feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, geometry);
+        feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, UnidataCRSUtilities.GEOM_FACTORY.toGeometry(boundingBox));
         feature.setAttribute(CoverageSlice.Attributes.INDEX, imageIndex);
         feature.setAttribute(CoverageSlice.Attributes.COVERAGENAME, coverageName);
 
@@ -519,7 +509,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         if (startDate != null) {
             feature.setAttribute(CoverageSlice.Attributes.TIME, startDate);
         }
-        if (!Double.isNaN(verticalValue)) {
+        if (!Double.isNaN(verticalValue.doubleValue())) {
             List<AttributeDescriptor> descriptors = indexSchema.getAttributeDescriptors();
             String attribute = null;
             
@@ -596,6 +586,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
 
                 // get the coordinate variables
                 extractCoordinatesVariable();
+                extractBBOX();
                 final File slicesIndexFile = ancillaryFileManager.getSlicesIndexFile();
                 final File indexerFile = ancillaryFileManager.getIndexerFile();
 
@@ -637,6 +628,56 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             throw new IllegalArgumentException("Exception occurred during NetCDF file parsing", e);
         } 
         setNumImages(numImages);
+    }
+
+    /**
+     * @throws IOException 
+     * 
+     */
+    private void extractBBOX() throws IOException {
+        double [] lon= new double[2];
+        double [] lat= new double[2];
+        byte set=0;
+        for(CoordinateVariable<?> cv:coordinatesVariables.values()){
+            if(cv.isNumeric()){
+                
+                // is it lat or lon?
+                AxisType type = cv.getAxisType();
+                switch (type) {
+                case GeoY: case Lat:
+                    if(cv.isRegular()){
+                        lat[0]=cv.getStart();
+                        lat[1]=lat[0]+cv.getIncrement()*(cv.getSize()-1);
+                    } else {
+                        lat[0]=((Number)cv.getMinimum()).doubleValue();
+                        lat[1]=((Number)cv.getMaximum()).doubleValue();
+                    }
+                    set++;
+                    break;
+                case GeoX:case Lon:
+                    if(cv.isRegular()){
+                        lon[0]=cv.getStart();
+                        lon[1]=lon[0]+cv.getIncrement()*(cv.getSize()-1);
+                    } else {
+                        lon[0]=((Number)cv.getMinimum()).doubleValue();
+                        lon[1]=((Number)cv.getMaximum()).doubleValue();
+                    }
+                    set++;
+                    break;
+                default:
+                    break;
+                }
+            }
+            if(set==2){
+                break;
+            }
+        }
+        // create the envelope
+        if(set!=2){
+            throw new IllegalStateException("Unable to create envelope for this dataset");
+        }
+        boundingBox = new ReferencedEnvelope(lon[0],lon[1], lat[0],lat[1], UnidataCRSUtilities.WGS84);        
+        
     }
 
     /**

@@ -18,6 +18,7 @@ package org.geotools.imageio.unidata.utilities;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 
@@ -28,10 +29,13 @@ import java.util.logging.Logger;
  *
  */
 public class UnidataTimeUtilities {
+    
     /** The LOGGER for this class. */
     private static final Logger LOGGER = Logger.getLogger(UnidataTimeUtilities.class.toString());
 
     public static final int JGREG = 15 + 31 * (10 + 12 * 1582);
+    
+    public final static TimeZone UTC_TIMEZONE=TimeZone.getTimeZone("GMT");
 
 
     /**

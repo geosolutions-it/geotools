@@ -327,10 +327,12 @@ public class NetCDFReaderTest extends Assert {
         // Get format
         final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
         final NetCDFReader reader = (NetCDFReader) format.getReader(testURL, hints);
-        
         assertNotNull(format);
+        assertNotNull(reader);
         try {
             String[] names = reader.getGridCoverageNames();
+            assertNotNull(names);
+            assertEquals(names.length, 20);
     
             // surface_emissivity
             final String coverageName = "surface_emissivity";
@@ -389,7 +391,7 @@ public class NetCDFReaderTest extends Assert {
                 } 
             }
 
-            GeneralParameterValue[] values = new GeneralParameterValue[] { gg, new_ };
+            GeneralParameterValue[] values = new GeneralParameterValue[] { gg };
             GridCoverage2D coverage = reader.read(coverageName, values);
             assertNotNull(coverage);
             if (TestData.isInteractiveTest()) {
@@ -397,8 +399,6 @@ public class NetCDFReaderTest extends Assert {
             } else {
                 PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
             }
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
         } finally {
             if (reader != null) {
                 try {

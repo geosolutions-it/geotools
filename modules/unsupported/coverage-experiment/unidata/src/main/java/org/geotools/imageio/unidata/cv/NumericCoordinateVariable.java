@@ -18,12 +18,12 @@ package org.geotools.imageio.unidata.cv;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import ucar.ma2.DataType;
+import org.geotools.util.Converter;
+import org.geotools.util.NumericConverterFactory;
+
 import ucar.nc2.Attribute;
-import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
 
 /**
@@ -31,69 +31,22 @@ import ucar.nc2.dataset.CoordinateAxis1D;
  *
  * TODO caching
  */
-class NumericCoordinateVariable extends CoordinateVariable<Double>{
-    
-    private static class AxisValueGetter {
-        
-        CoordinateAxis1D axis1D;
-        
-        double[] values = null;
-        
-        public AxisValueGetter(CoordinateAxis axis) {
-            if (axis.isNumeric() && axis instanceof CoordinateAxis1D) {
-                axis1D = (CoordinateAxis1D) axis;
-                values = axis1D.getCoordValues();
-                Attribute scaleFactor = axis1D.findAttribute("scale_factor");
-                Attribute offset = axis1D.findAttribute("offset");
-                if (scaleFactor != null || offset != null) {
-                    rescaleValues(scaleFactor, offset);
-                }
-    
-            } else {
-                throw new IllegalArgumentException(
-                        "The specified axis doesn't represent a valid zeta Axis");
-            }
-        }
-    
-        private void rescaleValues(Attribute scaleFactor, Attribute offset) {
-            DataType dataType = scaleFactor != null ? scaleFactor.getDataType() : offset.getDataType();
-            if (dataType == DataType.DOUBLE) {
-                double sf = scaleFactor != null ? scaleFactor.getNumericValue().doubleValue() : 1.0d; 
-                double off = offset != null ? offset.getNumericValue().doubleValue() : 0.0d;
-                for (int i = 0 ; i < values.length; i++) {
-                    values[i] = ( sf * values[i]) + off;
-                }    
-            } else if (dataType == DataType.FLOAT) {
-                float sf = scaleFactor != null ? scaleFactor.getNumericValue().floatValue() : 1.0f; 
-                float  off = offset != null ? offset.getNumericValue().floatValue() : 0.0f;
-                for (int i = 0 ; i < values.length; i++) {
-                    values[i] = ( sf * values[i]) + off;
-                }
-            }
-        }
-    
-        public double build(int index) {
-            if (values != null && values.length > index) {
-                return values[index];
-            }
-            return Double.NaN;
-        }
-        
-        public int getNumValues() {
-            return values.length;
-        }
-    }
+class NumericCoordinateVariable<T  extends Number> extends CoordinateVariable<T>{      
 
     private double scaleFactor= Double.NaN;
     
     private double offsetFactor=Double.NaN;
 
+    private Converter converter;
+    
+    private final static NumericConverterFactory CONVERTER_FACTORY= new NumericConverterFactory();
+ 
     /**
      * @param binding
      * @param coordinateAxis
      */
-    public NumericCoordinateVariable(CoordinateAxis1D coordinateAxis) {
-        super(Double.class, coordinateAxis);      
+    public NumericCoordinateVariable(Class<T> binding,CoordinateAxis1D coordinateAxis) {
+        super(binding, coordinateAxis);      
         // If the axis is not numeric, we can't process any further. 
         if (!coordinateAxis.isNumeric()) {
             throw new IllegalArgumentException("Unable to process non numeric coordinate variable: "+coordinateAxis.toString());
@@ -108,25 +61,40 @@ class NumericCoordinateVariable extends CoordinateVariable<Double>{
         if(offsetFactor!=null){
             this.offsetFactor=offsetFactor.getNumericValue().doubleValue();
         }
+        
+        // converter from double to binding
+        this.converter=CONVERTER_FACTORY.createConverter(Double.class,this.binding, null);
     }
 
     @Override
-    public Double getMinimum() throws IOException {
-        return coordinateAxis.getMinValue();
+    public T getMinimum() throws IOException {
+        try {
+            return converter.convert(coordinateAxis.getMinValue(),this.binding);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
-    public Double getMaximum() throws IOException {
-        return coordinateAxis.getMaxValue();
+    public T getMaximum() throws IOException {
+        try {
+            return converter.convert(coordinateAxis.getMaxValue(),this.binding);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
-    public Double read(int index) throws IndexOutOfBoundsException {
+    public T read(int index) throws IndexOutOfBoundsException {
         if(index>=this.coordinateAxis.getSize()){
             throw new IndexOutOfBoundsException("index >= "+coordinateAxis.getSize());
         }
         double val = handleValues(index);
-        return val;
+        try {
+            return converter.convert(val,this.binding);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -145,15 +113,24 @@ class NumericCoordinateVariable extends CoordinateVariable<Double>{
     }
 
     @Override
-    public List<Double> read() throws IndexOutOfBoundsException {
-        final List<Double> values= new ArrayList<Double>();
+    public List<T> read() throws IndexOutOfBoundsException {
+        final List<T> values= new ArrayList<T>();
         final int num =coordinateAxis.getShape()[0];
         for (int i = 0; i < num; i++) {
             double val = handleValues(i);
-            values.add(val);
+            try {
+                values.add(converter.convert(val,this.binding));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }            
         }
          return values;        
         
+    }
+
+    @Override
+    public boolean isNumeric() {
+        return true;
     }
 
 }

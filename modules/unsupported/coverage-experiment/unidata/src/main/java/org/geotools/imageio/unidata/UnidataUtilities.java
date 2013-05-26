@@ -783,14 +783,14 @@ public class UnidataUtilities {
      * @param cs the coordinateSystem to be scan
      * @return
      */
-    public static double getVerticalValueByIndex( final UnidataImageReader unidataReader, Variable variable, final int zIndex,
+    public static Number getVerticalValueByIndex( final UnidataImageReader unidataReader, Variable variable, final int zIndex,
             final CoordinateSystem cs ) {
         double ve = Double.NaN;
         if (cs != null && cs.hasVerticalAxis()) {
             final int rank = variable.getRank();
     
             final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
-            return (Double) unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
+            return (Number)unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
         }
         return ve;
     }

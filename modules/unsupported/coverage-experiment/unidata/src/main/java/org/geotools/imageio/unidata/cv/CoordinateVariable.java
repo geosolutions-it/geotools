@@ -18,9 +18,14 @@ package org.geotools.imageio.unidata.cv;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.geotools.util.Utilities;
+import org.geotools.util.logging.Logging;
 
+import ucar.ma2.DataType;
+import ucar.nc2.Attribute;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis1D;
 
@@ -31,6 +36,51 @@ import ucar.nc2.dataset.CoordinateAxis1D;
  */
 public abstract class CoordinateVariable<T> {
     
+    private final static Logger LOGGER= Logging.getLogger(CoordinateVariable.class);
+    
+    public static Class<?> suggestBinding(CoordinateAxis1D coordinateAxis){
+        Utilities.ensureNonNull("coordinateAxis", coordinateAxis);
+        final AxisType axisType=coordinateAxis.getAxisType();
+        
+        switch (axisType) {
+        case GeoX:case GeoY:case GeoZ:case Height:case Lat:case Lon: case Pressure: case  Spectral:
+            // numeric ?
+            @SuppressWarnings("deprecation")
+            final DataType dataType = coordinateAxis.getDataType();
+            // scale and offset are there?
+            Attribute scaleFactor = coordinateAxis.findAttribute("scale_factor");
+            Attribute offsetFactor = coordinateAxis.findAttribute("offset");  
+            if(scaleFactor!=null||offsetFactor!=null){
+                return Double.class;
+            }
+            switch (dataType) {
+            case DOUBLE:
+                return Double.class;
+            case BYTE:
+                return Byte.class;
+            case FLOAT:
+                return Float.class;
+            case INT:
+                return Integer.class;
+            case LONG:
+                return Long.class;
+            case SHORT:
+                return Short.class;
+                
+
+            }
+            break;
+        case Time: case RunTime:
+            // numeric
+            LOGGER.log(Level.FINE,"Date mapping for axis:"+coordinateAxis.toString());
+            return java.util.Date.class;
+        }
+        // unable to recognize this one
+        LOGGER.log(Level.FINE,"Unable to find mapping for axis:"+coordinateAxis.toString());
+        return null;
+    }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public static CoordinateVariable<?> create(CoordinateAxis1D coordinateAxis){
         Utilities.ensureNonNull("coordinateAxis", coordinateAxis);
         // If the axis is not numeric, we can't process any further. 
@@ -45,7 +95,7 @@ public abstract class CoordinateVariable<T> {
         switch(axisType){
         case GeoX:case GeoY: case GeoZ: case Height: case Lat: case Lon:
         case Pressure: case Spectral:
-            return new NumericCoordinateVariable(coordinateAxis);
+            return new NumericCoordinateVariable(suggestBinding(coordinateAxis),coordinateAxis);
         case RunTime:case Time:
             return new TimeCoordinateVariable(coordinateAxis);
         default:
@@ -92,6 +142,20 @@ public abstract class CoordinateVariable<T> {
     public long getSize() throws IOException {
         return coordinateAxis.getSize();
     }
+    
+    public boolean isRegular(){
+        return coordinateAxis.isRegular();
+    }
+    
+    public double getIncrement(){
+        return coordinateAxis.getIncrement();
+    }
+    
+    public double getStart(){
+        return coordinateAxis.getStart();
+    }
+    
+    abstract public boolean isNumeric();
     
     abstract public T getMinimum() throws IOException;
 

@@ -71,7 +71,8 @@ public class UnidataCRSUtilities {
     public static ReferencingFactoryContainer FACTORY_CONTAINER = ReferencingFactoryContainer.instance(GeoTools.getDefaultHints());
     
     final static PrecisionModel PRECISION_MODEL = new PrecisionModel(PrecisionModel.FLOATING);
-    final static GeometryFactory GEOM_FACTORY = new GeometryFactory(PRECISION_MODEL);
+   
+    public final static GeometryFactory GEOM_FACTORY = new GeometryFactory(PRECISION_MODEL);
 
     /**
      * Set of commonly used symbols for "seconds".
@@ -474,8 +475,7 @@ public class UnidataCRSUtilities {
         return false;
     }
 
-    public static VerticalCRS buildVerticalCrs( ucar.nc2.dataset.CoordinateSystem cs, String csName, CoordinateAxis zAxis,
-            final CSFactory csFactory, final DatumFactory datumFactory, final CRSFactory crsFactory ) {
+    public static VerticalCRS buildVerticalCrs( ucar.nc2.dataset.CoordinateSystem cs, String csName, CoordinateAxis zAxis ) {
         VerticalCRS verticalCRS = null;
         try {
             if (zAxis != null) {
@@ -536,16 +536,16 @@ public class UnidataCRSUtilities {
                     }
                 }
                 final Map<String, String> csMap = Collections.singletonMap("name", csName);
-                VerticalCS verticalCS = csFactory.createVerticalCS(csMap,
+                VerticalCS verticalCS = UnidataCRSUtilities.FACTORY_CONTAINER.getCSFactory().createVerticalCS(csMap,
                         getAxis(zAxis.getName(), getDirection(direction), units));
 
                 // Creating the Vertical Datum
                 final Map<String, String> datumMap = Collections.singletonMap("name", v_datumName);
-                final VerticalDatum verticalDatum = datumFactory.createVerticalDatum(datumMap,
+                final VerticalDatum verticalDatum = UnidataCRSUtilities.FACTORY_CONTAINER.getDatumFactory().createVerticalDatum(datumMap,
                         VerticalDatumType.valueOf(v_datumType));
 
                 final Map<String, String> crsMap = Collections.singletonMap("name", v_crsName);
-                verticalCRS = crsFactory.createVerticalCRS(crsMap, verticalDatum, verticalCS);
+                verticalCRS = UnidataCRSUtilities.FACTORY_CONTAINER.getCRSFactory().createVerticalCRS(crsMap, verticalDatum, verticalCS);
             }
         } catch (FactoryException e) {
             if (LOGGER.isLoggable(Level.FINE))
@@ -555,8 +555,7 @@ public class UnidataCRSUtilities {
         return verticalCRS;
     }
 
-    public static TemporalCRS buildTemporalCrs( String t_csName, String crsName, CoordinateAxis timeAxis, final CSFactory csFactory,
-            final DatumFactory datumFactory, final CRSFactory crsFactory ) {
+    public static TemporalCRS buildTemporalCrs( String t_csName, String crsName, CoordinateAxis timeAxis ) {
         String t_datumName = new Identification("ISO8601", null, null, null).getName();
         TemporalCRS temporalCRS = null;
         try {
@@ -629,7 +628,7 @@ public class UnidataCRSUtilities {
                     t_csName = "Unknown";
                 }
                 final Map<String, String> csMap = Collections.singletonMap("name", t_csName);
-                final TimeCS timeCS = csFactory.createTimeCS(csMap, getAxis(axisName, getDirection(direction), units));
+                final TimeCS timeCS = UnidataCRSUtilities.FACTORY_CONTAINER.getCSFactory().createTimeCS(csMap, getAxis(axisName, getDirection(direction), units));
 
                 // Creating the Temporal Datum
                 if (t_datumName == null) {
@@ -637,14 +636,14 @@ public class UnidataCRSUtilities {
                 }
                 final Map<String, String> datumMap = Collections.singletonMap("name", t_datumName);
                 final Position timeOrigin = new DefaultPosition(new SimpleInternationalString(t_originDate));
-                final TemporalDatum temporalDatum = datumFactory.createTemporalDatum(datumMap, timeOrigin.getDate());
+                final TemporalDatum temporalDatum = UnidataCRSUtilities.FACTORY_CONTAINER.getDatumFactory().createTemporalDatum(datumMap, timeOrigin.getDate());
 
                 // Finally creating the Temporal CoordinateReferenceSystem
                 if (crsName == null) {
                     crsName = "Unknown";
                 }
                 final Map<String, String> crsMap = Collections.singletonMap("name", crsName);
-                temporalCRS = crsFactory.createTemporalCRS(crsMap, temporalDatum, timeCS);
+                temporalCRS = UnidataCRSUtilities.FACTORY_CONTAINER.getCRSFactory().createTemporalCRS(crsMap, temporalDatum, timeCS);
             }
         } catch (FactoryException e) {
             if (LOGGER.isLoggable(Level.FINE))

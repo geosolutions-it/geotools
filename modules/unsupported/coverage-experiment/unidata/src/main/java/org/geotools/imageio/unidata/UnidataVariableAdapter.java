@@ -52,6 +52,8 @@ import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.coverage.io.util.Utilities;
 import org.geotools.feature.NameImpl;
+import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.Identification;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
@@ -66,7 +68,10 @@ import org.geotools.util.SimpleInternationalString;
 import org.geotools.util.logging.Logging;
 import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.grid.GridEnvelope;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.Name;
 import org.opengis.geometry.BoundingBox;
+import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.metadata.spatial.PixelOrientation;
 import org.opengis.referencing.crs.CRSFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -86,6 +91,7 @@ import ucar.nc2.Dimension;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
+import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.VariableDS;
 
 /**
@@ -479,11 +485,11 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         final CRSFactory crsFactory = UnidataCRSUtilities.FACTORY_CONTAINER.getCRSFactory();
 
         // Init temporal domain
-        final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(csName, crsName, timeAxis, csFactory, datumFactory, crsFactory);
+        final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(csName, crsName, timeAxis);
         initTemporalDomain(temporalCRS, timeAxis);
 
         // Init vertical domain
-        final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, csName, zAxis, csFactory, datumFactory, crsFactory);
+        final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, csName, zAxis);
         initVerticalDomain(verticalCRS, zAxis);
         
         
@@ -533,6 +539,25 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
                 coordinateReferenceSystem = null;
             }
         }
+        
+        initSpatialDomain(coordinateReferenceSystem);
+
+
+        // ADDITIONAL DOMAINS
+        if (otherAxes != null) {
+            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
+            addAdditionalDomain(additionalDomains, otherAxes);
+            this.setAdditionalDomains(additionalDomains);
+        }
+    }
+
+    /**
+     * @param coordinateReferenceSystem
+     * @throws MismatchedDimensionException
+     */
+    private void initSpatialDomain(CoordinateReferenceSystem coordinateReferenceSystem)
+            throws MismatchedDimensionException {
+        // SPATIAL DOMAIN
         final UnidataSpatialDomain spatialDomain = new UnidataSpatialDomain();
         this.setSpatialDomain(spatialDomain);
         spatialDomain.setCoordinateReferenceSystem(coordinateReferenceSystem);
@@ -543,14 +568,6 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         spatialDomain.setReferencedEnvelope(referencedEnvelope);
         final GridGeometry2D gridGeometry = getGridGeometry(variableDS, coordinateReferenceSystem);
         spatialDomain.setGridGeometry(gridGeometry);
-
-
-        // ADDITIONAL DOMAINS
-        if (otherAxes != null) {
-            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
-            addAdditionalDomain(additionalDomains, otherAxes);
-            this.setAdditionalDomains(additionalDomains);
-        }
     }
 
     /**
@@ -819,5 +836,4 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
     int getHeight() {
         return height;
     }
-    
 }

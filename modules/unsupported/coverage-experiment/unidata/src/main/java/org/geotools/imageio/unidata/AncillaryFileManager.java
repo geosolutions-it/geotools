@@ -19,6 +19,7 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.data.DataUtilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
@@ -250,20 +251,12 @@ class AncillaryFileManager {
     }
 
     /**
-     *
-     */
-    Map<String, Coverage> getCoverages() {
-        return coveragesMapping;
-    }
-
-    /**
      * Return a {@link Name} representation of the coverage name
      * @param varName
      * @return
      */
     Name getCoverageName(String varName) {
-        final Map<String, Coverage> coveragesMap = getCoverages();
-        final Collection<Coverage> coverages = coveragesMap.values();
+        final Collection<Coverage> coverages = coveragesMapping.values();
         for (Coverage cov: coverages) {
             if (varName.equalsIgnoreCase(cov.getOrigName())) {
                 return new NameImpl(cov.getName());
@@ -279,9 +272,7 @@ class AncillaryFileManager {
      * @param cs 
      * @return
      * @throws IOException
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws ClassNotFoundException
+     * @throws Exception
      */
     SimpleFeatureType suggestSchema(
             final Coverage coverage) throws Exception {
@@ -306,8 +297,7 @@ class AncillaryFileManager {
             // get the schema
             try {
                 indexSchema = DataUtilities.createType(schemaElement.getName(), schemaAttributes);
-                indexSchema = DataUtilities.createSubType(indexSchema,
-                        DataUtilities.attributeNames(indexSchema), actualCRS);
+                indexSchema = DataUtilities.createSubType(indexSchema,DataUtilities.attributeNames(indexSchema), actualCRS);
             } catch (Throwable e) {
                 if (LOGGER.isLoggable(Level.FINE))
                     LOGGER.log(Level.FINE, e.getLocalizedMessage(), e);
@@ -364,21 +354,23 @@ class AncillaryFileManager {
         slicesIndexList.add(variableIndex);
     }
 
-    public void addCoverage(String varName) {
+    public Coverage addCoverage(String varName) {
         // Create a new coverage to be added.
         Coverage coverage = OBJECT_FACTORY.createIndexerCoveragesCoverage();
         coverage.setName(varName);
         coverage.setOrigName(varName);
         addCoverage(coverage);
+        return coverage;
     }
 
-    private void addCoverage(Coverage coverage) {
+    private Coverage addCoverage(Coverage coverage) {
         if (variablesMap == null) {
             variablesMap = new HashMap<Name, String>();
             coveragesMapping = new HashMap<String, Coverage>();
         }
         coveragesMapping.put(coverage.getName(), coverage);
         variablesMap.put(new NameImpl(coverage.getName()), coverage.getOrigName());
+        return coverage;
     }
 
     public void initSliceManager() throws IOException {
@@ -400,7 +392,7 @@ class AncillaryFileManager {
      */
     public List<Name> getCoveragesNames() {
         final List<Name> names = new ArrayList<Name>();
-        Collection<Coverage> coverages =  getCoverages().values();
+        Collection<Coverage> coverages =  coveragesMapping.values();
         for (Coverage cov: coverages) {
             names.add(new NameImpl(cov.getName()));
         }
@@ -585,18 +577,31 @@ class AncillaryFileManager {
      * @param coverage
      * @return
      */
-    public String addDefaultSchema(Coverage coverage) {
+    public String setSchema(Coverage coverage, final String schemaName, final String schemaDef) {
+        Utilities.ensureNonNull("coverage", coverage);
+        Utilities.ensureNonNull("schemaName", schemaName);
         if (coverage != null) {
             SchemaType schema = coverage.getSchema();
             if (schema == null) {
                 schema = OBJECT_FACTORY.createSchemaType();
                 coverage.setSchema(schema);
-            }
-            String schemaName = AncillaryFileManager.DEFAULT_SCHEMA_NAME; 
+            } 
             schema.setName(schemaName);
+            if(schemaDef!=null){
+                schema.setAttributes(schemaDef);
+            }
             return schemaName;
         }
         return null;
+    }
+    
+    /**
+     * Add the default schema to this coverage
+     * @param coverage
+     * @return
+     */
+    public String setSchemaName(Coverage coverage, final String schemaName) {
+        return setSchema(coverage, schemaName,null);
     }
 
     /**

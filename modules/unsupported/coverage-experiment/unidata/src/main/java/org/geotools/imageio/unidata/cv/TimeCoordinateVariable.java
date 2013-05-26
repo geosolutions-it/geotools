@@ -41,10 +41,23 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
     private static final Logger LOGGER = Logger.getLogger(TimeCoordinateVariable.class.toString());
 
     private static class TimeBuilder {
+    
+        String units;
+    
+        String origin;
+    
+        Date epoch;
+    
+        CoordinateAxis1D axis1D;
+    
+        double[] values = null;
+        
+        int baseTimeUnits;
+        
         public TimeBuilder(CoordinateAxis1D axis) {
             axis1D = axis;
             values = axis1D.getCoordValues();
-            units = axis.getUnitsString();
+            units = axis.getUnitsString();       
             /*
              * Gets the axis origin. In the particular case of time axis, units are typically written in the form "days since 1990-01-01
              * 00:00:00". We extract the part before "since" as the units and the part after "since" as the date.
@@ -60,6 +73,8 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
                     origin = attribute.getStringValue();
                 }
             }
+
+            baseTimeUnits  = UnidataTimeUtilities.getTimeUnits(units, null);     
             if (origin != null) {
                 origin = UnidataTimeUtilities.trimFractionalPart(origin);
                 // add 0 digits if absent
@@ -74,23 +89,14 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
             }
         }
     
-        String units;
-    
-        String origin;
-    
-        Date epoch;
-    
-        CoordinateAxis1D axis1D;
-    
-        double[] values = null;
-    
         public Date buildTime(int timeIndex) {
             if (epoch != null) {
-                Calendar cal = new GregorianCalendar();
+                final Calendar cal = new GregorianCalendar();
                 cal.setTime(epoch);
+                cal.setTimeZone(UnidataTimeUtilities.UTC_TIMEZONE);
                 int vi = (int) Math.floor(values[timeIndex]);
                 double vd = values[timeIndex] - vi;
-                cal.add(UnidataTimeUtilities.getTimeUnits(units, null), vi);
+                cal.add(baseTimeUnits, vi);
                 if (vd != 0.0) {
                     cal.add(UnidataTimeUtilities.getTimeUnits(units, vd), UnidataTimeUtilities.getTimeSubUnitsValue(units, vd));
                 }
@@ -140,6 +146,11 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
            retValue.add(startTime);
        }
         return retValue;
+    }
+
+    @Override
+    public boolean isNumeric() {
+        return false;
     }
 
 }
