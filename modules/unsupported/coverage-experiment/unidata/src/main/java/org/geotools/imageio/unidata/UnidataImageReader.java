@@ -67,7 +67,6 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.Name;
-import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.Array;
@@ -83,8 +82,6 @@ import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.VariableDS;
-
-import com.vividsolutions.jts.geom.Geometry;
 
 /**
  * An abstract class that handles most of the ucar netcdf libs backed datatypes.
@@ -138,7 +135,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     /** The source file */
     private File file;
 
-    private ReferencedEnvelope boundingBox;
+    ReferencedEnvelope boundingBox;
 
     public UnidataImageReader( ImageReaderSpi originatingProvider ) {
         super(originatingProvider);
@@ -302,10 +299,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         }
                         // create 
                         getCatalog().createType(indexSchema);
-//                        
-//                        // Currently, we only support Geographic CRS
-//                        Geometry envelope = UnidataCRSUtilities.extractEnvelopeAsGeometry(variable);
-
                         
                         // IMAGE INDEXING
                         int variableImageStartIndex = numImages;
@@ -353,7 +346,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                                     break;
                                 default: {
                                     if (i == bandDimension && hasVerticalAxis) {
-                                        zIndex = UnidataUtilities.getZIndex(variable, variableRange, imageIndex);
+                                        zIndex = UnidataImageReader.getZIndex(variable, variableRange, imageIndex);
                                     } else {
                                         tIndex = getTIndex(variable, variableRange, imageIndex);
                                     }
@@ -497,8 +490,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final CoordinateSystem cs,
             final int imageIndex, 
             final SimpleFeatureType indexSchema) {
-        final Date startDate = getTimeValueByIndex(this, variable, tIndex, cs);
-        final Number verticalValue = UnidataUtilities.getVerticalValueByIndex(this, variable, zIndex, cs);
+        final Date date = getTimeValueByIndex(this, variable, tIndex, cs);
+        final Number verticalValue = UnidataImageReader.getVerticalValueByIndex(this, variable, zIndex, cs);
 
         final SimpleFeature feature = DataUtilities.template(indexSchema);
         feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, UnidataCRSUtilities.GEOM_FACTORY.toGeometry(boundingBox));
@@ -506,8 +499,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         feature.setAttribute(CoverageSlice.Attributes.COVERAGENAME, coverageName);
 
         // Check if we have time and elevation domain and set the attribute if needed
-        if (startDate != null) {
-            feature.setAttribute(CoverageSlice.Attributes.TIME, startDate);
+        if (date != null) {
+            feature.setAttribute(CoverageSlice.Attributes.TIME, date);
         }
         if (!Double.isNaN(verticalValue.doubleValue())) {
             List<AttributeDescriptor> descriptors = indexSchema.getAttributeDescriptors();
@@ -579,7 +572,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      */
     private void init() throws IOException {
         int numImages = 0;
-
         try {
             if (dataset != null) {
                 checkType = UnidataUtilities.getCheckType(dataset);
@@ -862,7 +854,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             }
             final IndexIterator it = array.getIndexIterator();
              for (int y = ymax; --y >= ymin;) {
-//            for( int y = ymin; y < ymax; y++ ) {
                 for( int x = xmin; x < xmax; x++ ) {
                     switch( type ) {
                         case DataBuffer.TYPE_DOUBLE: {
@@ -939,6 +930,56 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
     public String getTypeName(final String coverageName) {
         return ancillaryFileManager.getTypeName(coverageName);
+    }
+
+    /**
+     * Utility method to retrieve the z-index of a Variable coverageDescriptor stored on
+     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
+     * 
+     * @param var
+     *                {@link Variable}
+     * @param range
+     *                {@link Range}
+     * @param imageIndex
+     *                {@link int}
+     * 
+     * @return z-index {@link int} -1 if variable rank &lt; 3
+     */
+    public static int getZIndex(Variable var, Range range, int imageIndex) {
+        final int rank = var.getRank();
+    
+        if (rank > 2) {
+            if (rank == 3) {
+                return (imageIndex - range.first());
+            } else {
+                // return (int) Math.ceil((imageIndex - range.first()) /
+                // var.getDimension(rank - (Z_DIMENSION + 1)).getLength());
+                return (imageIndex - range.first()) % UnidataUtilities.getZDimensionLength(var);
+            }
+        }
+    
+        return -1;
+    }
+
+    /** Return the zIndex-th value of the vertical dimension of the specified variable, as a double, or {@link Double#NaN} 
+     * in case that variable doesn't have a vertical axis.
+     * 
+     * @param unidataReader the reader to be used for that search
+     * @param variable the variable to be accessed
+     * @param timeIndex the requested index
+     * @param cs the coordinateSystem to be scan
+     * @return
+     */
+    public static Number getVerticalValueByIndex( final UnidataImageReader unidataReader, Variable variable, final int zIndex,
+            final CoordinateSystem cs ) {
+        double ve = Double.NaN;
+        if (cs != null && cs.hasVerticalAxis()) {
+            final int rank = variable.getRank();
+    
+            final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
+            return (Number)unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
+        }
+        return ve;
     }
 
     /**

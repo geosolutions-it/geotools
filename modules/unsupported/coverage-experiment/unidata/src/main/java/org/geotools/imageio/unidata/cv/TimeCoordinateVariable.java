@@ -18,7 +18,7 @@ package org.geotools.imageio.unidata.cv;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
+import java.util.AbstractList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -49,14 +49,11 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
         Date epoch;
     
         CoordinateAxis1D axis1D;
-    
-        double[] values = null;
         
         int baseTimeUnits;
         
         public TimeBuilder(CoordinateAxis1D axis) {
             axis1D = axis;
-            values = axis1D.getCoordValues();
             units = axis.getUnitsString();       
             /*
              * Gets the axis origin. In the particular case of time axis, units are typically written in the form "days since 1990-01-01
@@ -94,8 +91,9 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
                 final Calendar cal = new GregorianCalendar();
                 cal.setTime(epoch);
                 cal.setTimeZone(UnidataTimeUtilities.UTC_TIMEZONE);
-                int vi = (int) Math.floor(values[timeIndex]);
-                double vd = values[timeIndex] - vi;
+                final double coordValue = axis1D.getCoordValue(timeIndex);
+                int vi = (int) Math.floor(coordValue);
+                double vd = coordValue - vi;
                 cal.add(baseTimeUnits, vi);
                 if (vd != 0.0) {
                     cal.add(UnidataTimeUtilities.getTimeUnits(units, vd), UnidataTimeUtilities.getTimeSubUnitsValue(units, vd));
@@ -107,7 +105,7 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
         }
     
         public int getNumTimes() {
-            return values.length;
+            return axis1D.getShape(0);
         }
     }
 
@@ -139,13 +137,18 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
 
     @Override
     public List<Date> read() throws IndexOutOfBoundsException {
-       final List<Date> retValue= new ArrayList<Date>();
-       final int numTimes = timeBuilder.getNumTimes();
-       for (int i = 0; i < numTimes; i++) {
-           Date startTime = timeBuilder.buildTime(i);
-           retValue.add(startTime);
-       }
-        return retValue;
+        return new AbstractList<Date>() {
+
+            @Override
+            public Date get(int index) {
+                return timeBuilder.buildTime(index);
+            }
+
+            @Override
+            public int size() {
+                return timeBuilder.getNumTimes();
+            }
+        };        
     }
 
     @Override

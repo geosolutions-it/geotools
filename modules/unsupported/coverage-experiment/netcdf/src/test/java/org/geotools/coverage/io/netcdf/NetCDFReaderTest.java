@@ -391,7 +391,7 @@ public class NetCDFReaderTest extends Assert {
                 } 
             }
 
-            GeneralParameterValue[] values = new GeneralParameterValue[] { gg };
+            GeneralParameterValue[] values = new GeneralParameterValue[] { gg,new_ };
             GridCoverage2D coverage = reader.read(coverageName, values);
             assertNotNull(coverage);
             if (TestData.isInteractiveTest()) {

@@ -164,4 +164,18 @@ public abstract class CoordinateVariable<T> {
     abstract public T read(int index) throws IndexOutOfBoundsException;
     
     abstract public List<T> read() throws IndexOutOfBoundsException;
+
+    @Override
+    public String toString() {
+        try {
+            return "CoordinateVariable [binding=" + binding + ", coordinateAxis=" + coordinateAxis
+                    + ", getType()=" + getType() + ", getUnit()=" + getUnit() + ", getAxisType()="
+                    + getAxisType() + ", getName()=" + getName() + ", getSize()=" + getSize()
+                    + ", isRegular()=" + isRegular() + ", getIncrement()=" + getIncrement()
+                    + ", getStart()=" + getStart() + ", isNumeric()=" + isNumeric() + ", getMinimum()="
+                    + getMinimum() + ", getMaximum()=" + getMaximum() + "]";
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -71,12 +71,20 @@ public class CoordinateVariableTest extends Assert{
         CoordinateVariable<?> cv= CoordinateVariable.create((CoordinateAxis1D) coordinateAxis);
         assertSame(Date.class, cv.getType());
         
+
+        List<?> list = cv.read();
+        assertNotNull(list);
+        assertEquals(2, list.size());
+        
         final GregorianCalendar cal= new GregorianCalendar(UnidataTimeUtilities.UTC_TIMEZONE);
         cal.set(2012, 3, 1, 0, 0,0);
         cal.set(GregorianCalendar.MILLISECOND, 0);
         assertEquals(cal.getTime(), cv.getMinimum());
+        assertEquals(list.get(0), cv.getMinimum());
+        
         cal.set(2012, 3, 1, 1, 0,0);
         assertEquals(cal.getTime(), cv.getMaximum());
+        assertEquals(list.get(1), cv.getMaximum());
         assertEquals(2, cv.getSize());
         assertEquals("hours since 2012-04-01 0:00:00", cv.getUnit());
         //
@@ -93,10 +101,18 @@ public class CoordinateVariableTest extends Assert{
         binding = CoordinateVariable.suggestBinding((CoordinateAxis1D) coordinateAxis);
         assertNotNull(binding);
         assertSame(Float.class, binding);
+        
+        
         cv= CoordinateVariable.create((CoordinateAxis1D) coordinateAxis);
+        list = cv.read();
+        assertNotNull(list);
+        assertEquals(2, list.size());
+        
         assertSame(Float.class, cv.getType());
         assertEquals(10f, cv.getMinimum());
-        assertEquals(450f, cv.getMaximum());
+        assertEquals(10f, cv.getMinimum());
+        assertEquals(list.get(0), cv.getMinimum());
+        assertEquals(list.get(1), cv.getMaximum());
         assertEquals(2, cv.getSize());     
         assertEquals("meters", cv.getUnit());   
        

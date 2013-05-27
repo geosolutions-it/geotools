@@ -17,7 +17,7 @@
 package org.geotools.imageio.unidata.cv;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.AbstractList;
 import java.util.List;
 
 import org.geotools.util.Converter;
@@ -114,17 +114,24 @@ class NumericCoordinateVariable<T  extends Number> extends CoordinateVariable<T>
 
     @Override
     public List<T> read() throws IndexOutOfBoundsException {
-        final List<T> values= new ArrayList<T>();
-        final int num =coordinateAxis.getShape()[0];
-        for (int i = 0; i < num; i++) {
-            double val = handleValues(i);
-            try {
-                values.add(converter.convert(val,this.binding));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }            
-        }
-         return values;        
+        
+        return new AbstractList<T>() {
+
+            @Override
+            public T get(int index) {
+                double val = handleValues(index);
+                try {
+                     return converter.convert(val,NumericCoordinateVariable.this.binding);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } 
+            }
+
+            @Override
+            public int size() {
+                return coordinateAxis.getShape()[0];
+            }
+        };     
         
     }
 

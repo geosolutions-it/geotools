@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -34,6 +33,7 @@ import java.util.logging.Level;
 
 import org.geotools.coverage.Category;
 import org.geotools.coverage.GridSampleDimension;
+import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.io.CoverageSource.AdditionalDomain;
 import org.geotools.coverage.io.CoverageSource.DomainType;
@@ -50,16 +50,11 @@ import org.geotools.coverage.io.util.DateRangeComparator;
 import org.geotools.coverage.io.util.DateRangeTreeSet;
 import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 import org.geotools.coverage.io.util.NumberRangeComparator;
-import org.geotools.coverage.io.util.Utilities;
+import org.geotools.factory.GeoTools;
 import org.geotools.feature.NameImpl;
-import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
-import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.imageio.Identification;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
-import org.geotools.imageio.unidata.utilities.UnidataMetadataUtilities;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.DateRange;
@@ -68,30 +63,20 @@ import org.geotools.util.SimpleInternationalString;
 import org.geotools.util.logging.Logging;
 import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.grid.GridEnvelope;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.Name;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.metadata.spatial.PixelOrientation;
-import org.opengis.referencing.crs.CRSFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.TemporalCRS;
 import org.opengis.referencing.crs.VerticalCRS;
-import org.opengis.referencing.cs.CSFactory;
-import org.opengis.referencing.cs.EllipsoidalCS;
-import org.opengis.referencing.datum.Datum;
-import org.opengis.referencing.datum.DatumFactory;
-import org.opengis.referencing.datum.GeodeticDatum;
+import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.util.InternationalString;
 import org.opengis.util.ProgressListener;
 
-import ucar.nc2.Dimension;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
-import ucar.nc2.dataset.CoordinateAxis1D;
-import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.VariableDS;
 
 /**
@@ -340,6 +325,8 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     private int height;
 
+    private CoordinateReferenceSystem coordinateReferenceSystem;
+
     private final static java.util.logging.Logger LOGGER = Logging.getLogger(UnidataVariableAdapter.class);
 
     /**
@@ -351,7 +338,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
     private void init() throws Exception {
         
         // initialize the various domains
-        initDomains();
+        initSpatialElements();
         
         // initialize rank and number of 2D slices
         initRange();
@@ -391,53 +378,40 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      * @throws IOException 
      * 
      */
-    private void initDomains() throws IOException {
+    private void initSpatialElements() throws Exception {
+        
+        List<CoordinateAxis> otherAxes = initCRS();
+        
+        initSpatialDomain();
+
+
+        // ADDITIONAL DOMAINS
+        if (otherAxes != null&&!otherAxes.isEmpty()) {
+            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
+            addAdditionalDomain(additionalDomains, otherAxes);
+            this.setAdditionalDomains(additionalDomains);
+        }
+    }
+
+    /**
+     * @return
+     * @throws IllegalArgumentException
+     * @throws RuntimeException
+     * @throws IOException
+     * @throws IllegalStateException
+     */
+    private List<CoordinateAxis> initCRS() throws IllegalArgumentException, RuntimeException,
+            IOException, IllegalStateException {
         // from UnidataVariableAdapter        
         this.coordinateSystem = UnidataCRSUtilities.getCoordinateSystem(variableDS);
         if (coordinateSystem == null){
             throw new IllegalArgumentException("Provided CoordinateSystem is null");
         }
-
-        String crsName = "Unknown";
-        // String csName = cs.getName(); TODO check
-        String csName = "Unknown";
-        String datumName = "Unknown";
-
-        String crsType = UnidataCRSUtilities.getCrsType(coordinateSystem);
-
-        double greenwichLon = 0.0;
-        String primeMeridianName = null;
-
-        double semiMajorAxis = 6378137.0;
-        // double semiMinorAxis;
-        double invFlattening = 298.257223563;
-        String secondDefiningParameter = null;
-        // String unit = "meter";
-        String ellipsoidName = null;
-
-        if (crsType == UnidataMetadataUtilities.GEOGRAPHIC || crsType == UnidataMetadataUtilities.GEOGRAPHIC_3D) {
-            Identification crsIdentification = new Identification("WGS 84", null, null, "EPSG:4326");
-            crsName = crsIdentification.getName();
-            csName = new Identification("WGS 84", null, null, null).getName();
-            datumName = new Identification("WGS_1984", "World Geodetic System 1984", null,
-                    "EPSG:6326").getName();
-
-            primeMeridianName = new Identification("Greenwich", null, null, "EPSG:8901").getName();
-            ellipsoidName = new Identification("WGS 84", null, null, "EPSG:7030").getName();
-
-            /*
-             * XXX following is how the second def parameter is set.
-             * 
-             * right now the semiMinorAxis is not defined, therefore we hardcode the thing
-             */
-            secondDefiningParameter = UnidataMetadataUtilities.MD_DTM_GD_EL_INVERSEFLATTENING;
-
-        } else if (crsType == UnidataMetadataUtilities.PROJECTED
-                || crsType == UnidataMetadataUtilities.PROJECTED_3D) {
-            // TODO Handle this case ... we need an example of netCDF projected
-            // CoordinateReferenceSystem
-            throw new RuntimeException("Projected/Projected_3D CRS is not implemented yet");
-        }
+        // ////
+        // Creating the CoordinateReferenceSystem
+        // ////
+        coordinateReferenceSystem=UnidataCRSUtilities.WGS84;
+        
         /*
          * Adds the axis in reverse order, because the NetCDF image reader put the last dimensions in the rendered image. Typical NetCDF convention is
          * to put axis in the (time, depth, latitude, longitude) order, which typically maps to (longitude, latitude, depth, time) order in GeoTools
@@ -447,127 +421,60 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         CoordinateAxis timeAxis = null;
         CoordinateAxis zAxis = null;
         List<CoordinateAxis> otherAxes = new ArrayList<CoordinateAxis>();
-        // TODO check this???
-        // for( int i = axes.size(); --i >= cs.getRankDomain() - 2; ) {
-        for (int i = 0; i < axes.size(); i++) {
-            CoordinateAxis axis = axes.get(i);
+        for (CoordinateAxis axis :axes) {
             final AxisType axisType = axis.getAxisType();
-            if (AxisType.Time.equals(axisType)) {
+            switch(axisType){
+            case Time:case RunTime:
                 timeAxis = axis;
                 continue;
-            }
-
-            /*
-             * If the axis is not numeric, we can't process any further. If it is, then adds the coordinate and index ranges.
-             */
-            if (!axis.isNumeric()) {
-                continue;
-            }
-            if (axisType == AxisType.Height || axisType == AxisType.GeoZ || axisType == AxisType.Pressure) {
-                
-                //TODO: check that.
+            case GeoZ:case Height:case Pressure:
                 String axisName = axis.getFullName();
                 if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
                     zAxis = axis;
                     continue;
+                }else{
+                    otherAxes.add(axis);
                 }
-            }
-
-            if (axisType != AxisType.Lat && axisType != AxisType.Lon) {
+                continue;  
+            case GeoX: case GeoY: case Lat: case Lon:
+                // do nothing
+                continue;
+            default:
                 otherAxes.add(axis);
             }
         }
 
         // END extract necessary info from unidata structures
 
-        final CSFactory csFactory = UnidataCRSUtilities.FACTORY_CONTAINER.getCSFactory();
-        final DatumFactory datumFactory = UnidataCRSUtilities.FACTORY_CONTAINER.getDatumFactory();
-        final CRSFactory crsFactory = UnidataCRSUtilities.FACTORY_CONTAINER.getCRSFactory();
-
         // Init temporal domain
-        final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(csName, crsName, timeAxis);
+        final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(timeAxis);
         initTemporalDomain(temporalCRS, timeAxis);
 
         // Init vertical domain
-        final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, csName, zAxis);
+        final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, zAxis);
         initVerticalDomain(verticalCRS, zAxis);
         
         
 
-        // ////
-        // Creating the CoordinateReferenceSystem
-        // ////
-        String name = crsName;
-        if (name == null) {
-            name = "Unknown";
-        }
-        boolean isGeographic = false; // TODO is this really necessary?
-        CoordinateReferenceSystem coordinateReferenceSystem = null;
-        if (name.contains("WGS84") || name.contains("WGS 84")) {
-            coordinateReferenceSystem = (name.contains("3D")) ? DefaultGeographicCRS.WGS84_3D
-                    : UnidataCRSUtilities.WGS84;
-            isGeographic = true;
-        }
-
-        if (coordinateReferenceSystem == null) {
-            String type = crsType;
-            if (type == null) {
-                type = isGeographic ? UnidataMetadataUtilities.GEOGRAPHIC : UnidataMetadataUtilities.PROJECTED;
-            }
-            final Map<String, String> map = Collections.singletonMap("name", name);
-            try {
-                Datum datum = UnidataCRSUtilities.getDatum(datumName, greenwichLon,
-                        primeMeridianName, ellipsoidName, semiMajorAxis, invFlattening,
-                        ellipsoidName, secondDefiningParameter);
-                if (type.equalsIgnoreCase(UnidataMetadataUtilities.GEOGRAPHIC) || type.equalsIgnoreCase(UnidataMetadataUtilities.GEOGRAPHIC_3D)) {
-
-                    coordinateReferenceSystem = crsFactory.createGeographicCRS(map, (GeodeticDatum) datum,
-                            (EllipsoidalCS) UnidataCRSUtilities.getCoordinateSystem(csName, axes));
-                } else {
-                    // TODO check implementation - non geographic is not supported yet
-                    throw new RuntimeException("Only Geographic CRS is currently supported.");
-
-                    // final Map<String, String> baseMap = Collections.singletonMap("name",
-                    // crsName);// metaCRS.getBaseCRS().getName());
-                    // final GeographicCRS baseCRS = crsFactory.createGeographicCRS(baseMap,
-                    // (GeodeticDatum) datum,
-                    // DefaultEllipsoidalCS.GEODETIC_2D);
-                    // crs = crsFactory.createProjectedCRS(map, baseCRS, getProjection(metaCRS),
-                    // (CartesianCS) getCoordinateSystem(metaCRS));
-                }
-            } catch (Throwable e) {
-                coordinateReferenceSystem = null;
-            }
-        }
-        
-        initSpatialDomain(coordinateReferenceSystem);
-
-
-        // ADDITIONAL DOMAINS
-        if (otherAxes != null) {
-            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
-            addAdditionalDomain(additionalDomains, otherAxes);
-            this.setAdditionalDomains(additionalDomains);
-        }
+        return otherAxes;
     }
 
     /**
      * @param coordinateReferenceSystem
      * @throws MismatchedDimensionException
+     * @throws IOException 
      */
-    private void initSpatialDomain(CoordinateReferenceSystem coordinateReferenceSystem)
-            throws MismatchedDimensionException {
+    private void initSpatialDomain()
+            throws Exception {
         // SPATIAL DOMAIN
         final UnidataSpatialDomain spatialDomain = new UnidataSpatialDomain();
         this.setSpatialDomain(spatialDomain);
         spatialDomain.setCoordinateReferenceSystem(coordinateReferenceSystem);
 
-        final double[] wsen = UnidataCRSUtilities.getEnvelope(coordinateSystem);
-        final ReferencedEnvelope referencedEnvelope = new ReferencedEnvelope(wsen[0], wsen[2],
-                wsen[1], wsen[3], coordinateReferenceSystem);
-        spatialDomain.setReferencedEnvelope(referencedEnvelope);
-        final GridGeometry2D gridGeometry = getGridGeometry(variableDS, coordinateReferenceSystem);
-        spatialDomain.setGridGeometry(gridGeometry);
+//        final double[] wsen = UnidataCRSUtilities.getEnvelope(coordinateSystem);
+//        final ReferencedEnvelope referencedEnvelope = new ReferencedEnvelope(wsen[0], wsen[2],wsen[1], wsen[3], coordinateReferenceSystem);
+        spatialDomain.setReferencedEnvelope(reader.boundingBox);
+        spatialDomain.setGridGeometry(getGridGeometry());
     }
 
     /**
@@ -628,95 +535,113 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      * Extracts the {@link GridGeometry2D grid geometry} from the unidata variable.
      * 
      * @return the {@link GridGeometry2D}.
+     * @throws IOException 
      */
-    protected GridGeometry2D getGridGeometry(VariableDS variable, CoordinateReferenceSystem crs) {
-        GridGeometry2D gridGeometry = null;
-        final List<ucar.nc2.dataset.CoordinateSystem> systems = variable.getCoordinateSystems();
-        if (!systems.isEmpty()) {
-            int rank = variable.getRank() - (systems.get(0).hasTimeAxis() ? 1 : 0);
-    
-            List<Dimension> dimensions = variable.getDimensions();
-            int i = rank - 1;
-            int[] low = new int[rank];
-            int[] high = new int[rank];
-            // String[] axesNames = new String[rank];
-            double[] origin = new double[rank];
-            double[][] offsetVectors = new double[rank][rank];
-    
-            for( Dimension dim : dimensions ) {
-                final CoordinateAxis coordAxis = reader.coordinatesVariables.get(dim.getFullName()).unwrap();
-                    final AxisType axisType = coordAxis.getAxisType();
-                    if (!AxisType.Time.equals(axisType)) {
-                        if (!AxisType.GeoZ.equals(axisType) && !AxisType.Height.equals(axisType)
-                                && !AxisType.Pressure.equals(axisType)) {
-                            low[i] = 0;
-                            high[i] = dim.getLength();
-                        } 
-                        if (i < 4 &&  reader.coordinatesVariables.get(dim.getFullName()) != null) {
-                            if (coordAxis.isNumeric() && coordAxis instanceof CoordinateAxis1D) {
-                                final CoordinateAxis1D axis1D = (CoordinateAxis1D) coordAxis;
-                                final int length = axis1D.getDimension(0).getLength();
-                                if (length > 2 && axis1D.isRegular()) {
-                                    // Reminder: pixel orientation is
-                                    // "center",
-                                    // maximum value is inclusive.
-                                    final double increment = axis1D.getIncrement();
-                                    final double start = axis1D.getStart();
-                                    final double end = start + increment * (length - 1); // Inclusive
-                                    if (axisType.equals(AxisType.Lat)) { //Check this
-                                        origin[i] = end;
-                                        offsetVectors[i][i] = (start - end) / length;
-                                    } else {
-                                        origin[i] = start;
-                                        offsetVectors[i][i] = (end - start) / length;
-                                    }
-                                    i--;
-                                } else {
-                                    final double[] values = axis1D.getCoordValues();
-                                    if (values != null) {
-                                        final int valuesLength = values.length;
-                                        if (valuesLength >= 2) {
-                                            if (!Double.isNaN(values[0]) && !Double.isNaN(values[values.length - 1])) {
-                                                origin[i] = values[0];
-                                                offsetVectors[i][i] = (values[values.length - 1] - values[0]) / length;
-                                                i--;
-                                            } else {
-                                                if (LOGGER.isLoggable(Level.FINE)) {
-                                                    LOGGER.log(Level.FINE, "Axis values contains NaN; finding first valid values");
-                                                }
-                                                for( int j = 0; j < valuesLength; j++ ) {
-                                                    double v = values[j];
-                                                    if (!Double.isNaN(v)) {
-                                                        for( int k = valuesLength; k > j; k-- ) {
-                                                            double vv = values[k];
-                                                            if (!Double.isNaN(vv)) {
-                                                                origin[i] = v;
-                                                                offsetVectors[i][i] = (vv - v) / length;
-                                                                i--;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            origin[i] = values[0];
-                                            offsetVectors[i][i] = 0;
-                                            i--;
-                                        }
+    protected GridGeometry2D getGridGeometry() throws IOException {
+        int[] low = new int[2];
+        int[] high = new int[2];
+        // String[] axesNames = new String[rank];
+        double[] origin = new double[2];
+        double scaleX=Double.POSITIVE_INFINITY, scaleY=Double.POSITIVE_INFINITY;
+
+        for( CoordinateVariable<?> cv : reader.coordinatesVariables.values() ) {
+            if(!cv.isNumeric()){
+                continue;
+            }
+            final AxisType axisType = cv.getAxisType();
+            switch (axisType) {
+            case Lon: case GeoX:
+                // raster space
+                low[0] = 0;
+                high[0] = (int) cv.getSize();
+                
+                // model space
+                if(cv.isRegular()){
+                    // regular model space
+                    origin[0]=cv.getStart();
+                    scaleX=cv.getIncrement();
+                } else {
+                    
+                    // model space is not declared to be regular, but we kind of assume it is!!!
+                    final int valuesLength=(int) cv.getSize();
+                    double min = ((Number)cv.getMinimum()).doubleValue();
+                    double max = ((Number)cv.getMaximum()).doubleValue();
+                    // make sure we skip nodata coords, bah...
+                    if (!Double.isNaN(min) && !Double.isNaN(max)) {
+                        origin[0] = min;
+                        scaleX = (max-min) / valuesLength;
+                    } else {
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE, "Axis values contains NaN; finding first valid values");
+                        }
+                        for( int j = 0; j < valuesLength; j++ ) {
+                            double v = ((Number)cv.read(j)).doubleValue();
+                            if (!Double.isNaN(v)) {
+                                for( int k = valuesLength; k > j; k-- ) {
+                                    double vv = ((Number)cv.read(k)).doubleValue();
+                                    if (!Double.isNaN(vv)) {
+                                        origin[0] = v;
+                                        scaleX = (vv - v) / valuesLength;
                                     }
                                 }
                             }
                         }
                     }
+                }
+                break;
+            case Lat: case GeoY:
+                // raster space
+                low[1] = 0;
+                high[1] = (int) cv.getSize();
+                
+                // model space
+                if(cv.isRegular()){
+                    scaleY=-cv.getIncrement();
+                    origin[1]=cv.getStart()-scaleY*high[1];
+                } else {
+                    
+                    // model space is not declared to be regular, but we kind of assume it is!!!
+                    final int valuesLength=(int) cv.getSize();
+                    double min = ((Number)cv.getMinimum()).doubleValue();
+                    double max = ((Number)cv.getMaximum()).doubleValue();
+                    // make sure we skip nodata coords, bah...
+                    if (!Double.isNaN(min) && !Double.isNaN(max)) {
+                        scaleY = -(max-min) / valuesLength;
+                        origin[1] = max;
+                    } else {
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE, "Axis values contains NaN; finding first valid values");
+                        }
+                        for( int j = 0; j < valuesLength; j++ ) {
+                            double v = ((Number)cv.read(j)).doubleValue();
+                            if (!Double.isNaN(v)) {
+                                for( int k = valuesLength; k > j; k-- ) {
+                                    double vv = ((Number)cv.read(k)).doubleValue();
+                                    if (!Double.isNaN(vv)) {
+                                        origin[1] = v;
+                                        scaleY = -(vv - v) / valuesLength;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
             }
-    
-            final AffineTransform at = Utilities.getAffineTransform(origin, offsetVectors);
-            final GridEnvelope gridRange = Utilities.getGridRange(high, low);
-            final MathTransform raster2Model = ProjectiveTransform.create(at);
-    
-            gridGeometry = new GridGeometry2D(gridRange, raster2Model, crs);
+            
+            
         }
-        return gridGeometry;
+
+        final AffineTransform at = new AffineTransform(scaleX, 0, 0, scaleY, origin[0], origin[1]);
+        final GridEnvelope gridRange = new GridEnvelope2D(
+                low[0], 
+                low[1], 
+                high[0]-low[0], 
+                high[1]-low[1]);
+        final MathTransform raster2Model = ProjectiveTransform.create(at);
+        return new GridGeometry2D(gridRange,PixelInCell.CELL_CORNER ,raster2Model, coordinateReferenceSystem,GeoTools.getDefaultHints());
     }
 
     public int getNumBands() {

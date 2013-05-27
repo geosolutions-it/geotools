@@ -29,30 +29,22 @@ import java.text.Format;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.io.util.DoubleRangeTreeSet;
-import org.geotools.util.NumberRange;
 
 import ucar.ma2.DataType;
-import ucar.ma2.Range;
-import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.Group;
 import ucar.nc2.Variable;
 import ucar.nc2.VariableIF;
 import ucar.nc2.constants.AxisType;
-import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
-import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.NetcdfDataset.Enhance;
 import ucar.nc2.dataset.VariableDS;
@@ -119,58 +111,6 @@ public class UnidataUtilities {
     public static final String NAME = "name";
 
     public static final String LONG_NAME = "long_name";
-
-    @Deprecated // should die soon
-    static class AxisValueGetter {
-        
-        CoordinateAxis1D axis1D;
-        
-        double[] values = null;
-        
-        public AxisValueGetter(CoordinateAxis axis) {
-            if (axis.isNumeric() && axis instanceof CoordinateAxis1D) {
-                axis1D = (CoordinateAxis1D) axis;
-                values = axis1D.getCoordValues();
-                Attribute scaleFactor = axis1D.findAttribute("scale_factor");
-                Attribute offset = axis1D.findAttribute("offset");
-                if (scaleFactor != null || offset != null) {
-                    rescaleValues(scaleFactor, offset);
-                }
-
-            } else {
-                throw new IllegalArgumentException(
-                        "The specified axis doesn't represent a valid zeta Axis");
-            }
-        }
-
-        private void rescaleValues(Attribute scaleFactor, Attribute offset) {
-            DataType dataType = scaleFactor != null ? scaleFactor.getDataType() : offset.getDataType();
-            if (dataType == DataType.DOUBLE) {
-                double sf = scaleFactor != null ? scaleFactor.getNumericValue().doubleValue() : 1.0d; 
-                double off = offset != null ? offset.getNumericValue().doubleValue() : 0.0d;
-                for (int i = 0 ; i < values.length; i++) {
-                    values[i] = ( sf * values[i]) + off;
-                }    
-            } else if (dataType == DataType.FLOAT) {
-                float sf = scaleFactor != null ? scaleFactor.getNumericValue().floatValue() : 1.0f; 
-                float  off = offset != null ? offset.getNumericValue().floatValue() : 0.0f;
-                for (int i = 0 ; i < values.length; i++) {
-                    values[i] = ( sf * values[i]) + off;
-                }
-            }
-        }
-
-        public double build(int index) {
-            if (values != null && values.length > index) {
-                return values[index];
-            }
-            return Double.NaN;
-        }
-        
-        public int getNumValues() {
-            return values.length;
-        }
-    }
 
     /**
      * Global attribute for coordinate coverageDescriptorsCache.
@@ -273,35 +213,6 @@ public class UnidataUtilities {
     }
 
     /**
-     * Utility method to retrieve the z-index of a Variable coverageDescriptor stored on
-     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
-     * 
-     * @param var
-     *                {@link Variable}
-     * @param range
-     *                {@link Range}
-     * @param imageIndex
-     *                {@link int}
-     * 
-     * @return z-index {@link int} -1 if variable rank &lt; 3
-     */
-    public static int getZIndex(Variable var, Range range, int imageIndex) {
-        final int rank = var.getRank();
-
-        if (rank > 2) {
-            if (rank == 3) {
-                return (imageIndex - range.first());
-            } else {
-                // return (int) Math.ceil((imageIndex - range.first()) /
-                // var.getDimension(rank - (Z_DIMENSION + 1)).getLength());
-                return (imageIndex - range.first()) % getZDimensionLength(var);
-            }
-        }
-
-        return -1;
-    }
-
-    /**
      * Returns the data type which most closely represents the "raw" internal
      * data of the variable. This is the value returned by the default
      * implementation of {@link NetcdfImageReader#getRawDataType}.
@@ -376,51 +287,6 @@ public class UnidataUtilities {
 
 		}
 	}
-
-    public static class ProjAttribs {
-        public final static String PROJECT_TO_IMAGE_AFFINE = "proj_to_image_affine";
-
-        public final static String PROJECT_ORIGIN_LATITUDE = "proj_origin_latitude";
-
-        public final static String PROJECT_ORIGIN_LONGITUDE = "proj_origin_longitude";
-
-        public final static String EARTH_FLATTENING = "earth_flattening";
-
-        public final static String EQUATORIAL_RADIUS = "equatorial_radius";
-
-        public final static String STANDARD_PARALLEL_1 = "std_parallel_1";
-
-        private ProjAttribs() {
-
-        }
-    }
-
-    public static class DatasetAttribs {
-        public final static String VALID_RANGE = "valid_range";
-
-        public final static String VALID_MIN = "valid_min";
-
-        public final static String VALID_MAX = "valid_max";
-
-        public final static String LONG_NAME = "long_name";
-
-        public final static String FILL_VALUE = "_FillValue";
-        
-        public final static String MISSING_VALUE = "missing_value";
-
-        public final static String SCALE_FACTOR = "scale_factor";
-
-        // public final static String SCALE_FACTOR_ERR = "scale_factor_err";
-
-        public final static String ADD_OFFSET = "add_offset";
-
-        // public final static String ADD_OFFSET_ERR = "add_offset_err";
-        public final static String UNITS = "units";
-
-        private DatasetAttribs() {
-
-        }
-    }
 
     /**
      * NetCDF files may contains a wide set of coverageDescriptorsCache. Some of them are
@@ -732,66 +598,5 @@ public class UnidataUtilities {
 //            }
         }
         return ct;
-    }
-    
-    /**
-     * Return the vertical extent related to that coordinateAxis-
-     * @param axis
-     * @return
-     */
-    private static NumberRange<Double> getVerticalExtent(CoordinateAxis zAxis) {
-        AxisType axisType = null;
-        if (zAxis == null
-                || ((axisType = zAxis.getAxisType()) != AxisType.Height
-                        && axisType != AxisType.GeoZ && axisType != AxisType.Pressure)) {
-            throw new IllegalArgumentException("The specified axis is not a vertical axis");
-        }
-        AxisValueGetter builder = new AxisValueGetter(zAxis);
-        Double start = builder.build(0);
-        Double end = builder.build(builder.getNumValues() - 1);
-        return new NumberRange<Double>(Double.class, start, end);
-    }
-    
-    /**
-     * Return the full vertical extent set related to that coordinateAxis-
-     * @param axis
-     * @return
-     */  
-    private static SortedSet<NumberRange<Double>> getVerticalExtentSet(CoordinateAxis zAxis) {
-        AxisType axisType = null;
-        if (zAxis == null
-                || ((axisType = zAxis.getAxisType()) != AxisType.Height
-                        && axisType != AxisType.GeoZ && axisType != AxisType.Pressure)) {
-            throw new IllegalArgumentException("The specified axis is not a vertical axis");
-        }
-        AxisValueGetter builder = new AxisValueGetter(zAxis);
-        SortedSet<NumberRange<Double>> sorted = new DoubleRangeTreeSet();
-        final int numZetas = builder.getNumValues();
-        for (int i = 0; i < numZetas; i++) {
-            Double start = builder.build(i);
-            sorted.add(new NumberRange<Double>(Double.class, start, start));
-        }
-        return sorted;
-     }
-    
-    /** Return the zIndex-th value of the vertical dimension of the specified variable, as a double, or {@link Double#NaN} 
-     * in case that variable doesn't have a vertical axis.
-     * 
-     * @param unidataReader the reader to be used for that search
-     * @param variable the variable to be accessed
-     * @param timeIndex the requested index
-     * @param cs the coordinateSystem to be scan
-     * @return
-     */
-    public static Number getVerticalValueByIndex( final UnidataImageReader unidataReader, Variable variable, final int zIndex,
-            final CoordinateSystem cs ) {
-        double ve = Double.NaN;
-        if (cs != null && cs.hasVerticalAxis()) {
-            final int rank = variable.getRank();
-    
-            final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
-            return (Number)unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
-        }
-        return ve;
     }
 }

@@ -506,30 +506,6 @@ public class Utilities {
         return adjustedRequestedEnvelope;
     }
 
-    public static AffineTransform getAffineTransform(double[] origin, double[][] offsetVectors) {
-        AffineTransform at = new AffineTransform();
-        int offset = 0;
-        // if (dimension == 3) {
-        // offset = 1;
-        // dimension = 2;
-        // }
-
-        at.setTransform(offsetVectors[0][0 + offset], 0, 0, offsetVectors[1][1 + offset],
-                origin[0 + offset], origin[1 + offset]);
-        return at;
-    }
-
-    public static GridEnvelope getGridRange(int[] high, int[] low) {
-        int offset = 0;
-        // if (dimension == 3) {
-        // offset = 1;
-        // dimension = 2;
-        // }
-        final GridEnvelope gridRange = new GeneralGridEnvelope(new int[] { low[0 + offset],
-                low[1 + offset] }, new int[] { high[0 + offset], high[1 + offset] }, false);
-        return gridRange;
-    }
-
     /**
      * Retrieves the original grid to world transformation for this {@link AbstractGridCoverage2DReader}.
      * 
