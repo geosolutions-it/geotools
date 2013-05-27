@@ -82,6 +82,7 @@ import org.geotools.util.Utilities;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.PropertyName;
@@ -257,6 +258,8 @@ public class RasterManager {
 
         static final String HAS_PREFIX = "HAS_";
 
+        static final String DATATYPE_SUFFIX = "_DATATYPE";
+
         private DomainType domainType = DomainType.SINGLE_VALUE;
 
         /** Unique identifier for this domain. */
@@ -267,6 +270,9 @@ public class RasterManager {
 
         /** additionalPropertyName for this domain. It won't be null ONLY in case of ranged domains. */
         private final String additionalPropertyName;
+
+        /** domain dataType */
+        private final String dataType;
 
         /** The {@link ParameterDescriptor} that can be used to filter on this domain during a read operation. */
         private final DefaultParameterDescriptor<List> domainParameterDescriptor;
@@ -282,6 +288,10 @@ public class RasterManager {
             return additionalPropertyName != null;
         }
 
+        public String getDataType() {
+            return dataType;
+        }
+
         /**
          * @return the domainaParameterDescriptor
          */
@@ -289,11 +299,12 @@ public class RasterManager {
             return domainParameterDescriptor;
         }
 
-        private DomainDescriptor(final String identifier, final DomainType domainType, 
+        private DomainDescriptor(final String identifier, final DomainType domainType, final String dataType,
                 final String propertyName, final String additionalPropertyName) {
             this.identifier = identifier;
             this.propertyName = propertyName;
             this.domainType = domainType;
+            this.dataType = dataType;
             this.additionalPropertyName = additionalPropertyName;
             final String name = identifier.toUpperCase();
             this.domainParameterDescriptor=
@@ -306,7 +317,7 @@ public class RasterManager {
         }
         @Override
         public String toString() {
-            return "DomainDescriptor [identifier=" + identifier + ", propertyName=" + propertyName
+            return "DomainDescriptor [identifier=" + identifier + ", propertyName=" + propertyName + ", dataType=" + dataType
                     + ", additionalPropertyName=" + (additionalPropertyName != null ? additionalPropertyName : "__UNAVAILABLE__") +  "]";
         }
 
@@ -355,7 +366,7 @@ public class RasterManager {
             } 
             return getRangeValues(); 
         }
-        
+
         /**
          * Retrieves the Range values for this domain
          * @return
@@ -410,7 +421,7 @@ public class RasterManager {
                 return "";
             }
         }
-    
+
         /**
          * This method is responsible for creating {@link Filter} that encompasses the
          * provided {@link List} of values for this {@link DomainManager}.
@@ -537,13 +548,13 @@ public class RasterManager {
                     if (attributeHasRange(propertyName)) {
                         domainType = domainAttributes.containsKey(Utils.TIME_DOMAIN) ? DomainType.TIME_RANGE
                                 : DomainType.NUMBER_RANGE;
-                        addDomain(domainName, propertyName, domainType);
+                        addDomain(domainName, propertyName, domainType, simpleFeatureType);
                         continue;
                     } else {
                         propertyName = extractAttributes(propertyName);
                         if (simpleFeatureType.getDescriptor(propertyName) != null) {
                             // add
-                            addDomain(domainName, propertyName, domainType);
+                            addDomain(domainName, propertyName, domainType, simpleFeatureType);
                             // continue
                             continue;
                         }
@@ -560,10 +571,11 @@ public class RasterManager {
                     // hakc for shapes
                     propertyName = propertyName.substring(0, 10);
                     // alias in provided type
+                    
                     try {
-                        if (simpleFeatureType.getDescriptor(propertyName) != null) {
+                        if ( simpleFeatureType.getDescriptor(propertyName) != null) {
                             // add
-                            addDomain(domainName, propertyName, domainType);
+                            addDomain(domainName, propertyName, domainType, simpleFeatureType);
 
                             // continue
                             continue;
@@ -630,8 +642,9 @@ public class RasterManager {
          * 
          * @param domain the name of the domain
          * @param propertyName
+         * @param featureType 
          */
-        private void addDomain(String name, String propertyName, final DomainType domainType) {
+        private void addDomain(String name, String propertyName, final DomainType domainType, final SimpleFeatureType featureType) {
             Utilities.ensureNonNull("name", name);
             Utilities.ensureNonNull("propertyName", propertyName);
 
@@ -664,8 +677,10 @@ public class RasterManager {
 
             // ad with uppercase and with suffix, the parameter that describes it will match this
             final String upperCase = name.toUpperCase();
+            final AttributeDescriptor descriptor = featureType.getDescriptor(basePropertyName);
+            final String type = descriptor.getType().getBinding().getName();
             domainsMap.put(upperCase + DomainDescriptor.DOMAIN_SUFFIX, new DomainDescriptor(name,
-                    domainType, basePropertyName, additionalPropertyName));
+                    domainType, type, basePropertyName, additionalPropertyName));
             addDimensionDescriptor(name, upperCase, basePropertyName, additionalPropertyName);
         }
 
@@ -719,8 +734,10 @@ public class RasterManager {
                 for (DomainDescriptor domain : domainsMap.values()) {
                     String domainName = domain.getIdentifier().toUpperCase();
                     metadataNames.add(domainName + DomainDescriptor.DOMAIN_SUFFIX);
-                    metadataNames.add(DomainDescriptor.HAS_PREFIX + domainName
-                            + DomainDescriptor.DOMAIN_SUFFIX);
+                    if (domain.getDataType() != null) {
+                        metadataNames.add(domainName + DomainDescriptor.DOMAIN_SUFFIX + DomainDescriptor.DATATYPE_SUFFIX);
+                    }
+                    metadataNames.add(DomainDescriptor.HAS_PREFIX + domainName + DomainDescriptor.DOMAIN_SUFFIX);
                 }
             }
             return metadataNames;
@@ -751,6 +768,8 @@ public class RasterManager {
                         } else {
                             return Boolean.toString(Boolean.FALSE);
                         }
+                    } else if (name.endsWith(DomainDescriptor.DATATYPE_SUFFIX)) { 
+                        return domainsMap.get(name.substring(0, name.lastIndexOf(DomainDescriptor.DATATYPE_SUFFIX))).getDataType();
                     } else {
                         // MINUM or MAXIMUM
                         if (name.endsWith("MINIMUM") || name.endsWith("MAXIMUM")) {
@@ -1355,12 +1374,14 @@ public class RasterManager {
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN + DomainDescriptor.DATATYPE_SUFFIX);
 
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN + DomainDescriptor.DATATYPE_SUFFIX);
 
         if (domainsManager != null) {
             metadataNames.addAll(domainsManager.getMetadataNames());
@@ -1402,6 +1423,9 @@ public class RasterManager {
                     .equalsIgnoreCase("time_domain_maximum"))) {
                 return timeDomainManager.getMetadataValue(name);
             }
+            if (name.equalsIgnoreCase("time_domain_datatype")) {
+                return timeDomainManager.getMetadataValue(name);
+            }
         }
 
         if (hasElevationDomain) {
@@ -1411,6 +1435,9 @@ public class RasterManager {
 
             if (name.equalsIgnoreCase("elevation_domain_minimum")
                     || name.equalsIgnoreCase("elevation_domain_maximum")) {
+                return elevationDomainManager.getMetadataValue(name);
+            }
+            if (name.equalsIgnoreCase("elevation_domain_datatype")) {
                 return elevationDomainManager.getMetadataValue(name);
             }
         }

@@ -320,7 +320,7 @@ public class ImageMosaicReaderTest extends Assert{
 		
 		final String[] metadataNames = reader.getMetadataNames();
 		assertNotNull(metadataNames);
-		assertEquals(metadataNames.length,10);
+		assertEquals(metadataNames.length,12);
 		
 		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
 		final String timeMetadata = reader.getMetadataValue("TIME_DOMAIN");
@@ -328,6 +328,7 @@ public class ImageMosaicReaderTest extends Assert{
 		assertEquals(2,timeMetadata.split(",").length);
 		assertEquals(timeMetadata.split(",")[0],reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
 		assertEquals(timeMetadata.split(",")[1],reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+		assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
 		
 		assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
 		final String elevationMetadata = reader.getMetadataValue("ELEVATION_DOMAIN");
@@ -336,6 +337,7 @@ public class ImageMosaicReaderTest extends Assert{
 		assertEquals(2,elevationMetadata.split(",").length);
 	        assertEquals(Double.parseDouble(elevationMetadata.split(",")[0]),Double.parseDouble(reader.getMetadataValue("ELEVATION_DOMAIN_MINIMUM")),1E-6);
 	        assertEquals(Double.parseDouble(elevationMetadata.split(",")[1]),Double.parseDouble(reader.getMetadataValue("ELEVATION_DOMAIN_MAXIMUM")),1E-6);
+	        assertEquals("java.lang.Integer", reader.getMetadataValue("ELEVATION_DOMAIN_DATATYPE"));
 		
 		
 		// limit yourself to reading just a bit of it
@@ -403,7 +405,7 @@ public class ImageMosaicReaderTest extends Assert{
 		
 		final String[] metadataNames = reader.getMetadataNames();
 		assertNotNull(metadataNames);
-		assertEquals(metadataNames.length,10);
+		assertEquals(metadataNames.length,12);
 		
 		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
 		final String timeMetadata = reader.getMetadataValue("TIME_DOMAIN");
@@ -411,6 +413,7 @@ public class ImageMosaicReaderTest extends Assert{
 		assertEquals(2,timeMetadata.split(",").length);
 		assertEquals(timeMetadata.split(",")[0],reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
 		assertEquals(timeMetadata.split(",")[1],reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+		assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
 		
 		assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
 		final String elevationMetadata = reader.getMetadataValue("ELEVATION_DOMAIN");
@@ -419,7 +422,7 @@ public class ImageMosaicReaderTest extends Assert{
 		assertEquals(2,elevationMetadata.split(",").length);
 	        assertEquals(elevationMetadata.split(",")[0],reader.getMetadataValue("ELEVATION_DOMAIN_MINIMUM"));
 	        assertEquals(elevationMetadata.split(",")[1],reader.getMetadataValue("ELEVATION_DOMAIN_MAXIMUM"));
-
+	        assertEquals("java.lang.Integer", reader.getMetadataValue("ELEVATION_DOMAIN_DATATYPE"));
 		
 		// limit yourself to reading just a bit of it
 		final ParameterValue<GridGeometry2D> gg =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
@@ -512,7 +515,7 @@ public class ImageMosaicReaderTest extends Assert{
                 
                 final String[] metadataNames = reader.getMetadataNames();
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length,10);
+                assertEquals(metadataNames.length,12);
                 
                 assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
                 final String timeMetadata = reader.getMetadataValue("TIME_DOMAIN");
@@ -520,6 +523,7 @@ public class ImageMosaicReaderTest extends Assert{
                 assertEquals(2,timeMetadata.split(",").length);
                 assertEquals(timeMetadata.split(",")[0],reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
                 assertEquals(timeMetadata.split(",")[1],reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+                assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
                 
                 assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
                 final String elevationMetadata = reader.getMetadataValue("ELEVATION_DOMAIN");
@@ -527,6 +531,7 @@ public class ImageMosaicReaderTest extends Assert{
                 assertEquals(2,elevationMetadata.split(",").length);
                 assertEquals("0.0",reader.getMetadataValue("ELEVATION_DOMAIN_MINIMUM"));
                 assertEquals("100.0",reader.getMetadataValue("ELEVATION_DOMAIN_MAXIMUM"));
+                assertEquals("java.lang.Double", reader.getMetadataValue("ELEVATION_DOMAIN_DATATYPE"));
                 
                 
                 
@@ -589,12 +594,13 @@ public class ImageMosaicReaderTest extends Assert{
 	    
 		final String[] metadataNames = reader.getMetadataNames();
 		assertNotNull(metadataNames);
-		assertEquals(metadataNames.length,10);
+		assertEquals(metadataNames.length, 12);
 		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
 		assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
 		assertEquals("2004-05-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
 		assertEquals("2004-02-01T00:00:00.000Z,2004-03-01T00:00:00.000Z,2004-04-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));		
-
+		assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
+		
 		// limit yourself to reading just a bit of it
 		final ParameterValue<GridGeometry2D> gg =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
 		final GeneralEnvelope envelope = reader.getOriginalEnvelope();
@@ -652,13 +658,16 @@ public class ImageMosaicReaderTest extends Assert{
     
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(metadataNames.length, 14);
+        assertEquals(metadataNames.length, 18);
         assertEquals("true", reader.getMetadataValue("HAS_DATE_DOMAIN"));
         assertEquals("20081031T0000000,20081101T0000000",reader.getMetadataValue("DATE_DOMAIN"));
+        assertEquals("java.lang.String", reader.getMetadataValue("DATE_DOMAIN_DATATYPE"));
+
         assertEquals("true", reader.getMetadataValue("HAS_DEPTH_DOMAIN"));
         assertEquals("false", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("false", reader.getMetadataValue("HAS_XX_DOMAIN"));
         assertEquals("20,100", reader.getMetadataValue("DEPTH_DOMAIN"));
+        assertEquals("java.lang.Integer", reader.getMetadataValue("DEPTH_DOMAIN_DATATYPE"));
     
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD .createValue();
@@ -730,29 +739,32 @@ public class ImageMosaicReaderTest extends Assert{
         final AbstractGridFormat format = TestUtils
                 .getFormat(timeAdditionalDomainsRangeURL);
         ImageMosaicReader reader = TestUtils.getReader(timeAdditionalDomainsRangeURL, format);
-    
+
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(metadataNames.length, 14);
+        assertEquals(metadataNames.length, 18);
         assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
         assertEquals("2008-10-31T00:00:00.000Z/2008-11-04T00:00:00.000Z/PT1S,2008-11-05T00:00:00.000Z/2008-11-07T00:00:00.000Z/PT1S",reader.getMetadataValue("TIME_DOMAIN"));
         assertEquals("2008-10-31T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
         assertEquals("2008-11-07T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
-        
+        assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
+
         assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("20/99,100/150",reader.getMetadataValue("ELEVATION_DOMAIN"));
         assertEquals("20", reader.getMetadataValue("ELEVATION_DOMAIN_MINIMUM"));
         assertEquals("150", reader.getMetadataValue("ELEVATION_DOMAIN_MAXIMUM"));
-        
-        
+        assertEquals("java.lang.Integer", reader.getMetadataValue("ELEVATION_DOMAIN_DATATYPE"));
+
         assertEquals("true", reader.getMetadataValue("HAS_DATE_DOMAIN"));
         assertEquals("20081031T000000,20081101T000000,20081105T000000",reader.getMetadataValue("DATE_DOMAIN"));
+        assertEquals("java.lang.String", reader.getMetadataValue("DATE_DOMAIN_DATATYPE"));
 
         assertEquals("true", reader.getMetadataValue("HAS_WAVELENGTH_DOMAIN"));
         assertEquals("12/24,25/80", reader.getMetadataValue("WAVELENGTH_DOMAIN"));
         assertEquals("12", reader.getMetadataValue("WAVELENGTH_DOMAIN_MINIMUM"));
         assertEquals("80", reader.getMetadataValue("WAVELENGTH_DOMAIN_MAXIMUM"));
-    
+        assertEquals("java.lang.Integer", reader.getMetadataValue("WAVELENGTH_DOMAIN_DATATYPE"));
+
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD .createValue();
         useJai.setValue(false);
@@ -834,25 +846,29 @@ public class ImageMosaicReaderTest extends Assert{
         
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(metadataNames.length, 14);
+        assertEquals(metadataNames.length, 18);
         assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
         assertEquals("2008-10-31T00:00:00.000Z/2008-11-04T00:00:00.000Z/PT1S,2008-11-05T00:00:00.000Z/2008-11-07T00:00:00.000Z/PT1S",reader.getMetadataValue("TIME_DOMAIN"));
         assertEquals("2008-10-31T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
         assertEquals("2008-11-07T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+        assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
         
         assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("20/99,100/150",reader.getMetadataValue("ELEVATION_DOMAIN"));
         assertEquals("20", reader.getMetadataValue("ELEVATION_DOMAIN_MINIMUM"));
         assertEquals("150", reader.getMetadataValue("ELEVATION_DOMAIN_MAXIMUM"));
+        assertEquals("java.lang.Integer", reader.getMetadataValue("ELEVATION_DOMAIN_DATATYPE"));
         
         
         assertEquals("true", reader.getMetadataValue("HAS_DATE_DOMAIN"));
         assertEquals("20081031T000000,20081101T000000,20081105T000000",reader.getMetadataValue("DATE_DOMAIN"));
+        assertEquals("java.lang.String", reader.getMetadataValue("DATE_DOMAIN_DATATYPE"));
 
         assertEquals("true", reader.getMetadataValue("HAS_WAVELENGTH_DOMAIN"));
         assertEquals("12/24,25/80", reader.getMetadataValue("WAVELENGTH_DOMAIN"));
         assertEquals("12", reader.getMetadataValue("WAVELENGTH_DOMAIN_MINIMUM"));
         assertEquals("80", reader.getMetadataValue("WAVELENGTH_DOMAIN_MAXIMUM"));
+        assertEquals("java.lang.Integer", reader.getMetadataValue("WAVELENGTH_DOMAIN_DATATYPE"));
     
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD .createValue();
@@ -1077,12 +1093,15 @@ public class ImageMosaicReaderTest extends Assert{
     
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(metadataNames.length, 14);
+        assertEquals(metadataNames.length, 18);
         assertEquals("true", reader.getMetadataValue("HAS_DATE_DOMAIN"));
         assertEquals("20081031T0000000,20081101T0000000",reader.getMetadataValue("DATE_DOMAIN"));
+        assertEquals("java.lang.String", reader.getMetadataValue("DATE_DOMAIN_DATATYPE"));
+        
         assertEquals("true", reader.getMetadataValue("HAS_DEPTH_DOMAIN"));
         assertEquals("false", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("20,100", reader.getMetadataValue("DEPTH_DOMAIN"));
+        assertEquals("java.lang.Integer", reader.getMetadataValue("DEPTH_DOMAIN_DATATYPE"));
     
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -1565,27 +1584,30 @@ public class ImageMosaicReaderTest extends Assert{
     @SuppressWarnings("rawtypes")
     public void timeAdditionalDimNoResultsDueToWrongDim() throws IOException,
             NoSuchAuthorityCodeException, FactoryException, ParseException {
-    
+
         final AbstractGridFormat format = TestUtils
                 .getFormat(timeAdditionalDomainsURL);
         ImageMosaicReader reader = TestUtils.getReader(timeAdditionalDomainsURL,
                 format);
-    
+
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(metadataNames.length, 14);
+        assertEquals(metadataNames.length, 18);
         assertEquals("true", reader.getMetadataValue("HAS_DATE_DOMAIN"));
         assertEquals("20081031T0000000,20081101T0000000",
                 reader.getMetadataValue("DATE_DOMAIN"));
+        assertEquals("java.lang.String", reader.getMetadataValue("DATE_DOMAIN_DATATYPE"));
+
         assertEquals("true", reader.getMetadataValue("HAS_DEPTH_DOMAIN"));
         assertEquals("false", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("20,100", reader.getMetadataValue("DEPTH_DOMAIN"));
-    
+        assertEquals("java.lang.Integer", reader.getMetadataValue("DEPTH_DOMAIN_DATATYPE"));
+
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD
                 .createValue();
         useJai.setValue(false);
-    
+
         // specify time
         final ParameterValue<List> time = ImageMosaicFormat.TIME.createValue();
         final SimpleDateFormat formatD = new SimpleDateFormat(
@@ -1641,23 +1663,26 @@ public class ImageMosaicReaderTest extends Assert{
     //@Ignore
     @SuppressWarnings("rawtypes")
     public void multipleDimensionsStackedSar() throws Exception {
-    
+
         final URL sourceURL=TestData.file(this, "merge").toURI().toURL();
         final AbstractGridFormat format = TestUtils.getFormat(sourceURL);
         ImageMosaicReader reader = TestUtils.getReader(sourceURL,format);
-    
+
         final String[] metadataNames = reader.getMetadataNames();
         assertNotNull(metadataNames);
-        assertEquals(12, metadataNames.length);
+        assertEquals(15, metadataNames.length);
         assertEquals("false", reader.getMetadataValue("HAS_POLARIZ_DOMAIN"));
         assertEquals("true", reader.getMetadataValue("HAS_POLARIZATION_DOMAIN"));
         assertEquals("POLARIZATION", reader.getDynamicParameters().iterator().next().getName().getCode());
         assertEquals("HH,HV,VH,VV",reader.getMetadataValue("POLARIZATION_DOMAIN"));// ten characters limitation overcome!
+        assertEquals("java.lang.String",reader.getMetadataValue("POLARIZATION_DOMAIN_DATATYPE"));
+
         assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
         assertEquals("false", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
         assertEquals("2012-01-01T00:00:00.000Z",reader.getMetadataValue("TIME_DOMAIN"));
         assertEquals("2012-01-01T00:00:00.000Z",reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
         assertEquals("2012-01-01T00:00:00.000Z",reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+        assertEquals("java.sql.Timestamp",reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
     
         // use imageio with defined tiles
         final ParameterValue<Boolean> useJai = AbstractGridFormat.USE_JAI_IMAGEREAD.createValue();
@@ -2034,11 +2059,12 @@ public class ImageMosaicReaderTest extends Assert{
         try {
             String[] metadataNames = reader.getMetadataNames();
             assertNotNull(metadataNames);
-            assertEquals(metadataNames.length,10);
+            assertEquals(metadataNames.length,12);
             assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
             assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
             assertEquals("2004-05-01T00:00:00.000Z", reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
-            assertEquals("2004-02-01T00:00:00.000Z,2004-03-01T00:00:00.000Z,2004-04-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));     
+            assertEquals("2004-02-01T00:00:00.000Z,2004-03-01T00:00:00.000Z,2004-04-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
+            assertEquals("java.sql.Timestamp", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
         } finally {
             reader.dispose();
         }
