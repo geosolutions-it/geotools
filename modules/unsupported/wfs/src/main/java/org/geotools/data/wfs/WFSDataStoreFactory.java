@@ -176,7 +176,7 @@ public class WFSDataStoreFactory extends AbstractDataStoreFactory {
     }
 
     /** Access with {@link WFSDataStoreFactory#getParametersInfo() */
-    private static final WFSFactoryParam<?>[] parametersInfo = new WFSFactoryParam[13];
+    private static final WFSFactoryParam<?>[] parametersInfo = new WFSFactoryParam[16];
 
     /**
      * Mandatory DataStore parameter indicating the URL for the WFS GetCapabilities document.
@@ -369,7 +369,50 @@ public class WFSDataStoreFactory extends AbstractDataStoreFactory {
         parametersInfo[12] = NAMESPACE = new WFSFactoryParam<String>(name, String.class,
                 description, null);
     }
+    
+    /**
+     * Optional {@code String} Flag to disable usage of OtherSRS in requests and
+     * always use DefaultSRS (eventually reprojecting locally the results)
+     */
+    public static final WFSFactoryParam<Boolean> USEDEFAULTSRS;
+    static {
+        String name = "usedefaultsrs";
+        String description = "Use always the declared DefaultSRS for requests and reproject locally if necessary";
+        parametersInfo[13] = USEDEFAULTSRS = new WFSFactoryParam<Boolean>(name,
+                Boolean.class, description, false);
+    }
 
+    
+    /**
+     * Optional {@code String} DataStore parameter indicating axis order used by the
+     * remote WFS server in result coordinates.
+     */
+    public static final WFSFactoryParam<String> AXIS_ORDER;
+    static {
+        String name = "WFSDataStoreFactory:AXIS_ORDER";
+        String description = "Indicates axis order used by the remote WFS server in result coordinates. It applies only to WFS 1.1.0 servers. "
+                + "Default is " + WFSDataStore.AXIS_ORDER_COMPLIANT;
+        List<String> options = Arrays.asList(new String[] {
+                WFSDataStore.AXIS_ORDER_COMPLIANT,
+                WFSDataStore.AXIS_ORDER_EAST_NORTH,
+                WFSDataStore.AXIS_ORDER_NORTH_EAST });
+        parametersInfo[14] = AXIS_ORDER = new WFSFactoryParam<String>(name,
+                String.class, description, WFSDataStore.AXIS_ORDER_COMPLIANT,
+                Parameter.OPTIONS, options);
+    }
+    
+    public static final WFSFactoryParam<String> AXIS_ORDER_FILTER;
+    static {
+        String name = "WFSDataStoreFactory:AXIS_ORDER_FILTER";
+        String description = "Indicates axis order used by the remote WFS server for filters. It applies only to WFS 1.1.0 servers. "
+                + "Default is the same as AXIS_ORDER";
+        List<String> options = Arrays.asList(new String[] {
+                WFSDataStore.AXIS_ORDER_COMPLIANT,
+                WFSDataStore.AXIS_ORDER_EAST_NORTH,
+                WFSDataStore.AXIS_ORDER_NORTH_EAST });
+        parametersInfo[15] = AXIS_ORDER_FILTER = new WFSFactoryParam<String>(name,
+                String.class, description, null, Parameter.OPTIONS, options);
+    }
     
     /**
      * Requests the WFS Capabilities document from the {@link WFSDataStoreFactory#URL url} parameter
@@ -400,6 +443,10 @@ public class WFSDataStoreFactory extends AbstractDataStoreFactory {
         final String wfsStrategy = (String) WFS_STRATEGY.lookUp(params);
         final Integer filterCompliance = (Integer) FILTER_COMPLIANCE.lookUp(params);
         final String namespaceOverride = (String) NAMESPACE.lookUp(params);
+        final Boolean useDefaultSRS = (Boolean) USEDEFAULTSRS.lookUp(params);
+        final String axisOrder = (String) AXIS_ORDER.lookUp(params);
+        final String axisOrderFilter = (String) AXIS_ORDER_FILTER.lookUp(params) == null ? (String) AXIS_ORDER
+                .lookUp(params) : (String) AXIS_ORDER_FILTER.lookUp(params);
         
         if (((user == null) && (pass != null)) || ((pass == null) && (user != null))) {
             throw new IOException(
@@ -446,8 +493,12 @@ public class WFSDataStoreFactory extends AbstractDataStoreFactory {
             dataStore = new WFS_1_1_0_DataStore(wfs);
             dataStore.setMaxFeatures(maxFeatures);
             dataStore.setPreferPostOverGet(protocol);
+            dataStore.setUseDefaultSRS(useDefaultSRS);
+            ((WFS_1_1_0_DataStore) dataStore).setAxisOrder(axisOrder,
+                    axisOrderFilter);
         }
         dataStore.setNamespaceOverride(namespaceOverride);
+        
 
         return dataStore;
     }
@@ -609,6 +660,7 @@ public class WFSDataStoreFactory extends AbstractDataStoreFactory {
      * @see #TRY_GZIP
      * @see #LENIENT
      * @see #ENCODING
+     * @see #USEDEFAULTSRS
      */
     public Param[] getParametersInfo() {
         int length = parametersInfo.length;
