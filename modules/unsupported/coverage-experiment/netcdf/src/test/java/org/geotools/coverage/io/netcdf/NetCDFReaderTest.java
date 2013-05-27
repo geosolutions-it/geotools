@@ -79,7 +79,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(12, metadataNames.length);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -89,6 +89,7 @@ public class NetCDFReaderTest extends Assert {
                 assertNotNull(timeMetadata);
                 assertEquals("2012-04-01T00:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MINIMUM"));
                 assertEquals("2012-04-01T01:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MAXIMUM"));
+                assertEquals("java.util.Date", reader.getMetadataValue(coverageName, "TIME_DOMAIN_DATATYPE"));
 
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
                 final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
@@ -97,6 +98,7 @@ public class NetCDFReaderTest extends Assert {
                 assertEquals(2, elevationMetadata.split(",").length);
                 assertEquals("10.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MINIMUM"));
                 assertEquals("450.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MAXIMUM"));
+                assertEquals("java.lang.Double", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_DATATYPE"));
 
                 List<DimensionDescriptor> descriptors = ((StructuredGridCoverage2DReader)reader).getDimensionDescriptors(coverageName);
                 assertNotNull(descriptors);
@@ -194,7 +196,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(12, metadataNames.length);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -204,6 +206,7 @@ public class NetCDFReaderTest extends Assert {
                 assertNotNull(timeMetadata);
                 assertEquals("2012-04-01T00:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MINIMUM"));
                 assertEquals("2012-04-01T01:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MAXIMUM"));
+                assertEquals("java.util.Date", reader.getMetadataValue(coverageName, "TIME_DOMAIN_DATATYPE"));
 
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
                 final String elevationMetadata = reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN");
@@ -212,6 +215,7 @@ public class NetCDFReaderTest extends Assert {
                 assertEquals(2, elevationMetadata.split(",").length);
                 assertEquals("10.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MINIMUM"));
                 assertEquals("450.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MAXIMUM"));
+                assertEquals("java.lang.Double", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_DATATYPE"));
 
                 // subsetting the envelope
                 final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
@@ -277,7 +281,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(12, metadataNames.length);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -287,6 +291,7 @@ public class NetCDFReaderTest extends Assert {
                 assertNotNull(timeMetadata);
                 assertEquals("2012-04-01T00:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MINIMUM"));
                 assertEquals("2012-04-01T01:00:00.000Z", reader.getMetadataValue(coverageName, "TIME_DOMAIN_MAXIMUM"));
+                assertEquals("java.util.Date", reader.getMetadataValue(coverageName, "TIME_DOMAIN_DATATYPE"));
 
                 if (coverageName.equalsIgnoreCase("O3")) {
                     assertEquals("true", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
@@ -296,6 +301,7 @@ public class NetCDFReaderTest extends Assert {
                     assertEquals(2, elevationMetadata.split(",").length);
                     assertEquals("10.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MINIMUM"));
                     assertEquals("450.0", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_MAXIMUM"));
+                    assertEquals("java.lang.Double", reader.getMetadataValue(coverageName, "ELEVATION_DOMAIN_DATATYPE"));
                 } else {
                     // Note that This sample doesn't have elevation for NO2
                     assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
@@ -383,7 +389,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(12, metadataNames.length);
 
                 // Parsing metadata values
                 assertEquals("false", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
