@@ -124,6 +124,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     private static final String MINIMUM_SUFFIX = "_MAXIMUM";
 
     private static final String MAXIMUM_SUFFIX = "_MINIMUM";
+    
+    private static final String DATATYPE_SUFFIX = "_DATATYPE";
 
     private final static Logger LOGGER = Logging
             .getLogger("org.geotools.coverage.io.netcdf.NetCDFReader");
@@ -187,16 +189,19 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     public String[] getMetadataNames(String coverageName) {
         checkIsSupported(coverageName);
         final List<String> metadataNames = new ArrayList<String>();
-        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
         metadataNames.add(GridCoverage2DReader.HAS_TIME_DOMAIN);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_MAXIMUM);
         metadataNames.add(GridCoverage2DReader.TIME_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.TIME_DOMAIN + DATATYPE_SUFFIX);
+
+        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MINIMUM);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_MAXIMUM);
-        metadataNames.add(GridCoverage2DReader.HAS_ELEVATION_DOMAIN);
         metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN_RESOLUTION);
+        metadataNames.add(GridCoverage2DReader.ELEVATION_DOMAIN + DATATYPE_SUFFIX);
         addAdditionalMetadata(metadataNames, coverageName);
         
         // TODO: Check for custom domains
@@ -215,6 +220,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                     metadataNames.add(domainName + DOMAIN_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MINIMUM_SUFFIX);
                     metadataNames.add(domainName + DOMAIN_SUFFIX + MAXIMUM_SUFFIX);
+                    metadataNames.add(domainName + DOMAIN_SUFFIX + DATATYPE_SUFFIX);
                 }
             }
         } catch (IOException e) {
@@ -336,6 +342,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                 // global domain
                 SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(false, null);
                 return buildVerticalList(verticalElements);
+            } else if (name.endsWith(DATATYPE_SUFFIX)) {
+                return NumberRange.class.getName();
             } else {
                 // min or max requests
                 SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(true, null);
@@ -356,6 +364,8 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                 // global domain
                 SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(false, null);
                 return buildTemporalList(temporalElements);
+            } else if (name.endsWith(DATATYPE_SUFFIX)) {
+                return DateRange.class.getName();
             } else {
                 SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(true, null);
                 DateRange overall = temporalElements.iterator().next();
