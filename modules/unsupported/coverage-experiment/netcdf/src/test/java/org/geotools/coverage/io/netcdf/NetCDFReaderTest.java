@@ -338,7 +338,7 @@ public class NetCDFReaderTest extends Assert {
             final String coverageName = "surface_emissivity";
             final String[] metadataNames = reader.getMetadataNames(coverageName);
             assertNotNull(metadataNames);
-            assertEquals(metadataNames.length, 14);
+            assertEquals(14,metadataNames.length);
 
             // Parsing metadata values
             assertEquals("false", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));

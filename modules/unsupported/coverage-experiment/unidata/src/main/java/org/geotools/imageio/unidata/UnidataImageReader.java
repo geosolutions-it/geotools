@@ -292,8 +292,10 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         // COVERAGE NAME
                         // Add the accepted variable to the list of coverages name
                         final Name coverageName = getCoverageName(varName);
+                        // TODO wrap this into an object that wraps a Unidata CoordinateSystem
                         CoordinateSystem cs = UnidataCRSUtilities.getCoordinateSystem(variable);
                         // SCHEMA
+                        // TODO push into VariableWrapper
                         final SimpleFeatureType indexSchema = getIndexSchema(coverageName,cs);
                         if(indexSchema==null) {
                             throw new IllegalStateException("Unable to created index schema for coverage:"+coverageName);
@@ -301,39 +303,17 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         // create 
                         getCatalog().createType(indexSchema);
                         
-                        // IMAGE INDEXING
-                        int variableImageStartIndex = numImages;
-                        int variableImageNum = 0;
-                        Range variableRange = null;
-                        // get the length of the coverageDescriptorsCache in each dimension
-                        int[] shape = variable.getShape();
-                        switch (shape.length) {
-                        case 2:
-                            variableImageNum = numImages + 1;
-                            variableRange = new Range(numImages, variableImageNum);
-                            numImages++;
-                            break;
-                        case 3:
-                            variableImageNum = numImages + shape[0];
-                            variableRange = new Range(numImages, variableImageNum);
-                            numImages += shape[0];
-                            break;
-                        case 4:
-                            variableImageNum = numImages + shape[0] * shape[1];
-                            variableRange = new Range(numImages, variableImageNum);
-                            numImages += shape[0] * shape[1];
-                            break;
-                        default:
-                            if (LOGGER.isLoggable(Level.WARNING))
-                                LOGGER.warning("Ignoring variable: " + varName
-                                        + " with shape length: " + shape.length);
-                            continue;
-                        }
+                        // get variable
+                        final UnidataVariableAdapter vaAdapter= getCoverageDescriptor(coverageName);
+                        final int variableImageStartIndex = numImages;
+                        final int numberOfSlices = vaAdapter.getNumberOfSlices();
+                        final int variableImageNum = variableImageStartIndex + numberOfSlices;
+                        final int rank = variable.getRank();
+                        numImages+=numberOfSlices;
 
                         // 2D SLICE INDEX PREPARATION
                         // TODO Embed into variable wrapper
                         final boolean hasVerticalAxis = cs.hasVerticalAxis();
-                        final int rank = variable.getRank();
                         final int bandDimension = rank - UnidataUtilities.Z_DIMENSION;                        
                         final ListFeatureCollection collection= new ListFeatureCollection(indexSchema);
                         int features = 0;
@@ -347,9 +327,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                                     break;
                                 default: {
                                     if (i == bandDimension && hasVerticalAxis) {
-                                        zIndex = UnidataImageReader.getZIndex(variable, variableRange, imageIndex);
+                                        zIndex = vaAdapter.getZIndex(imageIndex-variableImageStartIndex);
                                     } else {
-                                        tIndex = getTIndex(variable, variableRange, imageIndex);
+                                        tIndex =  vaAdapter.getTIndex(imageIndex-variableImageStartIndex);
                                     }
                                     break;
                                 }
@@ -361,7 +341,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                             ancillaryFileManager.addSlice(variableIndex);
 
                             // Create a feature for that index to be put in the CoverageSlicesCatalog
-                            final SimpleFeature feature = createFeature(variable, coverageName.toString(), tIndex, zIndex, cs, imageIndex, indexSchema);
+                            final SimpleFeature feature = createFeature(
+                                    variable, 
+                                    coverageName.toString(), 
+                                    tIndex, 
+                                    zIndex, 
+                                    cs, 
+                                    imageIndex, 
+                                    indexSchema);
                             collection.add(feature);
                             features++;
                             
@@ -482,6 +469,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param indexSchema the schema to be used to create the feature
      * @param geometry the geometry to be attached to the feature
      * @return the created {@link SimpleFeature}
+     * TODO move to variable wrapper
      */
     private SimpleFeature createFeature(
             final Variable variable,
@@ -972,6 +960,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param timeIndex the requested index
      * @param cs the coordinateSystem to be scan
      * @return
+     * TODO move to variable wrapper
      */
     public Number getVerticalValueByIndex(Variable variable, final int zIndex,
             final CoordinateSystem cs ) {
@@ -1024,6 +1013,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param timeIndex the requested index
      * @param cs the coordinateSystem to be scan
      * @return
+     * TODO move to variable wrapper
      */
     public Date getTimeValueByIndex( Variable variable, int timeIndex,
             final CoordinateSystem cs ) {

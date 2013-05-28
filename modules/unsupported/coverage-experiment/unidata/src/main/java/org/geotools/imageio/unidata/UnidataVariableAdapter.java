@@ -70,15 +70,12 @@ import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.metadata.spatial.PixelOrientation;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.TemporalCRS;
-import org.opengis.referencing.crs.VerticalCRS;
 import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.util.InternationalString;
 import org.opengis.util.ProgressListener;
 
-import ucar.ma2.Range;
-import ucar.nc2.Variable;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.VariableDS;
@@ -154,64 +151,84 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     public class UnidataTemporalDomain extends TemporalDomain {
 
-        /** The detailed temporal extent */
-        private SortedSet<DateRange> temporalExtent;
-
-        /** The merged temporal extent */
-        private SortedSet<DateRange> globalTemporalExtent;
-
-        /** The temporal CRS */
-        private TemporalCRS temporalCRS;
-
-        public void setTemporalCRS(TemporalCRS temporalCRS) {
-            this.temporalCRS = temporalCRS;
+        /**
+         * @param adaptee
+         */
+        UnidataTemporalDomain(CoordinateVariable<?> adaptee) {
+            if(!Date.class.isAssignableFrom(adaptee.getType())){
+                throw new IllegalArgumentException("Unable to wrap non temporal CoordinateVariable:"+adaptee.toString());
+            }
+            this.adaptee = (CoordinateVariable<Date>)adaptee;
         }
+
+        final CoordinateVariable<Date> adaptee;
 
         public SortedSet<DateRange> getTemporalExtent() {
-            return temporalExtent;
-        }
-
-        public void setTemporalExtent(SortedSet<DateRange> temporalExtent) {
-            this.temporalExtent = temporalExtent;
+            // Getting global Extent
+            Date startTime;
+            try {
+                startTime = adaptee.getMinimum();
+                Date endTime =  adaptee.getMaximum();
+                final DateRange global = new DateRange(startTime, endTime);
+                final SortedSet<DateRange> globalTemporalExtent = new DateRangeTreeSet();
+                globalTemporalExtent.add(global);
+                return globalTemporalExtent;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
         public SortedSet<? extends DateRange> getTemporalElements(boolean overall,
                 ProgressListener listener) throws IOException {
             if (overall) {
-                return globalTemporalExtent;
+                
+                // Getting overall Extent
+                final SortedSet<DateRange> extent = new TreeSet<DateRange>(new DateRangeComparator());
+                for(Date dd:adaptee.read()){
+                    extent.add(new DateRange(dd,dd));
+                }
+                return extent;
             } else {
-                return temporalExtent;
+                return getTemporalExtent();
             }
         }
 
         @Override
         public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-            return temporalCRS;
+            return adaptee.getCoordinateReferenceSystem();
         }
     }
 
     public class UnidataVerticalDomain extends VerticalDomain {
 
-        /** The detailed vertical Extent */
-        private SortedSet<NumberRange<Double>> verticalExtent;
+        final CoordinateVariable<? extends Number> adaptee;
 
-        /** The merged vertical Extent */
-        private SortedSet<NumberRange<Double>> globalVerticalExtent;
-
-        /** The vertical CRS */
-        private VerticalCRS verticalCRS;
-
-        public void setVerticalCRS(VerticalCRS verticalCRS) {
-            this.verticalCRS = verticalCRS;
+        /**
+         * @param cv
+         */
+        UnidataVerticalDomain(CoordinateVariable<?> cv) {
+            if(!Number.class.isAssignableFrom(cv.getType())){
+                throw new IllegalArgumentException("Unable to wrap a non Number CoordinateVariable:"+cv.toString());
+            }
+            this.adaptee = (CoordinateVariable<? extends Number>)cv;
         }
 
-        public void setVerticalExtent(SortedSet<NumberRange<Double>> verticalExtent) {
-            this.verticalExtent = verticalExtent;
-        }
 
         public SortedSet<NumberRange<Double>> getVerticalExtent() {
-            return verticalExtent;
+            // Getting global Extent
+            final CoordinateVariable<? extends Number> verticalDimension=this.adaptee;
+            NumberRange<Double> global;
+            try {
+                global = NumberRange.create(
+                        verticalDimension.getMinimum().doubleValue(), 
+                        verticalDimension.getMaximum().doubleValue());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            final SortedSet<NumberRange<Double>> globalVerticalExtent = new DoubleRangeTreeSet();
+            globalVerticalExtent.add(global);
+            return globalVerticalExtent;
         }
 
         @Override
@@ -219,15 +236,21 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
                 ProgressListener listener) throws IOException {
 
             if (overall) {
-                return globalVerticalExtent;
+             // Getting overall Extent
+                final SortedSet<NumberRange<Double>> extent = new TreeSet<NumberRange<Double>>(new NumberRangeComparator());
+                for(Number vv:adaptee.read()){
+                    final double doubleValue = vv.doubleValue();
+                    extent.add(NumberRange.create(doubleValue,doubleValue));
+                }
+                return extent;
             } else {
-                return verticalExtent;
+                return getVerticalExtent();
             }
         }
 
         @Override
         public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-            return verticalCRS;
+            return adaptee.getCoordinateReferenceSystem();
         }
     }
 
@@ -261,7 +284,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
          * TODO missing support for String domains
          * @throws IOException 
          */
-        public UnidataAdditionalDomain(CoordinateVariable<?> adaptee) throws IOException {
+        UnidataAdditionalDomain(CoordinateVariable<?> adaptee) throws IOException {
             this.adaptee = adaptee;
             name=adaptee.getName();
             
@@ -269,20 +292,25 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
             Class<?> type=adaptee.getType();
             if(Date.class.isAssignableFrom(type)){
                 this.type=DomainType.DATE;
+                
+                // global domain
+                globalDomainExtent.add(new DateRange(
+                        (Date)adaptee.getMinimum(),
+                        (Date)adaptee.getMaximum())); 
             } else if(Number.class.isAssignableFrom(type)){
                 this.type=DomainType.NUMBER;
+
+                // global domain
+                globalDomainExtent.add(new NumberRange<Double>(
+                        Double.class,
+                        ((Number)adaptee.getMinimum()).doubleValue(),
+                        ((Number)adaptee.getMaximum()).doubleValue()));                
             } else {
                 throw new UnsupportedOperationException("Unsupported CoordinateVariable:"+adaptee.toString());
             }
             
             // domain
             domainExtent.addAll(adaptee.read());
-            
-            
-            // global domain
-            globalDomainExtent.add(new NumberRange<Double>(Double.class,(Double)adaptee.getMinimum(),(Double)adaptee.getMaximum()));
-            
-            
         }
 
         @Override
@@ -323,13 +351,15 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     private SampleModel sampleModel;
     
-    int numberOfSlices = 0;
+    private int numberOfSlices;
 
     private int width;
 
     private int height;
 
     private CoordinateReferenceSystem coordinateReferenceSystem;
+
+    private int[] shape;
 
     private final static java.util.logging.Logger LOGGER = Logging.getLogger(UnidataVariableAdapter.class);
 
@@ -357,7 +387,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      */
     private void initSlicesInfo() throws Exception {
         // get the length of the coverageDescriptorsCache in each dimension
-        final int[] shape = variableDS.getShape();
+        shape = variableDS.getShape();
         switch (shape.length) {
         case 2:
             numberOfSlices = 1;
@@ -384,17 +414,13 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      */
     private void initSpatialElements() throws Exception {
         
-        List<CoordinateAxis> otherAxes = initCRS();
+        List<CoordinateVariable<?>> otherAxes = initCRS();
         
         initSpatialDomain();
 
 
         // ADDITIONAL DOMAINS
-        if (otherAxes != null&&!otherAxes.isEmpty()) {
-            List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
-            addAdditionalDomain(additionalDomains, otherAxes);
-            this.setAdditionalDomains(additionalDomains);
-        }
+        addAdditionalDomain(otherAxes);
     }
 
     /**
@@ -404,7 +430,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      * @throws IOException
      * @throws IllegalStateException
      */
-    private List<CoordinateAxis> initCRS() throws IllegalArgumentException, RuntimeException,
+    private List<CoordinateVariable<?>> initCRS() throws IllegalArgumentException, RuntimeException,
             IOException, IllegalStateException {
         // from UnidataVariableAdapter        
         this.coordinateSystem = UnidataCRSUtilities.getCoordinateSystem(variableDS);
@@ -421,42 +447,56 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
          * to put axis in the (time, depth, latitude, longitude) order, which typically maps to (longitude, latitude, depth, time) order in GeoTools
          * referencing framework.
          */
-        final List<CoordinateAxis> axes = coordinateSystem.getCoordinateAxes();
-        CoordinateAxis timeAxis = null;
-        CoordinateAxis zAxis = null;
-        List<CoordinateAxis> otherAxes = new ArrayList<CoordinateAxis>();
-        for (CoordinateAxis axis :axes) {
-            final AxisType axisType = axis.getAxisType();
-            switch(axisType){
+        final List<CoordinateVariable<?>> otherAxes = new ArrayList<CoordinateVariable<?>>();
+        for(CoordinateAxis axis :coordinateSystem.getCoordinateAxes()){
+            CoordinateVariable<?> cv=reader.coordinatesVariables.get(axis.getShortName());
+            switch(cv.getAxisType()){
             case Time:case RunTime:
-                timeAxis = axis;
+                initTemporalDomain(cv);
                 continue;
             case GeoZ:case Height:case Pressure:
-                String axisName = axis.getFullName();
+                String axisName = cv.getName();
                 if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
-                    zAxis = axis;
+                    initVerticalDomain(cv);
                 }else{
-                    otherAxes.add(axis);
+                    otherAxes.add(cv);
                 }
                 continue;  
             case GeoX: case GeoY: case Lat: case Lon:
                 // do nothing
                 continue;
             default:
-                otherAxes.add(axis);
+                otherAxes.add(cv);
             }
+            
         }
-
-        // END extract necessary info from unidata structures
-
-        // Init temporal domain
-        final TemporalCRS temporalCRS = UnidataCRSUtilities.buildTemporalCrs(timeAxis);
-        initTemporalDomain(temporalCRS, timeAxis);
-
-        // Init vertical domain
-        final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, zAxis);
-        initVerticalDomain(verticalCRS, zAxis);
         return otherAxes;
+    }
+
+    /**
+     * @param cv
+     * @throws IOException 
+     */
+    private void initVerticalDomain(CoordinateVariable<?> cv) throws IOException {
+        this.setHasVerticalDomain(true);
+        final UnidataVerticalDomain verticalDomain = new UnidataVerticalDomain(cv);
+        this.setVerticalDomain(verticalDomain);
+    }
+
+    /**
+     * @param cv
+     * @throws IOException 
+     */
+    private void initTemporalDomain(CoordinateVariable<?> cv) throws IOException {
+       if(!cv.getType().equals(Date.class)){
+           throw new IllegalArgumentException("Unable to init temporal domani from CoordinateVariable that does not bind to Date");
+       }
+       if(!(cv.getCoordinateReferenceSystem() instanceof TemporalCRS)){
+           throw new IllegalArgumentException("Unable to init temporal domani from CoordinateVariable that does not have a TemporalCRS");
+       }
+       this.setHasTemporalDomain(true);
+       final UnidataTemporalDomain temporalDomain = new UnidataTemporalDomain(cv);
+       this.setTemporalDomain(temporalDomain);   
     }
 
     /**
@@ -471,8 +511,6 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         this.setSpatialDomain(spatialDomain);
         spatialDomain.setCoordinateReferenceSystem(coordinateReferenceSystem);
 
-//        final double[] wsen = UnidataCRSUtilities.getEnvelope(coordinateSystem);
-//        final ReferencedEnvelope referencedEnvelope = new ReferencedEnvelope(wsen[0], wsen[2],wsen[1], wsen[3], coordinateReferenceSystem);
         spatialDomain.setReferencedEnvelope(reader.boundingBox);
         spatialDomain.setGridGeometry(getGridGeometry());
     }
@@ -510,15 +548,14 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         
     }
 
-    private void addAdditionalDomain(List<AdditionalDomain> additionalDomains, List<CoordinateAxis> otherAxes) {
-        for(CoordinateAxis axis:otherAxes){
-            
-            // look for the wrapper
-            final CoordinateVariable<?> cv = reader.coordinatesVariables.get(axis.getFullName());
-            if(cv==null){
-                LOGGER.info("Unable to map axis "+axis);
-                continue;
-            }
+    private void addAdditionalDomain(List<CoordinateVariable<?>> otherAxes) {
+
+        if (otherAxes == null||otherAxes.isEmpty()) {
+            return;
+        }
+        final List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
+        this.setAdditionalDomains(additionalDomains);        
+        for(CoordinateVariable<?> cv :otherAxes){
             
             // create domain
             UnidataAdditionalDomain domain;
@@ -659,73 +696,6 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         return sampleModel;
     }
 
-    /**
-     * Init the Temporal Domain
-     * @param wrapper
-     * @param temporalCRS
-     * @param timeAxis
-     * @throws IOException 
-     */
-    private void initTemporalDomain(final TemporalCRS temporalCRS,
-            final CoordinateAxis timeAxis) throws IOException {
-        final boolean hasTemporalCRS = temporalCRS != null;
-        this.setHasTemporalDomain(hasTemporalCRS);
-        if (hasTemporalCRS) {
-            final UnidataTemporalDomain temporalDomain = new UnidataTemporalDomain();
-            this.setTemporalDomain(temporalDomain);
-            temporalDomain.setTemporalCRS(temporalCRS);
-            
-            // Getting global Extent
-            CoordinateVariable<Date> timeDimension = (CoordinateVariable<Date>) reader.coordinatesVariables.get(timeAxis.getShortName());
-            Date startTime = timeDimension.getMinimum();
-            Date endTime =  timeDimension.getMaximum();
-            final DateRange global = new DateRange(startTime, endTime);
-            final SortedSet<DateRange> globalTemporalExtent = new DateRangeTreeSet();
-            globalTemporalExtent.add(global);
-            temporalDomain.globalTemporalExtent = Collections.unmodifiableSortedSet(globalTemporalExtent);
-            
-            // Getting overall Extent
-            final SortedSet<DateRange> extent = new TreeSet<DateRange>(new DateRangeComparator());
-            for(Date dd:timeDimension.read()){
-                extent.add(new DateRange(dd,dd));
-            }
-            temporalDomain.setTemporalExtent(extent); 
-        }
-    }
-
-    /**
-     * Init the vertical Domain
-     * @param wrapper
-     * @param verticalCRS
-     * @param zAxis
-     * @throws IOException 
-     */
-    private void initVerticalDomain(final VerticalCRS verticalCRS, final CoordinateAxis zAxis) throws IOException {
-        final boolean hasVerticalCRS = verticalCRS != null;
-        this.setHasVerticalDomain(hasVerticalCRS);
-        if (hasVerticalCRS) {
-            final UnidataVerticalDomain verticalDomain = new UnidataVerticalDomain();
-            this.setVerticalDomain(verticalDomain);
-            verticalDomain.setVerticalCRS(verticalCRS);
-            
-            // Getting global Extent
-            final CoordinateVariable<Double> verticalDimension=(CoordinateVariable<Double>) reader.coordinatesVariables.get(zAxis.getShortName());
-            final NumberRange<Double> global = NumberRange.create(
-                    verticalDimension.getMinimum(), 
-                    verticalDimension.getMaximum());
-            final SortedSet<NumberRange<Double>> globalVerticalExtent = new DoubleRangeTreeSet();
-            globalVerticalExtent.add(global);
-            verticalDomain.globalVerticalExtent = Collections.unmodifiableSortedSet(globalVerticalExtent);
-            
-            // Getting overall Extent
-            final SortedSet<NumberRange<Double>> extent = new TreeSet<NumberRange<Double>>(new NumberRangeComparator());
-            for(Double values:verticalDimension.read()){
-                extent.add(NumberRange.create(values,values));
-            }
-            verticalDomain.setVerticalExtent(extent); 
-        }
-    }
-
     public UnidataVariableAdapter(UnidataImageReader reader, VariableDS variable) throws Exception {
         this.variableDS = variable;
         this.reader=reader;
@@ -811,5 +781,19 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         }
     
         return -1;
+    }
+
+    /**
+     * @return the numberOfSlices
+     */
+    public int getNumberOfSlices() {
+        return numberOfSlices;
+    }
+
+    /**
+     * @return the shape
+     */
+    public int[] getShape() {
+        return shape;
     }
 }

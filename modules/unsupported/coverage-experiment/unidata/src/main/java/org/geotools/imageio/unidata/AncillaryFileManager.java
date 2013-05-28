@@ -19,7 +19,6 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.data.DataUtilities;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
