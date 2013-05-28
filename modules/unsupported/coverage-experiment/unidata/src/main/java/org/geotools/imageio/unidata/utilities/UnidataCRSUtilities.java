@@ -19,7 +19,6 @@ import javax.measure.unit.UnitFormat;
 
 import org.geotools.factory.GeoTools;
 import org.geotools.imageio.Identification;
-import org.geotools.imageio.unidata.UnidataUtilities;
 import org.geotools.metadata.sql.MetadataException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -228,7 +227,7 @@ public class UnidataCRSUtilities {
                         v_datumType = "geoidal";
                     else if (cs.getHeightAxis() != null) {
                         CoordinateAxis axis = cs.getHeightAxis();
-                        if (!axis.getName().equalsIgnoreCase("height")) {
+                        if (!axis.getShortName().equalsIgnoreCase("height")) {
                             v_datumType = "depth";
                             v_crsName = new Identification("mean sea level depth", null, null, "EPSG:5715").getName();
                         } else {
@@ -269,7 +268,7 @@ public class UnidataCRSUtilities {
                 }
                 final Map<String, String> csMap = Collections.singletonMap("name", "vertical_CS");
                 VerticalCS verticalCS = UnidataCRSUtilities.FACTORY_CONTAINER.getCSFactory().createVerticalCS(csMap,
-                        getAxis(zAxis.getName(), getDirection(direction), units));
+                        getAxis(zAxis.getShortName(), getDirection(direction), units));
 
                 // Creating the Vertical Datum
                 final Map<String, String> datumMap = Collections.singletonMap("name", v_datumName);
@@ -391,21 +390,6 @@ public class UnidataCRSUtilities {
             throw new RuntimeException("Coordinate system for Variable " + variableDS.getFullName() + " haven't been found");
         }
         return systems.get(0);
-    }
-
-    public static String getCrsType( ucar.nc2.dataset.CoordinateSystem cs ) {
-        String crsType;
-        // TODO: fix this to handle Vertical instead of Geographic3D
-        if (cs.isLatLon()) {
-            crsType = cs.hasVerticalAxis() ? UnidataMetadataUtilities.GEOGRAPHIC_3D : UnidataMetadataUtilities.GEOGRAPHIC;
-            // csType = UnidataMetadataUtilities.ELLIPSOIDAL;
-        } else if (cs.isGeoXY()) {
-            crsType = cs.hasVerticalAxis() ? UnidataMetadataUtilities.PROJECTED_3D : UnidataMetadataUtilities.PROJECTED;
-            // csType = UnidataMetadataUtilities.CARTESIAN;
-        } else {
-            throw new RuntimeException("DOCUMENT ME");
-        }
-        return crsType;
     }
 
     public static final org.opengis.referencing.crs.CoordinateReferenceSystem WGS84;

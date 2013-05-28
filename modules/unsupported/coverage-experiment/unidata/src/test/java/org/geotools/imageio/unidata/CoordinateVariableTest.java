@@ -26,7 +26,12 @@ import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
 import org.geotools.test.TestData;
 import org.junit.Test;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.crs.TemporalCRS;
+import org.opengis.referencing.crs.VerticalCRS;
+import org.opengis.temporal.TemporalCoordinateSystem;
 
+import com.sun.media.sound.MidiUtils.TempoCache;
 import com.sun.org.apache.bcel.internal.generic.NEW;
 
 import ucar.nc2.Dimension;
@@ -87,6 +92,9 @@ public class CoordinateVariableTest extends Assert{
         assertEquals(list.get(1), cv.getMaximum());
         assertEquals(2, cv.getSize());
         assertEquals("hours since 2012-04-01 0:00:00", cv.getUnit());
+        CoordinateReferenceSystem crs = cv.getCoordinateReferenceSystem();
+        assertNotNull(crs);
+        assertTrue(crs instanceof TemporalCRS);
         //
         // lat is float
         //
@@ -100,8 +108,7 @@ public class CoordinateVariableTest extends Assert{
         assertTrue(coordinateAxis instanceof CoordinateAxis1D);
         binding = CoordinateVariable.suggestBinding((CoordinateAxis1D) coordinateAxis);
         assertNotNull(binding);
-        assertSame(Float.class, binding);
-        
+        assertSame(Float.class, binding);        
         
         cv= CoordinateVariable.create((CoordinateAxis1D) coordinateAxis);
         list = cv.read();
@@ -116,6 +123,9 @@ public class CoordinateVariableTest extends Assert{
         assertEquals(2, cv.getSize());     
         assertEquals("meters", cv.getUnit());   
        
+        crs = cv.getCoordinateReferenceSystem();
+        assertNotNull(crs);
+        assertTrue(crs instanceof VerticalCRS);        
         
         dataset.close();
         

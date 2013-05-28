@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +56,7 @@ import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataUtilities;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.DateRange;
@@ -75,6 +77,8 @@ import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.util.InternationalString;
 import org.opengis.util.ProgressListener;
 
+import ucar.ma2.Range;
+import ucar.nc2.Variable;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.VariableDS;
@@ -431,7 +435,6 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
                 String axisName = axis.getFullName();
                 if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
                     zAxis = axis;
-                    continue;
                 }else{
                     otherAxes.add(axis);
                 }
@@ -453,9 +456,6 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         // Init vertical domain
         final VerticalCRS verticalCRS = UnidataCRSUtilities.buildVerticalCrs(coordinateSystem, zAxis);
         initVerticalDomain(verticalCRS, zAxis);
-        
-        
-
         return otherAxes;
     }
 
@@ -760,5 +760,56 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
      */
     int getHeight() {
         return height;
+    }
+
+    /**
+     * Utility method to retrieve the z-index of a Variable coverageDescriptor stored on
+     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
+     * 
+     * @param imageIndex
+     *                {@link int}
+     * 
+     * @return z-index {@link int} -1 if variable rank &lt; 3
+     */
+    public int getZIndex(int index) {
+    
+        if (rank > 2) {
+            if (rank == 3) {
+                return index;
+            } else if (rank == 4){
+                // return (int) Math.ceil((imageIndex - range.first()) /
+                // var.getDimension(rank - (Z_DIMENSION + 1)).getLength());
+                return index % UnidataUtilities.getZDimensionLength(variableDS);
+            } else {
+                throw new IllegalStateException("Unable to handle more than 4 dimensions");
+            }
+        }
+    
+        return -1;
+    }
+
+    /**
+     * Utility method to retrieve the t-index of a Variable coverageDescriptor stored on
+     * {@link NetCDFImageReader} NetCDF Flat Reader {@link HashMap} indexMap.
+     * 
+     * @param imageIndex
+     *                {@link int}
+     * 
+     * @return t-index {@link int} -1 if variable rank > 4
+     */
+    public int getTIndex(int index) {
+    
+        if (rank > 2) {
+            if (rank == 3) {
+                return index;
+            } else {
+                // return (imageIndex - range.first()) % var.getDimension(rank -
+                // (Z_DIMENSION + 1)).getLength();
+                return (int) Math.ceil(index
+                        / UnidataUtilities.getZDimensionLength(variableDS));
+            }
+        }
+    
+        return -1;
     }
 }

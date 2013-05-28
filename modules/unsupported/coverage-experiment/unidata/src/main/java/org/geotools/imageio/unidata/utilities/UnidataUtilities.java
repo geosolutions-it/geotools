@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.imageio.unidata;
+package org.geotools.imageio.unidata.utilities;
 
 import it.geosolutions.imageio.stream.AccessibleStream;
 import it.geosolutions.imageio.stream.input.URIImageInputStream;
@@ -61,7 +61,7 @@ public class UnidataUtilities {
         NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
    }
 
-    static final String EXTERNAL_DATA_DIR;
+    public static final String EXTERNAL_DATA_DIR;
 
     private static final String NETCDF_DATA_DIR = "NETCDF_DATA_DIR";
 
@@ -203,7 +203,7 @@ public class UnidataUtilities {
         return true;
     }
 
-    static int getZDimensionLength(Variable var) {
+    public static int getZDimensionLength(Variable var) {
         final int rank = var.getRank();
         if (rank > 2) {
             return var.getDimension(rank - Z_DIMENSION).getLength();

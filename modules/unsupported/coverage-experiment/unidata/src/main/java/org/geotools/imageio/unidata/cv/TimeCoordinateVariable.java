@@ -25,8 +25,11 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.geotools.imageio.unidata.UnidataUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
 import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataUtilities;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.crs.TemporalCRS;
 
 import ucar.nc2.Attribute;
 import ucar.nc2.constants.AxisType;
@@ -110,6 +113,7 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
     }
 
     private final TimeBuilder timeBuilder;
+    private TemporalCRS temporalCRS;
 
     /**
      * @param binding
@@ -154,6 +158,16 @@ class TimeCoordinateVariable extends CoordinateVariable<Date> {
     @Override
     public boolean isNumeric() {
         return false;
+    }
+
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+        if(temporalCRS==null){
+         synchronized (this) {
+             this.temporalCRS= UnidataCRSUtilities.buildTemporalCrs(coordinateAxis);
+         }   
+        }
+        return temporalCRS;
     }
 
 }

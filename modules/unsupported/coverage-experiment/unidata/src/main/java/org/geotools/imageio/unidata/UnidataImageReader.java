@@ -58,9 +58,10 @@ import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.GeoSpatialImageReader;
-import org.geotools.imageio.unidata.UnidataUtilities.CheckType;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataUtilities;
+import org.geotools.imageio.unidata.utilities.UnidataUtilities.CheckType;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
@@ -490,8 +491,9 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             final CoordinateSystem cs,
             final int imageIndex, 
             final SimpleFeatureType indexSchema) {
-        final Date date = getTimeValueByIndex(this, variable, tIndex, cs);
-        final Number verticalValue = UnidataImageReader.getVerticalValueByIndex(this, variable, zIndex, cs);
+        
+        final Date date = getTimeValueByIndex(variable, tIndex, cs);
+        final Number verticalValue = getVerticalValueByIndex(variable, zIndex, cs);
 
         final SimpleFeature feature = DataUtilities.template(indexSchema);
         feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, UnidataCRSUtilities.GEOM_FACTORY.toGeometry(boundingBox));
@@ -944,6 +946,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      *                {@link int}
      * 
      * @return z-index {@link int} -1 if variable rank &lt; 3
+     * @deprecated
      */
     public static int getZIndex(Variable var, Range range, int imageIndex) {
         final int rank = var.getRank();
@@ -970,14 +973,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param cs the coordinateSystem to be scan
      * @return
      */
-    public static Number getVerticalValueByIndex( final UnidataImageReader unidataReader, Variable variable, final int zIndex,
+    public Number getVerticalValueByIndex(Variable variable, final int zIndex,
             final CoordinateSystem cs ) {
         double ve = Double.NaN;
         if (cs != null && cs.hasVerticalAxis()) {
             final int rank = variable.getRank();
     
             final Dimension verticalDimension = variable.getDimension(rank - UnidataUtilities.Z_DIMENSION);
-            return (Number)unidataReader.coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
+            return (Number)coordinatesVariables.get(verticalDimension.getFullName()).read(zIndex);
         }
         return ve;
     }
@@ -994,6 +997,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      *                {@link int}
      * 
      * @return t-index {@link int} -1 if variable rank > 4
+     * @deprecated
      */
     public static int getTIndex(Variable var, Range range, int imageIndex) {
         final int rank = var.getRank();
@@ -1021,14 +1025,14 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
      * @param cs the coordinateSystem to be scan
      * @return
      */
-    public static Date getTimeValueByIndex( final UnidataImageReader unidataReader, Variable variable, int timeIndex,
+    public Date getTimeValueByIndex( Variable variable, int timeIndex,
             final CoordinateSystem cs ) {
     
         if (cs != null && cs.hasTimeAxis()) {
             final int rank = variable.getRank();
             final Dimension temporalDimension = variable.getDimension(rank
                     - ((cs.hasVerticalAxis() ? UnidataUtilities.Z_DIMENSION : 2) + 1));
-            return (Date) unidataReader.coordinatesVariables.get(temporalDimension.getFullName()).read(timeIndex);
+            return (Date) coordinatesVariables.get(temporalDimension.getFullName()).read(timeIndex);
         }
     
         return null;

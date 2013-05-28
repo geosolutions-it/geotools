@@ -20,10 +20,13 @@ import java.io.IOException;
 import java.util.AbstractList;
 import java.util.List;
 
+import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
 import org.geotools.util.Converter;
 import org.geotools.util.NumericConverterFactory;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.nc2.Attribute;
+import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis1D;
 
 /**
@@ -38,6 +41,8 @@ class NumericCoordinateVariable<T  extends Number> extends CoordinateVariable<T>
     private double offsetFactor=Double.NaN;
 
     private Converter converter;
+    
+    private CoordinateReferenceSystem crs;
     
     private final static NumericConverterFactory CONVERTER_FACTORY= new NumericConverterFactory();
  
@@ -139,5 +144,23 @@ class NumericCoordinateVariable<T  extends Number> extends CoordinateVariable<T>
     public boolean isNumeric() {
         return true;
     }
-
+    
+    @Override
+    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+        if(this.crs==null){
+         synchronized (this) {
+             final AxisType axisType = coordinateAxis.getAxisType();
+             switch(axisType){
+             case GeoZ:case Height:case Pressure:
+                 String axisName =getName();
+                 if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
+                     this.crs= UnidataCRSUtilities.buildVerticalCrs(coordinateAxis.getCoordinateSystems().get(0),coordinateAxis);
+                 }
+                 break;
+             }             
+             
+         }   
+        }
+        return crs;
+    }
 }

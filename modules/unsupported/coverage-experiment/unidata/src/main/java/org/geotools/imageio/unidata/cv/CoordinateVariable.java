@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
@@ -177,5 +178,9 @@ public abstract class CoordinateVariable<T> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    public CoordinateReferenceSystem getCoordinateReferenceSystem(){
+        return null;
     }
 }

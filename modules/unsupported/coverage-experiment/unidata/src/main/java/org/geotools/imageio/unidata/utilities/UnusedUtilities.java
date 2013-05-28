@@ -33,13 +33,14 @@
 //import org.geotools.coverage.io.util.DateRangeTreeSet;
 //import org.geotools.coverage.io.util.DoubleRangeTreeSet;
 //import org.geotools.geometry.jts.ReferencedEnvelope;
-//import org.geotools.imageio.unidata.UnidataUtilities;
 //import org.geotools.metadata.sql.MetadataException;
 //import org.geotools.referencing.datum.DefaultEllipsoid;
 //import org.geotools.referencing.datum.DefaultGeodeticDatum;
 //import org.geotools.referencing.datum.DefaultPrimeMeridian;
+//import org.geotools.resources.UnmodifiableArrayList;
 //import org.geotools.util.DateRange;
 //import org.geotools.util.NumberRange;
+//import org.opengis.metadata.content.Band;
 //import org.opengis.referencing.FactoryException;
 //import org.opengis.referencing.cs.CSFactory;
 //import org.opengis.referencing.cs.CoordinateSystemAxis;
@@ -643,7 +644,7 @@
 //        int dimension = axes.size();
 //    
 //        // FIXME how to tell when baseCRS would have been null?
-//        final String type = UnidataMetadataUtilities.ELLIPSOIDAL;
+//        final String type = UnusedUtilities.ELLIPSOIDAL;
 //    
 //        final CSFactory factory = UnidataCRSUtilities.FACTORY_CONTAINER.getCSFactory();
 //        final Map<String, String> map = Collections.singletonMap("name", csName);
@@ -658,10 +659,10 @@
 //                CoordinateAxis axis2 = axes.get(1);
 //                String[] unitDirection2 = UnidataCRSUtilities.getUnitDirection(axis2);
 //                CoordinateSystemAxis csAxis2 = UnidataCRSUtilities.getAxis(axis2.getName(), UnidataCRSUtilities.getDirection(unitDirection2[1]), unitDirection2[0]);
-//                if (type.equalsIgnoreCase(UnidataMetadataUtilities.CARTESIAN)) {
+//                if (type.equalsIgnoreCase(UnusedUtilities.CARTESIAN)) {
 //                    return factory.createCartesianCS(map, csAxis1, csAxis2);
 //                }
-//                if (type.equalsIgnoreCase(UnidataMetadataUtilities.ELLIPSOIDAL)) {
+//                if (type.equalsIgnoreCase(UnusedUtilities.ELLIPSOIDAL)) {
 //                    return factory.createEllipsoidalCS(map, csAxis1, csAxis2);
 //                }
 //            } else {
@@ -675,10 +676,10 @@
 //                String[] unitDirection3 = UnidataCRSUtilities.getUnitDirection(axis3);
 //                CoordinateSystemAxis csAxis3 = UnidataCRSUtilities.getAxis(axis3.getName(), UnidataCRSUtilities.getDirection(unitDirection3[1]), unitDirection3[0]);
 //    
-//                if (type.equalsIgnoreCase(UnidataMetadataUtilities.CARTESIAN)) {
+//                if (type.equalsIgnoreCase(UnusedUtilities.CARTESIAN)) {
 //                    return factory.createCartesianCS(map, csAxis1, csAxis2, csAxis3);
 //                }
-//                if (type.equalsIgnoreCase(UnidataMetadataUtilities.ELLIPSOIDAL)) {
+//                if (type.equalsIgnoreCase(UnusedUtilities.ELLIPSOIDAL)) {
 //                    return factory.createEllipsoidalCS(map, csAxis1, csAxis2, csAxis3);
 //                }
 //            }
@@ -729,7 +730,7 @@
 //        final Map<String, String> map = Collections.singletonMap("name", ellipsoidName);
 //        try {
 //            final DatumFactory datumFactory = UnidataCRSUtilities.FACTORY_CONTAINER.getDatumFactory();
-//            return (secondDefiningParameterType.equals(UnidataMetadataUtilities.MD_DTM_GD_EL_SEMIMINORAXIS)) ? datumFactory
+//            return (secondDefiningParameterType.equals(UnusedUtilities.MD_DTM_GD_EL_SEMIMINORAXIS)) ? datumFactory
 //                    .createEllipsoid(map, semiMajorAxis, semiMajorAxis, unit) : datumFactory.createFlattenedSphere(map,
 //                    semiMajorAxis, inverseFlattening, unit);
 //        } catch (FactoryException e) {
@@ -807,5 +808,267 @@
 //            DefaultEllipsoid.SPHERE, //
 //            DefaultEllipsoid.WGS84//
 //    };
+//    public final static String MD_AX_ABBREVIATION = "axisAbbrev";
+//    public final static String MD_AX_DIRECTION = "axisDirection";
+//    public final static String MD_AX_MAX = "maximumValue";
+//    public final static String MD_AX_MIN = "minimumValue";
+//    public final static String MD_AX_RANGEMEANING = "rangeMeaning";
+//    public final static String MD_AX_UOM = "axisUoM";
+//    // ////
+//    //
+//    // Axis element
+//    //
+//    // ////
+//    public final static String MD_AXIS = "Axis";
+//    public final static String MD_COMM_ALIAS = "alias";
+//    public final static String MD_COMM_ATTRIBUTETYPE = "type";
+//    public final static String MD_COMM_ATTRIBUTEVALUE = "value";
+//    public final static String MD_COMM_IDENTIFIER = "identifier";
+//    // ////////////////////////////////////////////////////////////////////////
+//    // 
+//    // Metadata nodes names
+//    //
+//    // ////////////////////////////////////////////////////////////////////////
+//    
+//    // ////
+//    //
+//    // Common element (deeply used by several elements)
+//    //
+//    // ////
+//    public final static String MD_COMM_NAME = "name";
+//    public final static String MD_COMM_REMARKS = "remarks";
+//    // ////
+//    //
+//    // CRSs elements
+//    //
+//    // ////
+//    public final static String MD_COORDINATEREFERENCESYSTEM = "CoordinateReferenceSystem";
+//    // ////
+//    //
+//    // Coordinate System element (deeply used in CRSs)
+//    //
+//    // ////
+//    public final static String MD_COORDINATESYSTEM = "CoordinateSystem";
+//    public final static String MD_CRS = "CoordinateReferenceSystem";
+//    public final static String MD_CS_AXES = "Axes";
+//    // ////
+//    //
+//    // Datum elements
+//    //
+//    // ////
+//    public final static String MD_DATUM = "Datum";
+//    // Datum common elements
+//    public final static String MD_DTM_ANCHORPOINT = "anchorPoint";
+//    // //
+//    //
+//    // Engineering Datum
+//    //
+//    // //
+//    public final static String MD_DTM_ENGINEERING = "EngineeringDatum";
+//    public final static String MD_DTM_GD_EL_INVERSEFLATTENING = "inverseFlattening";
+//    public final static String MD_DTM_GD_EL_SECONDDEFPARAM = "secondDefiningParameter";
+//    public final static String MD_DTM_GD_EL_SEMIMAJORAXIS = "semiMajorAxis";
+//    public final static String MD_DTM_GD_EL_SEMIMINORAXIS = "semiMinorAxis";
+//    public final static String MD_DTM_GD_EL_SPHERE = "sphere";
+//    public final static String MD_DTM_GD_EL_UNIT = "unit";
+//    // Ellipsoid
+//    public final static String MD_DTM_GD_ELLIPSOID = "Ellipsoid";
+//    public final static String MD_DTM_GD_PM_GREENWICHLONGITUDE = "greenwichLongitude";
+//    // //
+//    //
+//    // Geodetic Datum
+//    //
+//    // //
+//    public final static String MD_DTM_GEODETIC = "GeodeticDatum";
+//    // Prime Meridian
+//    public final static String MD_DTM_GEODETIC_PRIMEMERIDIAN = "PrimeMeridian";
+//    public final static String MD_DTM_ID_PIXELINCELL = "pixelInCell";
+//    // //
+//    //
+//    // Image Datum
+//    //
+//    // //
+//    public final static String MD_DTM_IMAGE = "ImageDatum";
+//    public final static String MD_DTM_REALIZATIONEPOCH = "realizationEpoch";
+//    public final static String MD_DTM_TD_ORIGIN = "origin";
+//    // //
+//    //
+//    // Temporal Datum
+//    //
+//    // //
+//    public final static String MD_DTM_TEMPORAL = "TemporalDatum";
+//    public final static String MD_DTM_VD_TYPE = "verticalDatumType";
+//    // //
+//    //
+//    // Vertical Datum
+//    //
+//    // //
+//    public final static String MD_DTM_VERTICAL = "VerticalDatum";
+//    public final static String MD_RG_LI_RASTERLAYOUT = "RasterLayout";
+//    public final static String MD_SCRS_BASE_CRS = "BaseCRS";
+//    public final static String MD_SCRS_DBC_FORMULA = "formula";
+//    public final static String MD_SCRS_DBC_PARAMETER_VALUE = "parameter";
+//    public final static String MD_SCRS_DBC_PARAMETERS = "parameters";
+//    public final static String MD_SCRS_DBC_SRC_DIM = "srcDim";
+//    public final static String MD_SCRS_DBC_TARGET_DIM = "targetDim";
+//    // ////
+//    //
+//    // definedByConversion element
+//    //
+//    // ////
+//    
+//    public final static String MD_SCRS_DEFINED_BY_CONVERSION = "definedByConversion";
+//    public final static String MD_SCRS_DERIVED_CRS = "DerivedCRS";
+//    public final static String MD_SCRS_PROJECTED_CRS = "ProjectedCRS";
+//    public final static String MD_TEMPORALCRS = "TemporalCRS";
+//    public final static String MD_VERTICALCRS = "VerticalCRS";
+//
+//    public static String getCrsType( ucar.nc2.dataset.CoordinateSystem cs ) {
+//        String crsType;
+//        // TODO: fix this to handle Vertical instead of Geographic3D
+//        if (cs.isLatLon()) {
+//            crsType = cs.hasVerticalAxis() ? UnusedUtilities.GEOGRAPHIC_3D : UnusedUtilities.GEOGRAPHIC;
+//            // csType = UnidataMetadataUtilities.ELLIPSOIDAL;
+//        } else if (cs.isGeoXY()) {
+//            crsType = cs.hasVerticalAxis() ? UnusedUtilities.PROJECTED_3D : UnusedUtilities.PROJECTED;
+//            // csType = UnidataMetadataUtilities.CARTESIAN;
+//        } else {
+//            throw new RuntimeException("DOCUMENT ME");
+//        }
+//        return crsType;
+//    }
+//
+//    /**
+//     * The cartesian {@linkplain CoordinateSystem coordinate system} type.
+//     * 
+//     * @see #setCoordinateSystem
+//     */
+//    public static final String CARTESIAN = "cartesian";
+//    /**
+//     * Enumeration of valid coordinate reference system types.
+//     */
+//    static final List<String> CRS_TYPES = UnmodifiableArrayList
+//            .wrap(new String[] { UnusedUtilities.GEOGRAPHIC, UnusedUtilities.PROJECTED, UnusedUtilities.DERIVED });
+//    /**
+//     * Enumeration of valid coordinate system types.
+//     */
+//    static final List<String> CS_TYPES = UnmodifiableArrayList
+//            .wrap(new String[] { UnusedUtilities.ELLIPSOIDAL, CARTESIAN });
+//    /**
+//     * The derived
+//     * {@linkplain AbstractCoordinateReferenceSystem coordinate reference system}
+//     * type.
+//     * 
+//     * @see #setCoordinateReferenceSystem
+//     */
+//    public static final String DERIVED = "derived";
+//    /**
+//     * Enumeration of valid axis directions. We do not declare {@link String}
+//     * constants for them since they are already available as
+//     * {@linkplain org.opengis.referencing.cs.AxisDirection axis direction} code
+//     * list.
+//     */
+//    static final List<String> DIRECTIONS = UnmodifiableArrayList
+//            .wrap(new String[] { "north", "east", "south", "west", "up", "down" });
+//    /**
+//     * The ellipsoidal {@linkplain CoordinateSystem coordinate system} type.
+//     * 
+//     * @see #setCoordinateSystem
+//     */
+//    public static final String ELLIPSOIDAL = "ellipsoidal";
+//    public static final String FORMAT_NAME = "org_geotools_gce_nplugin_geospatialMetadata_1.0";
+//    /**
+//     * The geographic
+//     * {@linkplain AbstractCoordinateReferenceSystem coordinate reference system}
+//     * type. This is often used together with the
+//     * {@linkplain #ELLIPSOIDAL ellipsoidal} coordinate system type.
+//     * 
+//     * @see #setCoordinateReferenceSystem
+//     */
+//    public static final String GEOGRAPHIC = "geographic";
+//    /**
+//     * The geographic
+//     * {@linkplain AbstractCoordinateReferenceSystem coordinate reference system}
+//     * type with a vertical axis. This is often used together with a
+//     * three-dimensional {@linkplain #ELLIPSOIDAL ellipsoidal} coordinate system
+//     * type.
+//     * <p>
+//     * If the coordinate reference system has no vertical axis, or has
+//     * additional axis of other kind than vertical (for example only a temporal
+//     * axis), then the type should be the plain {@value #GEOGRAPHIC}. This is
+//     * because such CRS are usually constructed as
+//     * {@linkplain org.opengis.referencing.crs.CompoundCRS compound CRS} rather
+//     * than a CRS with a three-dimensional coordinate system.
+//     * <p>
+//     * To be strict, a 3D CRS should be allowed only if the vertical axis is of
+//     * the kind "height above the ellipsoid" (as opposed to "height above the
+//     * geoid" for example), otherwise we have a compound CRS. But many datafile
+//     * don't make this distinction.
+//     * 
+//     * @see #setCoordinateReferenceSystem
+//     */
+//    public static final String GEOGRAPHIC_3D = "geographic3D";
+//    /**
+//     * The geophysics {@linkplain Band sample dimension} type. Pixels
+//     * in the {@linkplain java.awt.image.RenderedImage rendered image} produced
+//     * by the image reader contain directly geophysics values like temperature
+//     * or elevation. Sample type is typically {@code float} or {@code double}
+//     * and missing value, if any, <strong>must</strong> be one of
+//     * {@linkplain Float#isNaN NaN values}.
+//     */
+//    public static final String GEOPHYSICS = "geophysics";
+//    /**
+//     * The packed {@linkplain Band sample dimension} type. Pixels in
+//     * the {@linkplain java.awt.image.RenderedImage rendered image} produced by
+//     * the image reader contain packed data, typically as {@code byte} or
+//     * {@code short} integer type. Conversions to geophysics values are
+//     * performed by the application of a scale and offset. Some special values
+//     * are typically used for missing values.
+//     */
+//    public static final String PACKED = "packed";
+//    /**
+//     * Enumeration of valid pixel orientation. We do not declare {@link String}
+//     * constants for them since they are already available as
+//     * {@linkplain org.opengis.metadata.spatial.PixelOrientation pixel
+//     * orientation} code list.
+//     */
+//    static final List<String> PIXEL_ORIENTATIONS = UnmodifiableArrayList
+//            .wrap(new String[] { "center", "lower left", "lower right",
+//                    "upper right", "upper left" });
+//    /**
+//     * The projected
+//     * {@linkplain AbstractCoordinateReferenceSystem coordinate reference system}
+//     * type. This is often used together with the
+//     * {@linkplain #CARTESIAN cartesian} coordinate system type.
+//     * 
+//     * @see #setCoordinateReferenceSystem
+//     */
+//    public static final String PROJECTED = "projected";
+//    /**
+//     * The projected
+//     * {@linkplain AbstractCoordinateReferenceSystem coordinate reference system}
+//     * type with a vertical axis. This is often used together with a
+//     * three-dimensional {@linkplain #CARTESIAN cartesian} coordinate system
+//     * type.
+//     * <p>
+//     * If the coordinate reference system has no vertical axis, or has
+//     * additional axis of other kind than vertical (for example only a temporal
+//     * axis), then the type should be the plain {@value #PROJECTED}. This is
+//     * because such CRS are usually constructed as
+//     * {@linkplain org.opengis.referencing.crs.CompoundCRS compound CRS} rather
+//     * than a CRS with a three-dimensional coordinate system.
+//     * <p>
+//     * To be strict, a 3D CRS should be allowed only if the vertical axis is of
+//     * the kind "height above the ellipsoid" (as opposed to "height above the
+//     * geoid" for example), otherwise we have a compound CRS. But many datafile
+//     * don't make this distinction.
+//     * 
+//     * @see #setCoordinateReferenceSystem
+//     */
+//    public static final String PROJECTED_3D = "projected3D";
+//    /**
+//     * Enumeration of valid sample dimention types.
+//     */
+//    static final List<String> SAMPLE_TYPES = UnmodifiableArrayList.wrap(new String[] { GEOPHYSICS, PACKED });
 //
 //}
