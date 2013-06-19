@@ -924,6 +924,41 @@ public class SLDTransformerTest {
     }
     
     @Test
+    public void testLocalizedTitle() throws Exception {
+        RuleImpl rule = new RuleImpl();
+        GrowableInternationalString intString = new GrowableInternationalString("title")
+        {
+            @Override
+            public String toString() {
+                return super.toString(null);
+            }
+        };
+        intString.add(Locale.ITALIAN, "titolo");
+        intString.add(Locale.FRENCH, "titre");
+        intString.add(Locale.CANADA_FRENCH, "titre");
+        rule.getDescription().setTitle(intString);
+        String xml = transformer.transform(rule);
+        assertTrue(xml.contains("<sld:Title>title"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.ITALIAN.toString()+"\">titolo</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.FRENCH.toString()+"\">titre</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.CANADA_FRENCH.toString()+"\">titre</sld:Localized>"));
+    }
+    
+    public void testLocalizedAbstract() throws Exception {
+        RuleImpl rule = new RuleImpl();
+        GrowableInternationalString intString = new GrowableInternationalString("title");
+        intString.add(Locale.ITALIAN, "titolo");
+        intString.add(Locale.FRENCH, "titre");
+        intString.add(Locale.CANADA_FRENCH, "titre");
+        rule.getDescription().setAbstract(intString);
+        String xml = transformer.transform(rule);
+        assertTrue(xml.contains("<sld:Abstract>title"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.ITALIAN.toString()+"\">titolo</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.FRENCH.toString()+"\">titre</sld:Localized>"));
+        assertTrue(xml.contains("<sld:Localized lang=\""+Locale.CANADA_FRENCH.toString()+"\">titre</sld:Localized>"));
+    }
+    
+    @Test
     public void testEncodeFunction() throws Exception {
         StyleBuilder sb = new StyleBuilder();
         PointSymbolizer ps = sb.createPointSymbolizer();

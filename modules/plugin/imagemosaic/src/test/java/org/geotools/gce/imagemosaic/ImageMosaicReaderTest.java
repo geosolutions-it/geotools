@@ -40,7 +40,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -84,6 +83,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -2073,7 +2073,7 @@ public class ImageMosaicReaderTest extends Assert{
     
     
     @Test
-    //	@Ignore
+    @Ignore
     	public void oracle() throws IOException, ParseException, NoSuchAuthorityCodeException, FactoryException {
         	final File workDir=new File("C:\\data\\mosaicwattemp");
         	

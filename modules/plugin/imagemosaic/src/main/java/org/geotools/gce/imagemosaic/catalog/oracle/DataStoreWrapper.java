@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2012, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2013, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -46,13 +46,16 @@ import org.geotools.data.ServiceInfo;
 import org.geotools.data.Transaction;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
+import org.geotools.data.transform.Definition;
 import org.geotools.data.transform.TransformFactory;
 import org.geotools.feature.NameImpl;
+import org.geotools.referencing.CRS;
 import org.geotools.util.Utilities;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.Filter;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * A data store wrapper around a {@link DataStore} object.
@@ -61,6 +64,14 @@ import org.opengis.filter.Filter;
  * @TODO move that class on gt-transform once ready
  */
 public abstract class DataStoreWrapper implements DataStore {
+
+    static final String NAME = "NAME";
+
+    static final String MAPPEDNAME = "MAPPEDNAME";
+
+    static final String SCHEMA = "SCHEMA";
+
+    static final String COORDINATE_REFERENCE_SYSTEM = "CRS";
 
     protected final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(DataStoreWrapper.class);
 
@@ -137,12 +148,11 @@ public abstract class DataStoreWrapper implements DataStore {
             final Name name = mapper.getName();
             mapping.put(name, mapper);
             typeNames.add(name.getLocalPart());
-            
         }
     }
 
     /**
-     * Utility method which load properties from a propertiesFile.
+     * Utility method which load mapping properties from a propertiesFile.
      * @param propertiesFile
      * @return
      */
@@ -335,12 +345,25 @@ public abstract class DataStoreWrapper implements DataStore {
     }
 
     /**
-     * Return a specific {@link FeatureTypeMapper} instance on top of an input featureType
-     * @param featureType
-     * @return
-     * @throws Exception
+     * Store the {@link FeatureTypeMapper} instance
+     * @param mapper
      */
-    protected abstract FeatureTypeMapper getFeatureTypeMapper(final SimpleFeatureType featureType) throws Exception;
+    protected void storeMapper(FeatureTypeMapper mapper) {
+            Properties properties = new Properties();
+            String typeName = mapper.getName().toString();
+            properties.setProperty(NAME, typeName);
+            properties.setProperty(MAPPEDNAME, mapper.getMappedName().toString());
+            List<Definition> definitions = mapper.getDefinitions();
+            StringBuilder builder = new StringBuilder();
+            for (Definition definition: definitions) {
+                builder.append(definition.getName()).append(":").append(definition.getBinding().getName()).append(",");
+            }
+            String schema = builder.toString();
+            schema = schema.substring(0, schema.length() - 1 );
+            properties.setProperty(SCHEMA, schema);
+            properties.setProperty(COORDINATE_REFERENCE_SYSTEM, mapper.getCoordinateReferenceSystem().toWKT());
+            storeProperties(properties, typeName);
+    }
 
     /**
      * Return a specific {@link FeatureTypeMapper} by parsing mapping properties contained within
@@ -349,12 +372,26 @@ public abstract class DataStoreWrapper implements DataStore {
      * @return
      * @throws Exception
      */
-    protected abstract FeatureTypeMapper getFeatureTypeMapper(final Properties properties) throws Exception;
+    protected FeatureTypeMapper getFeatureTypeMapper(final Properties props) throws Exception {
+        SimpleFeatureType indexSchema;
+        try {
+            indexSchema = DataUtilities.createType(props.getProperty(NAME), props.getProperty(SCHEMA));
+            CoordinateReferenceSystem crs = CRS.parseWKT(props.getProperty(COORDINATE_REFERENCE_SYSTEM));
+            indexSchema = DataUtilities.createSubType(indexSchema,
+                    DataUtilities.attributeNames(indexSchema), crs);
+        } catch (Throwable e) {
+            if (LOGGER.isLoggable(Level.SEVERE))
+                LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
+            indexSchema = null;
+        }
+            return getFeatureTypeMapper(indexSchema);
+    }
     
     /**
-     * Store the {@link FeatureTypeMapper} instance
-     * @param mapper
+     * Return a specific {@link FeatureTypeMapper} instance on top of an input featureType
+     * @param featureType
+     * @return
+     * @throws Exception
      */
-    protected abstract void storeMapper(FeatureTypeMapper mapper);
-
+    protected abstract FeatureTypeMapper getFeatureTypeMapper(final SimpleFeatureType featureType) throws Exception;
 }
