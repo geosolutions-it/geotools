@@ -56,7 +56,9 @@ import org.opengis.filter.Filter;
 
 /**
  * A data store wrapper around a {@link DataStore} object.
- *  
+ * 
+ * @author Daniele Romagnoli, GeoSolutions SAS
+ * @TODO move that class on gt-transform once ready
  */
 public abstract class DataStoreWrapper implements DataStore {
 
@@ -88,7 +90,7 @@ public abstract class DataStoreWrapper implements DataStore {
      * Initialize the mapping by creating proper {@link FeatureTypeMapper}s on top of the available property files
      * which contain mapping information.
      * 
-     * @param auxFolderPath
+     * @param auxFolderPath the path of the folder containing mapping properties files
      */
     private void initMapping(String auxFolderPath) {
         URL url;
@@ -181,10 +183,15 @@ public abstract class DataStoreWrapper implements DataStore {
             if (!mapping.containsKey(name)) {
                 // Initialize mapping
                 try {
+                    // Get a mapper for that featureType
                     final FeatureTypeMapper mapper = getFeatureTypeMapper(featureType);
+
+                    // Store the mapper
                     storeMapper(mapper);
-                    final SimpleFeatureType innerFeatureType = mapper.getInnerFeatureType();
-                    datastore.createSchema(innerFeatureType);
+
+                    // Get the transformed featureType
+                    final SimpleFeatureType mappedFeatureType = mapper.getMappedFeatureType();
+                    datastore.createSchema(mappedFeatureType);
                     mapping.put(name, mapper);
                     typeNames.add(name.getLocalPart());
                 } catch (Exception e) {
@@ -194,8 +201,11 @@ public abstract class DataStoreWrapper implements DataStore {
         }
     }
 
-    protected abstract void storeMapper(FeatureTypeMapper mapper);
-//    
+    /**
+     * Store the properties on disk
+     * @param properties
+     * @param typeName
+     */
     protected void storeProperties(Properties properties, String typeName) {
         OutputStream outStream = null;
         try {
@@ -246,8 +256,7 @@ public abstract class DataStoreWrapper implements DataStore {
 
     @Override
     public void dispose() {
-        // TODO Auto-generated method stub
-        
+        datastore.dispose();
     }
 
     @Override
@@ -259,8 +268,6 @@ public abstract class DataStoreWrapper implements DataStore {
     public String[] getTypeNames() throws IOException {
         return (String[]) typeNames.toArray(new String[typeNames.size()]);
     }
-
-    protected abstract String[] wrap(String[] typeNames);
 
     @Override
     public SimpleFeatureSource getFeatureSource(String typeName) throws IOException {
@@ -276,7 +283,6 @@ public abstract class DataStoreWrapper implements DataStore {
         } else {
             SimpleFeatureStore source = (SimpleFeatureStore) datastore.getFeatureSource(mapper.getMappedName());
             return transformFeatureStore(source, mapper);
-            
         }
     }
     
@@ -311,10 +317,14 @@ public abstract class DataStoreWrapper implements DataStore {
 
     @Override
     public LockingManager getLockingManager() {
-        // TODO Auto-generated method stub
-        return null;
+        return datastore.getLockingManager();
     }
 
+    /**
+     * Return the mapper for the specified typeName
+     * @param typeName
+     * @return
+     */
     private FeatureTypeMapper getMapper(Name typeName) {
         FeatureTypeMapper mapper = null;
         Utilities.ensureNonNull("typeName", typeName);
@@ -323,14 +333,28 @@ public abstract class DataStoreWrapper implements DataStore {
         }
         return mapper;
     }
-    
+
     /**
-     * Return a specific {@link FeatureTypeMapper} instance 
+     * Return a specific {@link FeatureTypeMapper} instance on top of an input featureType
      * @param featureType
      * @return
      * @throws Exception
      */
-    abstract FeatureTypeMapper getFeatureTypeMapper(final SimpleFeatureType featureType) throws Exception;
+    protected abstract FeatureTypeMapper getFeatureTypeMapper(final SimpleFeatureType featureType) throws Exception;
+
+    /**
+     * Return a specific {@link FeatureTypeMapper} by parsing mapping properties contained within
+     * the specified {@link Properties} object
+     * @param featureType
+     * @return
+     * @throws Exception
+     */
+    protected abstract FeatureTypeMapper getFeatureTypeMapper(final Properties properties) throws Exception;
     
-    abstract FeatureTypeMapper getFeatureTypeMapper(final Properties properties) throws Exception;
+    /**
+     * Store the {@link FeatureTypeMapper} instance
+     * @param mapper
+     */
+    protected abstract void storeMapper(FeatureTypeMapper mapper);
+
 }

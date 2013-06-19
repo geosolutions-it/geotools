@@ -38,18 +38,17 @@ static final String NAME = "NAME";
     }
 
     @Override
-    FeatureTypeMapper getFeatureTypeMapper(SimpleFeatureType featureType) throws Exception {
+    protected FeatureTypeMapper getFeatureTypeMapper(SimpleFeatureType featureType) throws Exception {
         return new OracleFeatureTypeMapper(featureType);
     }
     
     @Override
-    FeatureTypeMapper getFeatureTypeMapper(final Properties props) throws Exception {
+    protected FeatureTypeMapper getFeatureTypeMapper(final Properties props) throws Exception {
         
         SimpleFeatureType indexSchema;
         try {
             indexSchema = DataUtilities.createType(props.getProperty(NAME), props.getProperty(SCHEMA));
             CoordinateReferenceSystem crs = CRS.parseWKT(props.getProperty(COORDINATE_REFERENCE_SYSTEM));
-            // override the crs in case the provided one was wrong or absent
             indexSchema = DataUtilities.createSubType(indexSchema,
                     DataUtilities.attributeNames(indexSchema), crs);
         } catch (Throwable e) {
@@ -72,16 +71,6 @@ static final String NAME = "NAME";
             ((OracleFeatureTypeMapper)mapper).setSimpleFeatureSource(transformedSource);
             return transformedSource;
         }
-    }
-
-    @Override
-    protected String[] wrap(String[] typeNames) {
-        String[] returnedTypeNames = new String[typeNames.length];
-        int i=0;
-        for (String typeName : typeNames) {
-            returnedTypeNames[i++] = OracleFeatureTypeMapper.mapName(typeName);
-        }
-        return returnedTypeNames;
     }
 
     @Override

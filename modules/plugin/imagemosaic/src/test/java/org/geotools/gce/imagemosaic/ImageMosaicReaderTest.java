@@ -2120,8 +2120,8 @@ public class ImageMosaicReaderTest extends Assert{
     		// use imageio with defined tiles
     		final ParameterValue<List> time = ImageMosaicFormat.TIME.createValue();
     		final List<Date> timeValues= new ArrayList<Date>();
-    		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'");
-    		sdf.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+    		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
     		Date date = sdf.parse("2008-11-01T00:00:00.000Z");
     		timeValues.add(date);
     		time.setValue(timeValues);
@@ -2155,7 +2155,7 @@ public class ImageMosaicReaderTest extends Assert{
     	            }
     	        }
     		// Test the output coverage
-    		TestUtils.checkCoverage(reader, new GeneralParameterValue[] {gg,time, bkg,direct, depthValue, dateValue}, "oracle Test");
+    		TestUtils.checkCoverage(reader, new GeneralParameterValue[] {gg, bkg,direct, depthValue, dateValue}, "oracle Test");
     		
     		
     		
