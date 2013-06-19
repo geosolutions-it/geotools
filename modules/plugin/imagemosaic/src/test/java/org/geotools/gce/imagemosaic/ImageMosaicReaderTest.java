@@ -40,6 +40,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -2070,6 +2071,96 @@ public class ImageMosaicReaderTest extends Assert{
         }
     }
     
+    
+    @Test
+    //	@Ignore
+    	public void oracle() throws IOException, ParseException, NoSuchAuthorityCodeException, FactoryException {
+        	final File workDir=new File("C:\\data\\mosaicwattemp");
+        	
+    	    
+    		final AbstractGridFormat format = TestUtils.getFormat(workDir.toURI().toURL());
+    		assertNotNull(format);
+    		ImageMosaicReader reader = TestUtils.getReader(workDir.toURI().toURL(), format);
+    		assertNotNull(format);
+    		
+    		final String[] metadataNames = reader.getMetadataNames();
+    		assertNotNull(metadataNames);
+    		assertEquals(metadataNames.length, 18);
+    		
+    		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
+    		final String timeMetadata = reader.getMetadataValue("TIME_DOMAIN");
+    		assertNotNull(timeMetadata);
+    		assertEquals(2,timeMetadata.split(",").length);
+    		assertEquals(timeMetadata.split(",")[0],reader.getMetadataValue("TIME_DOMAIN_MINIMUM"));
+    		assertEquals(timeMetadata.split(",")[1],reader.getMetadataValue("TIME_DOMAIN_MAXIMUM"));
+    		assertEquals("java.util.Date", reader.getMetadataValue("TIME_DOMAIN_DATATYPE"));
+    		
+    	        assertEquals("true", reader.getMetadataValue("HAS_DAT_DOMAIN"));
+    	        assertEquals("20081031T0000000,20081101T0000000",reader.getMetadataValue("DAT_DOMAIN"));
+    	        assertEquals("java.lang.String", reader.getMetadataValue("DAT_DOMAIN_DATATYPE"));
+
+    	        assertEquals("true", reader.getMetadataValue("HAS_DEPTH_DOMAIN"));
+    	        assertEquals("false", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));
+    	        assertEquals("false", reader.getMetadataValue("HAS_XX_DOMAIN"));
+    	        assertEquals("20,100", reader.getMetadataValue("DEPTH_DOMAIN"));
+    	        assertEquals("java.lang.Integer", reader.getMetadataValue("DEPTH_DOMAIN_DATATYPE"));
+
+    		
+    		// limit yourself to reading just a bit of it
+    		final ParameterValue<GridGeometry2D> gg =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
+    		final GeneralEnvelope envelope = reader.getOriginalEnvelope();
+    		final Dimension dim= new Dimension();
+    		dim.setSize(reader.getOriginalGridRange().getSpan(0)/2.0, reader.getOriginalGridRange().getSpan(1)/2.0);
+    		final Rectangle rasterArea=(( GridEnvelope2D)reader.getOriginalGridRange());
+    		rasterArea.setSize(dim);
+    		final GridEnvelope2D range= new GridEnvelope2D(rasterArea);
+    		gg.setValue(new GridGeometry2D(range,envelope));
+    		
+    		
+    		// use imageio with defined tiles
+    		final ParameterValue<List> time = ImageMosaicFormat.TIME.createValue();
+    		final List<Date> timeValues= new ArrayList<Date>();
+    		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'");
+    		sdf.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+    		Date date = sdf.parse("2008-11-01T00:00:00.000Z");
+    		timeValues.add(date);
+    		time.setValue(timeValues);
+    		
+    		final ParameterValue<Boolean> direct= ImageMosaicFormat.USE_JAI_IMAGEREAD.createValue();
+    		direct.setValue(false);
+    		
+    		final ParameterValue<double[]> bkg = ImageMosaicFormat.BACKGROUND_VALUES.createValue();
+    		bkg.setValue(new double[]{-9999.0});
+    		
+    		ParameterValue<List<String>> dateValue = null;
+    	        ParameterValue<List<String>> depthValue = null;
+    	        final String selectedWaveLength = "020";
+    	        final String selectedDate = "20081031T0000000";
+    	    Set<ParameterDescriptor<List>> params = reader.getDynamicParameters();
+    	        for (ParameterDescriptor param : params) {
+    	            if (param.getName().getCode().equalsIgnoreCase("DAT")) {
+    	                dateValue = param.createValue();
+    	                dateValue.setValue(new ArrayList<String>() {
+    	                    {
+    	                        add(selectedDate);
+    	                    }
+    	                });
+    	            } else if (param.getName().getCode().equalsIgnoreCase("DEPTH")) {
+    	                depthValue = param.createValue();
+    	                depthValue.setValue(new ArrayList<String>() {
+    	                    {
+    	                        add(selectedWaveLength);
+    	                    }
+    	                });
+    	            }
+    	        }
+    		// Test the output coverage
+    		TestUtils.checkCoverage(reader, new GeneralParameterValue[] {gg,time, bkg,direct, depthValue, dateValue}, "oracle Test");
+    		
+    		
+    		
+    	}
+
     @AfterClass
 	public static void close(){
 		System.clearProperty("org.geotools.referencing.forceXY");

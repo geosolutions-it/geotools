@@ -54,23 +54,11 @@ public class GranuleCatalogSource implements GranuleSource {
         this.catalog = catalog;
         this.typeName = typeName;
         this.hints = hints;
-//        List<Filter> filters = new ArrayList<Filter>(); 
-//        filters.add(FF.equal(FF.property("coverage"),
-//                FF.literal(coverageName), true));
-//        filterName = FF.and(filters);
     }
     
     @Override
     public SimpleFeatureCollection getGranules(Query q) throws IOException {
         Query updatedQuery = setupBaseQuery(q);
-        // Filtering by coverageName
-//        Filter filter = q.getFilter();
-//        if (filter != null) {
-//            filter = FF.and(filter, filterName);
-//        } else {
-//            filter = filterName;
-//        }
-//        q.setFilter(filter);
         
         // TODO: Optimize me
         Collection<GranuleDescriptor> granules = catalog.getGranules(updatedQuery);

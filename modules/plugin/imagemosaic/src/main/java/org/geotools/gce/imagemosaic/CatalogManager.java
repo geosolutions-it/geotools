@@ -54,7 +54,6 @@ import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalog;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogFactory;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
-import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;

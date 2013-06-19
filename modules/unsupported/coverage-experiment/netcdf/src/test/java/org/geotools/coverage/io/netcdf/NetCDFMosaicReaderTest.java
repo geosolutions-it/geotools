@@ -18,6 +18,8 @@ package org.geotools.coverage.io.netcdf;
 
 import it.geosolutions.imageio.utilities.ImageIOUtilities;
 
+import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,6 +32,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.media.jai.PlanarImage;
@@ -41,6 +44,8 @@ import junit.textui.TestRunner;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridEnvelope2D;
+import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GranuleSource;
@@ -775,6 +780,85 @@ public class NetCDFMosaicReaderTest extends Assert {
         reader.dispose();
     }
 
+    @Test
+    //  @Ignore
+        public void oracle() throws IOException, ParseException, NoSuchAuthorityCodeException, FactoryException {
+                final File workDir=new File("C:\\data\\dlr\\ascatL1_mosaic");
+                
+            
+                final AbstractGridFormat format = new ImageMosaicFormat();
+                assertNotNull(format);
+                ImageMosaicReader reader = (ImageMosaicReader) format.getReader(workDir.toURI().toURL());
+                assertNotNull(format);
+                String[] names = reader.getGridCoverageNames();
+                String name = names[1];
+
+                
+                final String[] metadataNames = reader.getMetadataNames(name);
+                assertNotNull(metadataNames);
+                assertEquals(metadataNames.length, 18);
+                
+                assertEquals("false", reader.getMetadataValue(name, "HAS_TIME_DOMAIN"));
+                
+                assertEquals("true", reader.getMetadataValue(name, "HAS_NUMSIGMA_DOMAIN"));
+                assertEquals("0,1,2",reader.getMetadataValue(name, "NUMSIGMA_DOMAIN"));
+                assertEquals("java.lang.Integer", reader.getMetadataValue(name, "NUMSIGMA_DOMAIN_DATATYPE"));
+
+                assertEquals("true", reader.getMetadataValue(name, "HAS_RUNTIME_DOMAIN"));
+                assertEquals("false", reader.getMetadataValue(name, "HAS_ELEVATION_DOMAIN"));
+                assertEquals("false", reader.getMetadataValue(name, "HAS_XX_DOMAIN"));
+                assertEquals("20110620020000", reader.getMetadataValue(name, "RUNTIME_DOMAIN"));
+                assertEquals("java.lang.String", reader.getMetadataValue(name, "RUNTIME_DOMAIN_DATATYPE"));
+
+                
+                // limit yourself to reading just a bit of it
+                final ParameterValue<GridGeometry2D> gg =  AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
+                final GeneralEnvelope envelope = reader.getOriginalEnvelope(name);
+                final Dimension dim= new Dimension();
+                dim.setSize(reader.getOriginalGridRange(name).getSpan(0)/2.0, reader.getOriginalGridRange(name).getSpan(1)/2.0);
+                final Rectangle rasterArea=(( GridEnvelope2D)reader.getOriginalGridRange(name));
+                rasterArea.setSize(dim);
+                final GridEnvelope2D range= new GridEnvelope2D(rasterArea);
+                gg.setValue(new GridGeometry2D(range,envelope));
+                
+                
+                final ParameterValue<Boolean> direct= ImageMosaicFormat.USE_JAI_IMAGEREAD.createValue();
+                direct.setValue(false);
+                
+                final ParameterValue<double[]> bkg = ImageMosaicFormat.BACKGROUND_VALUES.createValue();
+                bkg.setValue(new double[]{-9999.0});
+                
+                ParameterValue<List<String>> dateValue = null;
+                ParameterValue<List<String>> sigmaValue = null;
+                final String selectedSigma = "1";
+                final String selectedRuntime = "20110620020000";
+            Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(name);
+                for (ParameterDescriptor param : params) {
+                    if (param.getName().getCode().equalsIgnoreCase("RUNTIME")) {
+                        dateValue = param.createValue();
+                        dateValue.setValue(new ArrayList<String>() {
+                            {
+                                add(selectedRuntime);
+                            }
+                        });
+                    } else if (param.getName().getCode().equalsIgnoreCase("NUMSIGMA")) {
+                        sigmaValue = param.createValue();
+                        sigmaValue.setValue(new ArrayList<String>() {
+                            {
+                                add(selectedSigma);
+                            }
+                        });
+                    }
+                }
+                // Test the output coverage
+                GridCoverage2D coverage = reader.read(name, new GeneralParameterValue[] {gg, bkg, direct, sigmaValue, dateValue});
+                assertNotNull(coverage);
+                coverage.show();
+                System.in.read();
+                
+                
+        }
+    
     private Date parseTimeStamp(String timeStamp) throws ParseException {
         final SimpleDateFormat formatD = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         return formatD.parse(timeStamp);

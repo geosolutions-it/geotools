@@ -314,7 +314,7 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
                 // Catalog initialization from datastore
                 GranuleCatalog catalog = null;
                 final Properties props = CatalogManager.createGranuleCatalogProperties(datastoreProperties);
-
+                
                 // SPI
                 final String SPIClass = props.getProperty("SPI");
 
@@ -324,6 +324,8 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
 
                 // Since we are dealing with a catalog from an existing store, make sure to scan for all the typeNames on initialization
                 params.put(Utils.SCAN_FOR_TYPENAMES, Boolean.valueOf(true));
+//                params.put(Utils.SCAN_FOR_TYPENAMES, typeNamesProps.getProperty(Utils.SCAN_FOR_TYPENAMES));
+                
                 catalog = GranuleCatalogFactory.createGranuleCatalog(sourceURL, beans.get(0).getCatalogConfigurationBean(), params);
                 if (granuleCatalog == null) {
                     granuleCatalog = catalog;

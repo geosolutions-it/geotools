@@ -16,7 +16,6 @@
  */
 package org.geotools.gce.imagemosaic;
 
-import java.awt.RenderingHints;
 import java.awt.color.ColorSpace;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
@@ -336,12 +335,7 @@ public class ImageMosaicWalker implements Runnable {
                 final AbstractGridFormat format;
                 final Hints configurationHints = runConfiguration.getHints();
                 String indexName = runConfiguration.getParameter(Prop.INDEX_NAME);
-                Indexer indexer = runConfiguration.getIndexer();
-                if (indexer != null) {
-//                    if(indexerFile.getAbsolutePath().endsWith("xml")) {
-//                        configurationHints.add(new RenderingHints(Utils.AUXILIARY_FILES_PATH, indexerFile.getAbsolutePath()));
-//                    }
-                }
+                final Indexer indexer = runConfiguration.getIndexer();
                 if (cachedFormat == null) {
                     // When looking for formats which may parse this file, make sure to exclude the ImageMosaicFormat as return
                     format = (AbstractGridFormat) GridFormatFinder.findFormat(fileBeingProcessed, excludeMosaicHints);
@@ -655,7 +649,7 @@ public class ImageMosaicWalker implements Runnable {
                 transaction.rollback();
             } finally {
                 try {
-                    transaction.close();
+                    indexingPostamble(!canceled);
                 } catch (Exception e) {
                     final String message = "Unable to close indexing" + e.getLocalizedMessage();
                     if (LOGGER.isLoggable(Level.WARNING)) {
@@ -664,9 +658,9 @@ public class ImageMosaicWalker implements Runnable {
                     // notify listeners
                     fireException(e);
                 }
-
+                
                 try {
-                    indexingPostamble(!canceled);
+                    transaction.close();
                 } catch (Exception e) {
                     final String message = "Unable to close indexing" + e.getLocalizedMessage();
                     if (LOGGER.isLoggable(Level.WARNING)) {
@@ -1307,7 +1301,6 @@ public class ImageMosaicWalker implements Runnable {
                     MosaicConfigurationBean mosaicConfiguration = configurations.get(key);
                     RasterManager manager = parentReader.getRasterManager(key);
                     manager.initialize();
-
                     // create sample image if the needed elements are available
                     createSampleImage(mosaicConfiguration, useName);
                     fireEvent(Level.INFO, "Creating final properties file ", 99.9);
