@@ -306,7 +306,6 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		Filter filter = ff.bbox( ff.property( geometryPropertyName ), ReferencedEnvelope.reference(envelope) );
 		q.setFilter(filter);
 	    return getGranules(q);	
-		
 	}
 	
 	/* (non-Javadoc)
@@ -319,8 +318,6 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 		Filter filter = ff.bbox( ff.property( geometryPropertyName ), ReferencedEnvelope.reference(envelope) );
 		q.setFilter(filter);
 	    getGranules(q, visitor);			
-		
-
 	}
 
 	public void dispose() {
@@ -339,12 +336,8 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			}	
 						
 		}finally{
-			
 			l.unlock();
-		
 		}
-		
-		
 	}
 
 	@Override
@@ -395,55 +388,17 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			// check if the index has been cleared
 			checkStore();
 			
-//			FeatureWriter<SimpleFeatureType, SimpleFeature> fw =null;
-			try{
-				// create a writer that appends this features
-//				fw = tileIndexStore.getFeatureWriterAppend(typeName, transaction);
-			    SimpleFeatureStore store = (SimpleFeatureStore) tileIndexStore.getFeatureSource(typeName);
-			    store.setTransaction(transaction);
-			    //TODO: Ask for info on which collection should be used
-			    ListFeatureCollection featureCollection = new ListFeatureCollection(tileIndexStore.getSchema(typeName));
-				//add them all
-				for(SimpleFeature f:granules){
-					
-					// create a new feature
-//					final SimpleFeature feature = fw.next();
-					featureCollection.add(f);
-					
-					// get attributes and copy them over
-//					for(int i=f.getAttributeCount()-1;i>=0;i--){
-//						Object attribute = f.getAttribute(i);
-//						
-//						
-//						// special case for postgis
-//						if(spi instanceof PostgisNGJNDIDataStoreFactory||spi instanceof PostgisNGDataStoreFactory)
-//						{
-//							final AttributeDescriptor descriptor = tileIndexStore.getSchema(typeName).getDescriptor(i);
-//							if(descriptor.getType().getBinding().equals(String.class))
-//							{
-//								// escape the string correctly
-//								attribute=((String) attribute).replace("\\", "\\\\");
-//							}
-//						}
-//						
-//						feature.setAttribute(i, attribute);
-//					}
-					
-					//write down
-//					fw.write();
+            SimpleFeatureStore store = (SimpleFeatureStore) tileIndexStore.getFeatureSource(typeName);
+            store.setTransaction(transaction);
 
-				}
-				store.addFeatures(featureCollection);
-			}
-			catch (Throwable e) {
-				if(LOGGER.isLoggable(Level.SEVERE))
-					LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
-			}finally{
-//				if(fw!=null)
-//					fw.close();
-			}
-			
-			// do your thing
+            ListFeatureCollection featureCollection = new ListFeatureCollection(tileIndexStore.getSchema(typeName));
+
+            // add them all
+            for (SimpleFeature f : granules) {
+                // Add the feature to the feature collection
+                featureCollection.add(f);
+            }
+            store.addFeatures(featureCollection);
 			
 			//update bounds
 			if (bounds.containsKey(typeName)) {
