@@ -781,7 +781,7 @@ public class NetCDFMosaicReaderTest extends Assert {
     }
 
     @Test
-    //  @Ignore
+    @Ignore
         public void oracle() throws IOException, ParseException, NoSuchAuthorityCodeException, FactoryException {
                 final File workDir=new File("C:\\data\\dlr\\ascatL1_mosaic");
                 
