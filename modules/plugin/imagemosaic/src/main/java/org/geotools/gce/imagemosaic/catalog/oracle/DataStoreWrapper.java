@@ -65,6 +65,8 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  */
 public abstract class DataStoreWrapper implements DataStore {
 
+    static final String HIDDEN_FOLDER = ".mosaic";
+
     static final String NAME = "NAME";
 
     static final String MAPPEDNAME = "MAPPEDNAME";
@@ -94,7 +96,7 @@ public abstract class DataStoreWrapper implements DataStore {
      */
     public DataStoreWrapper(DataStore datastore, String auxFolderPath) {
         this.datastore = datastore;
-        initMapping(auxFolderPath);
+        initMapping(auxFolderPath  + File.separatorChar + HIDDEN_FOLDER);
     }
 
     /**
@@ -190,23 +192,22 @@ public abstract class DataStoreWrapper implements DataStore {
     public void createSchema(SimpleFeatureType featureType) throws IOException {
         if (featureType != null) {
             Name name = featureType.getName();
-            if (!mapping.containsKey(name)) {
-                // Initialize mapping
-                try {
-                    // Get a mapper for that featureType
-                    final FeatureTypeMapper mapper = getFeatureTypeMapper(featureType);
 
-                    // Store the mapper
-                    storeMapper(mapper);
+            // Initialize mapping
+            try {
+                // Get a mapper for that featureType
+                final FeatureTypeMapper mapper = getFeatureTypeMapper(featureType);
 
-                    // Get the transformed featureType
-                    final SimpleFeatureType mappedFeatureType = mapper.getMappedFeatureType();
-                    datastore.createSchema(mappedFeatureType);
-                    mapping.put(name, mapper);
-                    typeNames.add(name.getLocalPart());
-                } catch (Exception e) {
-                    throw new IOException(e);
-                }
+                // Get the transformed featureType
+                final SimpleFeatureType mappedFeatureType = mapper.getMappedFeatureType();
+                datastore.createSchema(mappedFeatureType);
+                mapping.put(name, mapper);
+                typeNames.add(name.getLocalPart());
+
+                // Store the mapper
+                storeMapper(mapper);
+            } catch (Exception e) {
+                throw new IOException(e);
             }
         }
     }
@@ -256,6 +257,9 @@ public abstract class DataStoreWrapper implements DataStore {
                 return mapper.getWrappedFeatureType();
             }
         }
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("No schema found for that name: " + name + "\nNo mappers available");
+        }
         return null;
     }
 
@@ -276,7 +280,7 @@ public abstract class DataStoreWrapper implements DataStore {
 
     @Override
     public String[] getTypeNames() throws IOException {
-        return (String[]) typeNames.toArray(new String[typeNames.size()]);
+        return typeNames != null ? (String[]) typeNames.toArray(new String[typeNames.size()]) : null;
     }
 
     @Override
@@ -289,13 +293,16 @@ public abstract class DataStoreWrapper implements DataStore {
     public SimpleFeatureSource getFeatureSource(Name typeName) throws IOException {
         FeatureTypeMapper mapper = getMapper(typeName);
         if (mapper == null) {
-            throw new IOException ("Undefined typeName");
+            throw new IOException ("No wrapper found for " + typeName);
         } else {
             SimpleFeatureStore source = (SimpleFeatureStore) datastore.getFeatureSource(mapper.getMappedName());
+            if (source == null) {
+                throw new IOException ("No feature source available for " + typeName);
+            }
             return transformFeatureStore(source, mapper);
         }
     }
-    
+
     protected SimpleFeatureSource transformFeatureStore(SimpleFeatureStore source,
             FeatureTypeMapper mapper) throws IOException {
         return TransformFactory.transform(source, mapper.getName(), mapper.getDefinitions());
@@ -349,12 +356,14 @@ public abstract class DataStoreWrapper implements DataStore {
      * @param mapper
      */
     protected void storeMapper(FeatureTypeMapper mapper) {
-            Properties properties = new Properties();
-            String typeName = mapper.getName().toString();
+        final Properties properties = new Properties();
+            final String typeName = mapper.getName().toString();
             properties.setProperty(NAME, typeName);
             properties.setProperty(MAPPEDNAME, mapper.getMappedName().toString());
-            List<Definition> definitions = mapper.getDefinitions();
-            StringBuilder builder = new StringBuilder();
+            final List<Definition> definitions = mapper.getDefinitions();
+            final StringBuilder builder = new StringBuilder();
+
+            // Populating schema
             for (Definition definition: definitions) {
                 builder.append(definition.getName()).append(":").append(definition.getBinding().getName()).append(",");
             }
@@ -362,6 +371,8 @@ public abstract class DataStoreWrapper implements DataStore {
             schema = schema.substring(0, schema.length() - 1 );
             properties.setProperty(SCHEMA, schema);
             properties.setProperty(COORDINATE_REFERENCE_SYSTEM, mapper.getCoordinateReferenceSystem().toWKT());
+
+            // Storing properties
             storeProperties(properties, typeName);
     }
 
@@ -374,17 +385,11 @@ public abstract class DataStoreWrapper implements DataStore {
      */
     protected FeatureTypeMapper getFeatureTypeMapper(final Properties props) throws Exception {
         SimpleFeatureType indexSchema;
-        try {
-            indexSchema = DataUtilities.createType(props.getProperty(NAME), props.getProperty(SCHEMA));
-            CoordinateReferenceSystem crs = CRS.parseWKT(props.getProperty(COORDINATE_REFERENCE_SYSTEM));
-            indexSchema = DataUtilities.createSubType(indexSchema,
-                    DataUtilities.attributeNames(indexSchema), crs);
-        } catch (Throwable e) {
-            if (LOGGER.isLoggable(Level.SEVERE))
-                LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
-            indexSchema = null;
-        }
-            return getFeatureTypeMapper(indexSchema);
+        // Creating schema
+        indexSchema = DataUtilities.createType(props.getProperty(NAME), props.getProperty(SCHEMA));
+        CoordinateReferenceSystem crs = CRS.parseWKT(props.getProperty(COORDINATE_REFERENCE_SYSTEM));
+        indexSchema = DataUtilities.createSubType(indexSchema, DataUtilities.attributeNames(indexSchema), crs);
+        return getFeatureTypeMapper(indexSchema);
     }
     
     /**

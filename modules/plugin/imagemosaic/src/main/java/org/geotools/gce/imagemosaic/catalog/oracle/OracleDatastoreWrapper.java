@@ -36,7 +36,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 public class OracleDatastoreWrapper extends DataStoreWrapper {
 
     public OracleDatastoreWrapper(DataStore datastore, String location) {
-        super(datastore, location + File.separatorChar + ".orcl");
+        super(datastore, location);
     }
 
     @Override

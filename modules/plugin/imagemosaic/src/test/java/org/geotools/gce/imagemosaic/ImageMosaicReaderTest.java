@@ -2122,7 +2122,7 @@ public class ImageMosaicReaderTest extends Assert{
     		final List<Date> timeValues= new ArrayList<Date>();
     		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-    		Date date = sdf.parse("2008-11-01T00:00:00.000Z");
+    		Date date = sdf.parse("2008-10-31T00:00:00.000Z");
     		timeValues.add(date);
     		time.setValue(timeValues);
     		
