@@ -29,10 +29,6 @@ import org.junit.Test;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.TemporalCRS;
 import org.opengis.referencing.crs.VerticalCRS;
-import org.opengis.temporal.TemporalCoordinateSystem;
-
-import com.sun.media.sound.MidiUtils.TempoCache;
-import com.sun.org.apache.bcel.internal.generic.NEW;
 
 import ucar.nc2.Dimension;
 import ucar.nc2.dataset.CoordinateAxis;
@@ -117,15 +113,15 @@ public class CoordinateVariableTest extends Assert{
         
         assertSame(Float.class, cv.getType());
         assertEquals(10f, cv.getMinimum());
-        assertEquals(10f, cv.getMinimum());
+        assertEquals(450f, cv.getMaximum());
         assertEquals(list.get(0), cv.getMinimum());
         assertEquals(list.get(1), cv.getMaximum());
-        assertEquals(2, cv.getSize());     
-        assertEquals("meters", cv.getUnit());   
+        assertEquals(2, cv.getSize());
+        assertEquals("meters", cv.getUnit());
        
         crs = cv.getCoordinateReferenceSystem();
         assertNotNull(crs);
-        assertTrue(crs instanceof VerticalCRS);        
+        assertTrue(crs instanceof VerticalCRS);
         
         dataset.close();
         
