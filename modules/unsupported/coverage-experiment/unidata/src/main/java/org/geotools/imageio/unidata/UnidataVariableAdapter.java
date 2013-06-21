@@ -491,7 +491,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         //TODO: Map ZAxis unit to UCUM UNIT (depending on type... elevation, level, pressure, ...)
         //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code 
         dimensions.add(new DefaultDimensionDescriptor(Utils.ELEVATION_DOMAIN, 
-                DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
+                CoverageUtilities.UCUM.TIME_UNITS.getName(), CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
     }
 
     /**
@@ -511,7 +511,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
        this.setTemporalDomain(temporalDomain);
      //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code
        dimensions.add(new DefaultDimensionDescriptor(Utils.TIME_DOMAIN, 
-               DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), Utils.TIME_DOMAIN.toLowerCase(), null));
+               CoverageUtilities.UCUM.TIME_UNITS.getName(), CoverageUtilities.UCUM.TIME_UNITS.getSymbol(), Utils.TIME_DOMAIN.toLowerCase(), null));
     }
 
     /**

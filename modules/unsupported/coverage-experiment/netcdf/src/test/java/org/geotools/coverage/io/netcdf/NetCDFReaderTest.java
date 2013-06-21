@@ -40,7 +40,6 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
@@ -48,6 +47,7 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.test.TestData;
 import org.junit.After;
@@ -108,15 +108,15 @@ public class NetCDFReaderTest extends Assert {
                 assertEquals("TIME", descriptor.getName());
                 assertEquals("time", descriptor.getStartAttribute());
                 assertNull(descriptor.getEndAttribute());
-                assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), descriptor.getUnits());
-                assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), descriptor.getUnitSymbol());
+                assertEquals(CoverageUtilities.UCUM.TIME_UNITS.getName(), descriptor.getUnits());
+                assertEquals(CoverageUtilities.UCUM.TIME_UNITS.getSymbol(), descriptor.getUnitSymbol());
 
                 descriptor = descriptors.get(1);
                 assertEquals("ELEVATION", descriptor.getName());
                 assertEquals("elevation", descriptor.getStartAttribute());
                 assertNull(descriptor.getEndAttribute());
-                assertEquals(DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getName(), descriptor.getUnits());
-                assertEquals(DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol(), descriptor.getUnitSymbol());
+                assertEquals(CoverageUtilities.UCUM.ELEVATION_UNITS.getName(), descriptor.getUnits());
+                assertEquals(CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol(), descriptor.getUnitSymbol());
 
                 // subsetting the envelope
                 final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
