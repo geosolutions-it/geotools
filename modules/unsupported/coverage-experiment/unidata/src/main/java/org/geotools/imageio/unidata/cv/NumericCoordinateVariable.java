@@ -154,7 +154,7 @@ class NumericCoordinateVariable<T  extends Number> extends CoordinateVariable<T>
              case GeoZ:case Height:case Pressure:
                  String axisName =getName();
                  if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(axisName)) {
-                     this.crs= UnidataCRSUtilities.buildVerticalCrs(coordinateAxis.getCoordinateSystems().get(0),coordinateAxis);
+                     this.crs= UnidataCRSUtilities.buildVerticalCrs(coordinateAxis);
                  }
                  break;
              }             

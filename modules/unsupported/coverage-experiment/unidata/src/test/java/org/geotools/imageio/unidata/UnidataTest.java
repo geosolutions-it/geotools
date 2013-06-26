@@ -35,6 +35,7 @@ import org.geotools.imageio.unidata.reader.DummyUnidataImageReader;
 import org.geotools.imageio.unidata.reader.DummyUnidataImageReaderSpi;
 import org.geotools.test.TestData;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -106,6 +107,7 @@ public final class UnidataTest extends Assert {
 
 
     @Test
+    @Ignore
     public void testImageReaderIASI() throws Exception {
         final File file = TestData.file(this, "IASI_C_EUMP_20121120062959_31590_eps_o_l2.nc");
         final DummyUnidataImageReaderSpi unidataImageReaderSpi = new DummyUnidataImageReaderSpi();

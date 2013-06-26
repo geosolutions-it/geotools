@@ -76,6 +76,7 @@ import org.geotools.gce.imagemosaic.Utils.Prop;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.test.TestData;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
@@ -960,8 +961,8 @@ public class ImageMosaicReaderTest extends Assert{
         assertEquals("TIME", descriptor.getName());
         assertEquals("time", descriptor.getStartAttribute());
         assertEquals("endtime", descriptor.getEndAttribute());
-        assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName(), descriptor.getUnits());
-        assertEquals(DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol(), descriptor.getUnitSymbol());
+        assertEquals(CoverageUtilities.UCUM.TIME_UNITS.getName(), descriptor.getUnits());
+        assertEquals(CoverageUtilities.UCUM.TIME_UNITS.getSymbol(), descriptor.getUnitSymbol());
         
         descriptor = descriptors.get(3);
         assertEquals("ELEVATION", descriptor.getName());

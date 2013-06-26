@@ -3,8 +3,14 @@
     <coverages>
         <coverage>
 			<name>NO2</name>
-            <schema><attributes>the_geom:Polygon,coverage:String,imageindex:Integer</attributes></schema>
             <origName>z</origName>
         </coverage>
     </coverages>
+    <!--  collectors>
+		<collector name="coverageNameCollector">
+			<value>[A-z0-9]+(?=.DUMMY)</value>
+			<spi>StringFileNameExtractorSPI</spi>
+			<mapped>coverageName</mapped>
+		</collector>
+    </collectors  -->
 </Indexer>

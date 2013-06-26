@@ -44,7 +44,7 @@ public class NetCDFSource extends DefaultCoverageSource {
     private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(NetCDFSource.class.toString());
 
     NetCDFImageReader reader;
-    
+
     Set<ParameterDescriptor<List>> dynamicParameters = null;
 
     public NetCDFSource(final NetCDFImageReader reader, final Name name ) {

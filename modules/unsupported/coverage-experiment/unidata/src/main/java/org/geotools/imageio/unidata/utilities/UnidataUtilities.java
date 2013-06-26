@@ -37,6 +37,8 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.geotools.gce.imagemosaic.ImageMosaicFormat;
+
 
 import ucar.ma2.DataType;
 import ucar.nc2.Dimension;
@@ -111,6 +113,11 @@ public class UnidataUtilities {
     public static final String NAME = "name";
 
     public static final String LONG_NAME = "long_name";
+
+    public static final String ELEVATION_DIM = ImageMosaicFormat.ELEVATION.getName().toString();
+
+    public static final String TIME_DIM = ImageMosaicFormat.TIME.getName().toString();
+
 
     /**
      * Global attribute for coordinate coverageDescriptorsCache.

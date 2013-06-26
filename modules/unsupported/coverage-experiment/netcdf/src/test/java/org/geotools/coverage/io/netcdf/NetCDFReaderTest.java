@@ -51,6 +51,7 @@ import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.test.TestData;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.filter.Filter;
@@ -81,7 +82,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(metadataNames.length, 12);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -113,9 +114,9 @@ public class NetCDFReaderTest extends Assert {
 
                 descriptor = descriptors.get(1);
                 assertEquals("ELEVATION", descriptor.getName());
-                assertEquals("elevation", descriptor.getStartAttribute());
+                assertEquals("z", descriptor.getStartAttribute());
                 assertNull(descriptor.getEndAttribute());
-                assertEquals(CoverageUtilities.UCUM.ELEVATION_UNITS.getName(), descriptor.getUnits());
+                assertEquals("meters", descriptor.getUnits());
                 assertEquals(CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol(), descriptor.getUnitSymbol());
 
                 // subsetting the envelope
@@ -196,7 +197,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(12, metadataNames.length);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -238,7 +239,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final ParameterValue<Filter> filterParam = NetCDFFormat.FILTER.createValue();
                 FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
-                Filter filter = FF.equals(FF.property("elevation"), FF.literal(450.0));
+                Filter filter = FF.equals(FF.property("z"), FF.literal(450.0));
                 filterParam.setValue(filter);
 
                 GeneralParameterValue[] values = new GeneralParameterValue[] { filterParam };
@@ -279,7 +280,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(metadataNames.length, 12);
 
                 // Parsing metadata values
                 assertEquals("true", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -385,7 +386,7 @@ public class NetCDFReaderTest extends Assert {
 
                 final String[] metadataNames = reader.getMetadataNames(coverageName);
                 assertNotNull(metadataNames);
-                assertEquals(metadataNames.length, 10);
+                assertEquals(metadataNames.length, 12);
 
                 // Parsing metadata values
                 assertEquals("false", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
@@ -428,6 +429,7 @@ public class NetCDFReaderTest extends Assert {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
+    @Ignore
     public void IASI() throws Exception {
         
         final URL testURL = TestData.url(this, "IASI_C_EUMP_20121120062959_31590_eps_o_l2.nc");

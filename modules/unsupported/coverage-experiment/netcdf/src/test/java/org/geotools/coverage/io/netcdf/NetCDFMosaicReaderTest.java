@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.media.jai.PlanarImage;
@@ -358,6 +357,7 @@ public class NetCDFMosaicReaderTest extends Assert {
             assertEquals(1, reader.getGridCoverageNames().length);
             
             // check that we have four times now
+            source = reader.getGranules("O3", true);
             granules = source.getGranules(q);
             assertEquals(4, granules.size());
             it = granules.features();
@@ -539,8 +539,11 @@ public class NetCDFMosaicReaderTest extends Assert {
                     "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130116.METOPA.GOME2.NO2.DUMMY.nc");
             FileUtils.copyFileToDirectory(nc2, mosaic);
             File fileToHarvest = new File(mosaic, "20130116.METOPA.GOME2.NO2.DUMMY.nc");
-            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+            List<HarvestedFile> harvestSummary = reader.harvest("NO2", fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
+            granules = source.getGranules(q);
+            assertEquals(2, granules.size());
+            
             HarvestedFile hf = harvestSummary.get(0);
             assertEquals("20130116.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
             assertTrue(hf.success());
@@ -550,7 +553,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                     "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130108.METOPA.GOME2.NO2.DUMMY.nc");
             FileUtils.copyFileToDirectory(nc3, mosaic);
             fileToHarvest = new File(mosaic, "20130108.METOPA.GOME2.NO2.DUMMY.nc");
-            harvestSummary = reader.harvest(null, fileToHarvest, null);
+            harvestSummary = reader.harvest("NO2", fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
             hf = harvestSummary.get(0);
             assertEquals("20130108.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
@@ -853,8 +856,8 @@ public class NetCDFMosaicReaderTest extends Assert {
                 // Test the output coverage
                 GridCoverage2D coverage = reader.read(name, new GeneralParameterValue[] {gg, bkg, direct, sigmaValue, dateValue});
                 assertNotNull(coverage);
-                coverage.show();
-                System.in.read();
+                //coverage.show();
+                //System.in.read();
                 
                 
         }
@@ -892,6 +895,11 @@ public class NetCDFMosaicReaderTest extends Assert {
         System.setProperty("org.geotools.shapefile.datetime", "true");
 
         INTERACTIVE = TestData.isInteractiveTest();
+//        IIORegistry registry = IIORegistry.getDefaultInstance();
+//        DummyUnidataImageReaderSpi provider = registry.getServiceProviderByClass(DummyUnidataImageReaderSpi.class);
+//        if (provider != null) {
+//            registry.deregisterServiceProvider(provider);
+//        }
     }
 
     @Before

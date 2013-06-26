@@ -48,6 +48,8 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.coverage.grid.io.DimensionDescriptor;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.io.CoverageReadRequest;
 import org.geotools.coverage.io.CoverageResponse;
 import org.geotools.coverage.io.SpatialRequestHelper.CoverageProperties;
@@ -58,9 +60,11 @@ import org.geotools.coverage.io.range.RangeType;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
+import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.image.ImageWorker;
+import org.geotools.imageio.unidata.utilities.UnidataUtilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
@@ -170,9 +174,21 @@ class NetCDFResponse extends CoverageResponse{
 
         // assemble granules
         prepareParams();
-        
+        String timeFilterAttribute = null;
+        String elevationFilterAttribute = null;
         CoverageReadRequest readRequest = (CoverageReadRequest) /*response.*/getRequest();
         RangeType rangeType = request.source.getRangeType(null);
+        List<DimensionDescriptor> dimensionDescriptors = request.source.getDimensionDescriptors();
+        for (DimensionDescriptor dimensionDescriptor : dimensionDescriptors) {
+            if (dimensionDescriptor.getName().equalsIgnoreCase(UnidataUtilities.ELEVATION_DIM)) {
+                // TODO Update this with ranged attributes
+                elevationFilterAttribute = dimensionDescriptor.getStartAttribute();
+            } else if (dimensionDescriptor.getName().equalsIgnoreCase(UnidataUtilities.TIME_DIM)) {
+                // TODO Update this with ranged attributes
+                timeFilterAttribute = dimensionDescriptor.getStartAttribute();
+            }
+        }
+        
         Set<DateRange> temporalSubset = readRequest.getTemporalSubset();
         Set<NumberRange<Double>> verticalSubset = readRequest.getVerticalSubset();
         RangeType requestedRange = readRequest.getRangeSubset();
@@ -222,8 +238,8 @@ class NetCDFResponse extends CoverageResponse{
 
                Query query = new Query();
                // handle time and elevation
-               createTimeElevationQuery(timeRange, elevation, query, requestFilter);
-               
+               createTimeElevationQuery(timeRange, elevation, query, requestFilter, timeFilterAttribute, elevationFilterAttribute);
+
                // handle additional params
                additionalParamsManagement(query,domainsSubset);
                
@@ -298,13 +314,15 @@ class NetCDFResponse extends CoverageResponse{
      * @param elevation
      * @param query
      * @param requestFilter  
+     * @param elevationFilterAttribute 
+     * @param timeFilterAttribute 
      * @return
      */
     private void createTimeElevationQuery(
             DateRange time, 
             NumberRange<Double> elevation, 
             Query query,
-            Filter requestFilter) {
+            Filter requestFilter, String timeFilterAttribute, String elevationFilterAttribute) {
         final List<Filter> filters = new ArrayList<Filter>();
         
         // //
@@ -314,9 +332,9 @@ class NetCDFResponse extends CoverageResponse{
             final Range range = (Range) time;
             // schema with only one time attribute. Consider adding code for schema with begin,end attributes
             filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.TIME),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(timeFilterAttribute),
                             FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMaxValue())),
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.TIME),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(timeFilterAttribute),
                             FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMinValue()))));
         }
         
@@ -325,11 +343,11 @@ class NetCDFResponse extends CoverageResponse{
         // //
         if (elevation != null) {
             final Range range = (Range) elevation;
-            // schema with only one time attribute. Consider adding code for schema with begin,end attributes
+            // schema with only one elevation attribute. Consider adding code for schema with begin,end attributes
             filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.and(
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.ELEVATION),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.lessOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(elevationFilterAttribute),
                             FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMaxValue())),
-                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.ELEVATION),
+                    FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(elevationFilterAttribute),
                             FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMinValue()))));
         }
         

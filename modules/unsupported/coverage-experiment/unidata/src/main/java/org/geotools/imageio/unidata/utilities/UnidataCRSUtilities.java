@@ -206,7 +206,7 @@ public class UnidataCRSUtilities {
         return false;
     }
 
-    public static VerticalCRS buildVerticalCrs( ucar.nc2.dataset.CoordinateSystem cs, CoordinateAxis zAxis ) {
+    public static VerticalCRS buildVerticalCrs(CoordinateAxis zAxis ) {
         VerticalCRS verticalCRS = null;
         try {
             if (zAxis != null) {
@@ -215,30 +215,27 @@ public class UnidataCRSUtilities {
                     return null;
                 }
                 String units = zAxis.getUnitsString();
-                AxisType type = zAxis.getAxisType();
+                AxisType axisType = zAxis.getAxisType();
 
                 String v_crsName = "Unknown";
                 String v_datumName = "Unknown";
                 String v_datumType = null;
-                if (cs.getRankDomain() > 2 && cs.hasVerticalAxis()) {
-                    v_datumName = new Identification("Mean Sea Level", null, null, "EPSG:5100").getName();
+                v_datumName = new Identification("Mean Sea Level", null, null, "EPSG:5100").getName();
 
-                    if (cs.getElevationAxis() != null || cs.getAzimuthAxis() != null || cs.getZaxis() != null)
+                if (axisType == AxisType.RadialAzimuth || axisType == AxisType.GeoZ || axisType == AxisType.RadialElevation)
+                    v_datumType = "geoidal";
+                else if (axisType == AxisType.Height) {
+                    if (!zAxis.getShortName().equalsIgnoreCase("height")) {
+                        v_datumType = "depth";
+                        v_crsName = new Identification("mean sea level depth", null, null, "EPSG:5715").getName();
+                    } else {
                         v_datumType = "geoidal";
-                    else if (cs.getHeightAxis() != null) {
-                        CoordinateAxis axis = cs.getHeightAxis();
-                        if (!axis.getShortName().equalsIgnoreCase("height")) {
-                            v_datumType = "depth";
-                            v_crsName = new Identification("mean sea level depth", null, null, "EPSG:5715").getName();
-                        } else {
-                            v_datumType = "geoidal";
-                            v_crsName = new Identification("mean sea level height", null, null, "EPSG:5714").getName();
-                        }
-                    } else if (cs.getPressureAxis() != null)
-                        v_datumType = "barometric";
-                    else
-                        v_datumType = "other_surface";
-                }
+                        v_crsName = new Identification("mean sea level height", null, null, "EPSG:5714").getName();
+                    }
+                } else if (axisType == AxisType.Pressure)
+                    v_datumType = "barometric";
+                else
+                    v_datumType = "other_surface";
 
                 /*
                  * Gets the axis direction, taking in account the possible reversal or
@@ -248,15 +245,15 @@ public class UnidataCRSUtilities {
                  * ("geographic" or "projected"), the ISO CS type ("ellipsoidal" or
                  * "cartesian") or the units ("degrees" or "m").
                  */
-                String direction = DIRECTIONS.get(type);
+                String direction = DIRECTIONS.get(axisType);
                 if (direction != null) {
                     if (CF.POSITIVE_DOWN.equalsIgnoreCase(zAxis.getPositive())) {
-                        direction = OPPOSITES.get(type);
+                        direction = OPPOSITES.get(axisType);
                     }
                     final int offset = units.lastIndexOf('_');
                     if (offset >= 0) {
                         final String unitsDirection = units.substring(offset + 1).trim();
-                        final String opposite = OPPOSITES.get(type);
+                        final String opposite = OPPOSITES.get(axisType);
                         if (unitsDirection.equalsIgnoreCase(opposite)) {
                             // TODO WARNING: INCONSISTENT AXIS ORIENTATION
                             direction = opposite;

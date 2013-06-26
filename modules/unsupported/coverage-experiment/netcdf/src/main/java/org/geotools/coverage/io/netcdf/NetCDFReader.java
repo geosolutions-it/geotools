@@ -338,13 +338,13 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             if (name.endsWith("domain")) {
                 
                 // global domain
-                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(false, null);
+                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(true, null);
                 return buildVerticalList(verticalElements);
             } else if (name.endsWith(DATATYPE_SUFFIX)) {
                 return NumberRange.class.getName();
             } else {
                 // min or max requests
-                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(true, null);
+                SortedSet<? extends NumberRange<Double>> verticalElements = verticalDomain.getVerticalElements(false, null);
                 NumberRange<Double> overall = verticalElements.iterator().next();
                 if (name.endsWith("maximum")) {
                     return Double.toString(overall.getMaximum());
@@ -360,12 +360,12 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             TemporalDomain temporalDomain = (TemporalDomain) domain;
             if (name.endsWith("domain")) {
                 // global domain
-                SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(false, null);
+                SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(true, null);
                 return buildTemporalList(temporalElements);
             } else if (name.endsWith(DATATYPE_SUFFIX)) {
                 return DateRange.class.getName();
             } else {
-                SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(true, null);
+                SortedSet<? extends DateRange> temporalElements = temporalDomain.getTemporalElements(false, null);
                 DateRange overall = temporalElements.iterator().next();
                 // min or max requests
                 if (name.endsWith("maximum")) {
@@ -404,10 +404,6 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         Iterator<DateRange> iterator = (Iterator<DateRange>) temporalElements.iterator();
 //        LinkedHashSet<String> result = new LinkedHashSet<String>();
 
-        if (iterator.hasNext()) {
-          //Skipping the overall range introduced by the new APIs
-            iterator.next();
-        }
         final StringBuilder buff = new StringBuilder("");
         while (iterator.hasNext()) {
             DateRange range = iterator.next();
@@ -428,10 +424,6 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         Iterator<NumberRange<Double>> iterator = (Iterator<NumberRange<Double>>) verticalElements.iterator();
         LinkedHashSet<String> ranges = new LinkedHashSet<String>();
 
-        if (iterator.hasNext()) {
-          //Skipping the overall range introduced by the new APIs
-            iterator.next();
-        }
         while (iterator.hasNext()) {
             NumberRange<Double> range = iterator.next();
             ranges.add((range.getMinValue() + "/" + range.getMaxValue()));

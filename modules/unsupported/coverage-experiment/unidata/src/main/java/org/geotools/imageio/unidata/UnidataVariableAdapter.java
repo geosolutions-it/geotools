@@ -419,9 +419,8 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         
         final List<DimensionDescriptor> dimensions = new ArrayList<DimensionDescriptor>();
         List<CoordinateVariable<?>> otherAxes = initCRS(dimensions);
-        
-        initSpatialDomain();
 
+        initSpatialDomain();
 
         // ADDITIONAL DOMAINS
         addAdditionalDomain(otherAxes, dimensions);
@@ -447,7 +446,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         // Creating the CoordinateReferenceSystem
         // ////
         coordinateReferenceSystem=UnidataCRSUtilities.WGS84;
-        
+
         /*
          * Adds the axis in reverse order, because the NetCDF image reader put the last dimensions in the rendered image. Typical NetCDF convention is
          * to put axis in the (time, depth, latitude, longitude) order, which typically maps to (longitude, latitude, depth, time) order in GeoTools
@@ -489,9 +488,8 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         final UnidataVerticalDomain verticalDomain = new UnidataVerticalDomain(cv);
         this.setVerticalDomain(verticalDomain);
         //TODO: Map ZAxis unit to UCUM UNIT (depending on type... elevation, level, pressure, ...)
-        //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code 
         dimensions.add(new DefaultDimensionDescriptor(Utils.ELEVATION_DOMAIN, 
-                CoverageUtilities.UCUM.TIME_UNITS.getName(), CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol(), Utils.ELEVATION_DOMAIN.toLowerCase(), null));
+                cv.getUnit(), CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol(), cv.getName(), null));
     }
 
     /**
@@ -511,7 +509,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
        this.setTemporalDomain(temporalDomain);
      //TODO: Fix that once schema attributes to dimension mapping is merged from Simone's code
        dimensions.add(new DefaultDimensionDescriptor(Utils.TIME_DOMAIN, 
-               CoverageUtilities.UCUM.TIME_UNITS.getName(), CoverageUtilities.UCUM.TIME_UNITS.getSymbol(), Utils.TIME_DOMAIN.toLowerCase(), null));
+               CoverageUtilities.UCUM.TIME_UNITS.getName(), CoverageUtilities.UCUM.TIME_UNITS.getSymbol(), cv.getName(), null));
     }
 
     /**

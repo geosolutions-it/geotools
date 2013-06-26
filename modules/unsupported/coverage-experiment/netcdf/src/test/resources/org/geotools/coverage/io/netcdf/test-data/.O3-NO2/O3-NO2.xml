@@ -10,11 +10,9 @@ the_geom:Polygon,coverage:String,imageindex:Integer,time:java.util.Date,elevatio
     <coverages>
         <coverage>
 			<name>O3</name>
-            <schema ref="default"></schema>
         </coverage>
         <coverage>
 			<name>NO2</name>
-            <schema ref="default"></schema>
         </coverage>
     </coverages>
 </Indexer>

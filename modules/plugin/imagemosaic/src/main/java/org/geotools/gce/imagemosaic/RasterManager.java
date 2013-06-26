@@ -75,6 +75,7 @@ import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.referencing.operation.transform.IdentityTransform;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.resources.image.ImageUtilities;
 import org.geotools.util.Range;
@@ -685,11 +686,11 @@ public class RasterManager {
         }
 
         private void addDimensionDescriptor(String name, String upperCase, String basePropertyName, String additionalPropertyName) {
-            final String unitsName = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? DefaultDimensionDescriptor.UCUM.TIME_UNITS.getName() 
-                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getName() : 
+            final String unitsName = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? CoverageUtilities.UCUM.TIME_UNITS.getName() 
+                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? CoverageUtilities.UCUM.ELEVATION_UNITS.getName() : 
                         "FIXME"; //TODO: ADD UCUM units Management
-            final String unitsSymbol = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? DefaultDimensionDescriptor.UCUM.TIME_UNITS.getSymbol() 
-                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? DefaultDimensionDescriptor.UCUM.ELEVATION_UNITS.getSymbol() : 
+            final String unitsSymbol = upperCase.equalsIgnoreCase(Utils.TIME_DOMAIN) ? CoverageUtilities.UCUM.TIME_UNITS.getSymbol() 
+                    : upperCase.equalsIgnoreCase(Utils.ELEVATION_DOMAIN) ? CoverageUtilities.UCUM.ELEVATION_UNITS.getSymbol() : 
                         "FIXME"; //TODO: ADD UCUM units Management
             final DimensionDescriptor dimensionDescriptor = new DefaultDimensionDescriptor(name, unitsName, unitsSymbol, basePropertyName, additionalPropertyName);
             dimensions.add(dimensionDescriptor);

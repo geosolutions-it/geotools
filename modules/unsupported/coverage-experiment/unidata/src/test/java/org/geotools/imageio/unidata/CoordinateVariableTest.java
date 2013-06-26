@@ -25,6 +25,7 @@ import junit.framework.Assert;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataTimeUtilities;
 import org.geotools.test.TestData;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.TemporalCRS;
@@ -128,6 +129,7 @@ public class CoordinateVariableTest extends Assert{
     }
 
     @Test
+    @Ignore
     public void testIASI() throws Exception{
         //
         // IASI does not have time or runtime, it only contains double variables besides lat e long
