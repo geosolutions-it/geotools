@@ -17,8 +17,8 @@
 package org.geotools.imageio;
 
 
+import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -170,7 +170,7 @@ public abstract class GeoSpatialImageReader extends ImageReader {
      * @param databaseName 
      * @throws IOException
      */
-    protected void initCatalog(URL parentLocation, String databaseName) throws IOException {
-        slicesCatalog = new CoverageSlicesCatalog(databaseName,parentLocation);
+    protected void initCatalog(File parentLocation, String databaseName) throws IOException {
+        slicesCatalog = new CoverageSlicesCatalog(databaseName, parentLocation);
     }
 }

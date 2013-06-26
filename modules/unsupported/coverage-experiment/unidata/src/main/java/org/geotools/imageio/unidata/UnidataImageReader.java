@@ -267,15 +267,15 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         DefaultTransaction transaction = new DefaultTransaction("indexTransaction" + System.nanoTime());
         int numImages = 0;
         try {
-            
-            final File indexerFile = ancillaryFileManager.getIndexerFile();
+
             // init slice catalog
+            final File sliceIndexFile = ancillaryFileManager.getSlicesIndexFile(); 
             initCatalog(
-                    DataUtilities.fileToURL(ancillaryFileManager.getSlicesIndexFile().getParentFile()),
-                            FilenameUtils.removeExtension(FilenameUtils.getName(indexerFile.getCanonicalPath())).replace(".", ""));
+                    sliceIndexFile.getParentFile(),
+                    FilenameUtils.removeExtension(FilenameUtils.getName(sliceIndexFile.getCanonicalPath())).replace(".", ""));
             final List<Variable> variables = dataset.getVariables();
             if (variables != null) {
-                
+
                 // cycle on all variables to get parse them
                 for (final Variable var_ : variables) {
                     if (var_ != null && var_ instanceof VariableDS) {
@@ -287,12 +287,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         if (!ancillaryFileManager.acceptsVariable(varName)) {
                             continue;
                         }
-                        
+
                         // is it acceptable?
                         if (!UnidataUtilities.isVariableAccepted(variable, checkType)) {
                             continue;
                         }
-                        
+
                         // COVERAGE NAME
                         // Add the accepted variable to the list of coverages name
                         final Name coverageName = getCoverageName(varName);
@@ -450,8 +450,12 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             switch(cv.getAxisType()){
             case GeoX: case GeoY: case Lat: case Lon:
                 continue;
-            case Height: case Pressure: case RadialElevation: case RadialDistance:
-                dimensionsMapping.put(UnidataUtilities.ELEVATION_DIM, name);
+            case Height: case Pressure: case RadialElevation: case RadialDistance: case GeoZ:
+                if (UnidataCRSUtilities.VERTICAL_AXIS_NAMES.contains(name)) {
+                    dimensionsMapping.put(UnidataUtilities.ELEVATION_DIM, name);
+                } else {
+                    dimensionsMapping.put(name.toUpperCase(), name);
+                }
                 break;
             case Time: 
                 dimensionsMapping.put(UnidataUtilities.TIME_DIM, name);
@@ -532,7 +536,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         final SimpleFeature feature = DataUtilities.template(indexSchema);
         feature.setAttribute(CoverageSlice.Attributes.GEOMETRY, UnidataCRSUtilities.GEOM_FACTORY.toGeometry(boundingBox));
         feature.setAttribute(CoverageSlice.Attributes.INDEX, imageIndex);
-        feature.setAttribute(CoverageSlice.Attributes.COVERAGENAME, coverageName);
 
         // Check if we have time and elevation domain and set the attribute if needed
         if (date != null) {
@@ -570,7 +573,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             if (axis instanceof CoordinateAxis1D) {
                 coordinatesVariables.put(axis.getFullName(), CoordinateVariable.create((CoordinateAxis1D)axis));
             }
-
         }
     }
 
@@ -619,7 +621,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 extractCoordinatesVariable();
                 extractBBOX();
                 final File slicesIndexFile = ancillaryFileManager.getSlicesIndexFile();
-                final File indexerFile = ancillaryFileManager.getIndexerFile();
 
                 if (slicesIndexFile != null) {
                     // === use sidecar index
@@ -627,9 +628,8 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         ancillaryFileManager.initSliceManager();
                         numImages = ancillaryFileManager.slicesIndexManager.getNumberOfRecords();
                         if (!ignoreMetadata) {
-                            initCatalog(
-                                    DataUtilities.fileToURL(ancillaryFileManager.getSlicesIndexFile().getParentFile()),
-                                            FilenameUtils.removeExtension(FilenameUtils.getName(indexerFile.getCanonicalPath())).replace(".", ""));
+                            initCatalog(slicesIndexFile.getParentFile(),
+                            FilenameUtils.removeExtension(FilenameUtils.getName(slicesIndexFile.getCanonicalPath())).replace(".", ""));
                             coverages.addAll(ancillaryFileManager.getCoveragesNames());
                         }
                     }
@@ -671,7 +671,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         byte set=0;
         for(CoordinateVariable<?> cv:coordinatesVariables.values()){
             if(cv.isNumeric()){
-                
+
                 // is it lat or lon?
                 AxisType type = cv.getAxisType();
                 switch (type) {

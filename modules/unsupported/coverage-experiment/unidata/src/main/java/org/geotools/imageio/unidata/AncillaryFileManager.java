@@ -285,11 +285,11 @@ class AncillaryFileManager {
         }
         
         // Get attributes (if any) defining that schema
-        String schemaAttributes = schemaElement.getAttributes(); 
+        String schemaAttributes = schemaElement.getAttributes();
 
         // for the moment we only handle data in 4326
         final CoordinateReferenceSystem actualCRS = UnidataCRSUtilities.WGS84;
-        SimpleFeatureType indexSchema = null;    
+        SimpleFeatureType indexSchema = null;
         
         // Setting up the simpleFeatureType
         if (schemaAttributes != null) {

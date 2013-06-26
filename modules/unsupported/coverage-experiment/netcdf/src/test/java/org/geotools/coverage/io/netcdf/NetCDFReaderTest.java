@@ -43,8 +43,10 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
+import org.geotools.gce.imagemosaic.Utils;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -367,6 +369,85 @@ public class NetCDFReaderTest extends Assert {
             }
         }
     }
+    
+    @Test
+//  @Ignore
+  public void NetCDFTestAscatL1() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
+      
+      final URL testURL = TestData.url(this, "ascatl1.nc");
+      final Hints hints= new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM, CRS.decode("EPSG:4326", true));
+      hints.add(new Hints(Utils.EXCLUDE_MOSAIC, true));
+
+      // Get format
+      final AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(testURL,hints);
+      final NetCDFReader reader = (NetCDFReader) format.getReader(testURL, hints);
+      
+      assertNotNull(format);
+      try {
+          String[] names = reader.getGridCoverageNames();
+          names = new String[] { names[1] };
+
+          for (String coverageName : names) {
+
+              final String[] metadataNames = reader.getMetadataNames(coverageName);
+              assertNotNull(metadataNames);
+              assertEquals(17, metadataNames.length);
+
+              // Parsing metadata values
+              assertEquals("false", reader.getMetadataValue(coverageName, "HAS_TIME_DOMAIN"));
+
+              assertEquals("false", reader.getMetadataValue(coverageName, "HAS_ELEVATION_DOMAIN"));
+              
+              assertEquals("true", reader.getMetadataValue(coverageName, "HAS_NUMSIGMA_DOMAIN"));
+              final String sigmaMetadata = reader.getMetadataValue(coverageName, "NUMSIGMA_DOMAIN");
+              assertNotNull(sigmaMetadata);
+              assertEquals("0,1,2", sigmaMetadata);
+              assertEquals(3, sigmaMetadata.split(",").length);
+
+              // subsetting the envelope
+              final ParameterValue<GridGeometry2D> gg = AbstractGridFormat.READ_GRIDGEOMETRY2D
+                      .createValue();
+              final GeneralEnvelope originalEnvelope = reader.getOriginalEnvelope(coverageName);
+              final GeneralEnvelope reducedEnvelope = new GeneralEnvelope(new double[] {
+                      originalEnvelope.getLowerCorner().getOrdinate(0),
+                      originalEnvelope.getLowerCorner().getOrdinate(1) }, new double[] {
+                      originalEnvelope.getMedian().getOrdinate(0),
+                      originalEnvelope.getMedian().getOrdinate(1) });
+              reducedEnvelope.setCoordinateReferenceSystem(reader
+                      .getCoordinateReferenceSystem(coverageName));
+
+              // Selecting bigger gridRange for a zoomed result
+              final Dimension dim = new Dimension();
+              GridEnvelope gridRange = reader.getOriginalGridRange(coverageName);
+              dim.setSize(gridRange.getSpan(0) * 4.0, gridRange.getSpan(1) * 2.0);
+              final Rectangle rasterArea = ((GridEnvelope2D) gridRange);
+              rasterArea.setSize(dim);
+              final GridEnvelope2D range = new GridEnvelope2D(rasterArea);
+              gg.setValue(new GridGeometry2D(range, reducedEnvelope));
+
+              Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(coverageName);
+              
+              GeneralParameterValue[] values = new GeneralParameterValue[] { gg};
+              GridCoverage2D coverage = reader.read(coverageName, values);
+              assertNotNull(coverage);
+              if (TestData.isInteractiveTest()) {
+                  coverage.show();
+              } else {
+                  PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
+              }
+          }
+      } catch (Throwable t) {
+          throw new RuntimeException(t);
+      } finally {
+          if (reader != null) {
+              try {
+                  reader.dispose();
+              } catch (Throwable t) {
+                  // Does nothing
+              }
+          }
+      }
+  }
 
     @Test
     public void NetCDFGOME2() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {

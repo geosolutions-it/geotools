@@ -71,7 +71,7 @@ public class CatalogSliceTest extends Assert{
         CoverageSlicesCatalog sliceCat=null;
         final Transaction t= new DefaultTransaction(Long.toString(System.nanoTime()));
         try{
-            sliceCat= new CoverageSlicesCatalog(databaseName, DataUtilities.fileToURL(parentLocation));
+            sliceCat= new CoverageSlicesCatalog(databaseName, parentLocation);
             String[] typeNames = sliceCat.getTypeNames();
             assertNull(typeNames);
             

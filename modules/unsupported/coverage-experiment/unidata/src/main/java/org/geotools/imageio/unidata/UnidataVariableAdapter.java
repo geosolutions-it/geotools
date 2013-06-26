@@ -567,7 +567,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
             return;
         }
         final List<AdditionalDomain> additionalDomains = new ArrayList<AdditionalDomain>(otherAxes.size());
-        this.setAdditionalDomains(additionalDomains);        
+        this.setAdditionalDomains(additionalDomains);
         for(CoordinateVariable<?> cv :otherAxes){
             
             // create domain
@@ -577,6 +577,7 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
                 additionalDomains.add(domain);
              // TODO: Parse Units from axis and map them to UCUM units
                 dimensions.add(new DefaultDimensionDescriptor(cv.getName(), "FIXME_UNIT", "FIXME_UNITSYMBOL", cv.getName(), null));
+                this.setHasAdditionalDomains(true);
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, e.getMessage(), e);
             }

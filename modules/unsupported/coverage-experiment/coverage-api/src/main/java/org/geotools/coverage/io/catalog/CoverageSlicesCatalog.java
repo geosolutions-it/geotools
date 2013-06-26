@@ -16,8 +16,10 @@
  */
 package org.geotools.coverage.io.catalog;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -78,35 +80,40 @@ public class CoverageSlicesCatalog {
     private String geometryPropertyName;
 
     private ReferencedEnvelope bounds;
-    
+
     public final static String IMAGE_INDEX_ATTR = "imageindex";
 
     private final SoftValueHashMap<Integer, CoverageSlice> coverageSliceDescriptorsCache = new SoftValueHashMap<Integer, CoverageSlice>(0);
 
-    
-    public CoverageSlicesCatalog(final String database, final URL parentLocation) {
+    public CoverageSlicesCatalog(final String database, final File parentLocation) {
         this(createParams(database,parentLocation));
     }
+
     /**
      * @param database
      * @param parentLocation2
      * @return
      */
-    private static Map<String, Serializable> createParams(String database, URL parentLocation) {
-
+    private static Map<String, Serializable> createParams(String database, File parentLocation) {
         Utilities.ensureNonNull("database", database);
         Utilities.ensureNonNull("parentLocation", parentLocation);
         final Map<String, Serializable> params = new HashMap<String, Serializable>();
         params.put("ScanTypeNames", Boolean.valueOf(true));
-        final String url = parentLocation.toExternalForm().toString();
-        params.put("ParentLocation", url);
-        params.put("database", url+"/"+database);
-        params.put("dbtype", "h2");
-        params.put("user", "geotools");
-        params.put("passwd", "geotools");
+        final String url = DataUtilities.fileToURL(parentLocation).toExternalForm();
+        String updatedDB;
+        try {
+            updatedDB = "file:" + (new File(DataUtilities.urlToFile(new URL(url)), database)).getPath();
+            params.put("ParentLocation", url);
+            params.put("database", updatedDB);
+            params.put("dbtype", "h2");
+            params.put("user", "geotools");
+            params.put("passwd", "geotools");
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
         return params;
     }
-    
+
     private CoverageSlicesCatalog(final Map<String, Serializable> params) {
         Utilities.ensureNonNull("params", params);
         try {

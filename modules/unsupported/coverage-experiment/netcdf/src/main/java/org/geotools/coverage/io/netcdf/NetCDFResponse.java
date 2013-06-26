@@ -350,12 +350,6 @@ class NetCDFResponse extends CoverageResponse{
                     FeatureUtilities.DEFAULT_FILTER_FACTORY.greaterOrEqual(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(elevationFilterAttribute),
                             FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(range.getMinValue()))));
         }
-        
-        // //
-        // Filtering by coverage name
-        // //
-        filters.add(FeatureUtilities.DEFAULT_FILTER_FACTORY.equal(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(CoverageSlice.Attributes.COVERAGENAME),
-                FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(request.name), true));
 
         if (requestFilter != null) {
             filters.add(requestFilter);

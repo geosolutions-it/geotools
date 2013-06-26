@@ -120,7 +120,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     private static final String MINIMUM_SUFFIX = "_MAXIMUM";
 
     private static final String MAXIMUM_SUFFIX = "_MINIMUM";
-    
+
     private static final String DATATYPE_SUFFIX = "_DATATYPE";
 
     private final static Logger LOGGER = Logging
@@ -442,7 +442,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
         LinkedHashSet<String> ranges = new LinkedHashSet<String>();
 
         while (iterator.hasNext()) {
-            Double value = (Double)iterator.next();
+            Number value = (Number) iterator.next();
             ranges.add(value.toString());
         }
         return buildResultsString(ranges);
@@ -848,7 +848,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             UnsupportedOperationException {
         UnidataImageReader unidataReader = (UnidataImageReader) ((NetCDFAccess)access).reader;
         final CoverageSlicesCatalog catalog = unidataReader.getCatalog();
-        return new CoverageSlicesCatalogSource(catalog, coverageName, unidataReader.getTypeName(coverageName));
+        return new CoverageSlicesCatalogSource(catalog, unidataReader.getTypeName(coverageName));
     }
     
     @Override

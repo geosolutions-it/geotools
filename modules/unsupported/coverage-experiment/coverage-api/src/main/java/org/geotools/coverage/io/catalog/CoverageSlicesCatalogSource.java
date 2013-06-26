@@ -1,7 +1,6 @@
 package org.geotools.coverage.io.catalog;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.geotools.coverage.grid.io.GranuleSource;
@@ -9,10 +8,8 @@ import org.geotools.data.Query;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.resources.coverage.FeatureUtilities;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory2;
 
 /**
  * A {@link GranuleSource} implementation wrapping a {@link CoverageSlicesCatalog}.
@@ -22,28 +19,19 @@ import org.opengis.filter.FilterFactory2;
 public class CoverageSlicesCatalogSource implements GranuleSource {
 
     private CoverageSlicesCatalog innerCatalog;
-    
+
     private final String typeName;
-    
-    private final static FilterFactory2 FF = FeatureUtilities.DEFAULT_FILTER_FACTORY;
-    
-    /** This filter is created to extract the portion of catalog related to the specified name */
-    private final Filter filterName;
-    
-    public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String coverageName, String typeName) {
+
+    public CoverageSlicesCatalogSource(CoverageSlicesCatalog innerCatalog, String typeName) {
         this.innerCatalog = innerCatalog;
         this.typeName = typeName;
-        List<Filter> filters = new ArrayList<Filter>(); 
-        filters.add(FF.equal(FF.property(CoverageSlice.Attributes.COVERAGENAME),
-                FF.literal(coverageName), true));
-        filterName = FF.and(filters);
     }
 
     @Override
     public SimpleFeatureCollection getGranules(Query q) throws IOException {
         //TODO: optimize this. It's currently "putting" all the features. No iterator is used. 
         
-        // Filtering by coverageName
+        // Filtering by typeName
         if (q == null) {
             q = new Query(typeName);
         } else {
@@ -51,11 +39,6 @@ public class CoverageSlicesCatalogSource implements GranuleSource {
         }
         
         Filter filter = q.getFilter();
-        if (filter != null) {
-            filter = FF.and(filter, filterName);
-        } else {
-            filter = filterName;
-        }
         q.setFilter(filter);
         List<CoverageSlice> granules = innerCatalog.getGranules(q);
         SimpleFeatureCollection collection = new ListFeatureCollection(innerCatalog.getSchema(typeName));

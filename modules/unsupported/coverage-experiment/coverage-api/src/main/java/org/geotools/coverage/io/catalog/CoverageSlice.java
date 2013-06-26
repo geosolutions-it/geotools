@@ -28,19 +28,17 @@ public class CoverageSlice {
     // Currently features contain 1 time and 1 elevation attributes. 
     // We may consider adding endTime and endElevation attributes too.
     public static class Attributes {
-    
+
         public final static String INDEX = CoverageSlicesCatalog.IMAGE_INDEX_ATTR;
-        
-        public final static String COVERAGENAME = "coverage";
-        
+
         public final static String TIME = "time";
-        
+
         public final static String ELEVATION = "elevation";
-        
+
         public final static String GEOMETRY = "the_geom";
-        
-        public static final String BASE_SCHEMA = GEOMETRY + ":Polygon," + COVERAGENAME + ":String,"+ INDEX + ":Integer";
-        
+
+        public static final String BASE_SCHEMA = GEOMETRY + ":Polygon," + INDEX + ":Integer";
+
         public static final String DEFAULT_SCHEMA = BASE_SCHEMA+"," + TIME + ":java.util.Date," + ELEVATION + ":Double";
     }
 
