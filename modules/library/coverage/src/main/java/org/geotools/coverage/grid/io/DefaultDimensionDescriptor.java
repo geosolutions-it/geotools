@@ -64,4 +64,24 @@ public class DefaultDimensionDescriptor implements DimensionDescriptor {
         return endAttribute;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setUnitSymbol(String unitSymbol) {
+        this.unitSymbol = unitSymbol;
+    }
+
+    public void setUnits(String units) {
+        this.units = units;
+    }
+
+    public void setStartAttribute(String startAttribute) {
+        this.startAttribute = startAttribute;
+    }
+
+    public void setEndAttribute(String endAttribute) {
+        this.endAttribute = endAttribute;
+    }
+
 }

@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.media.jai.PlanarImage;
@@ -784,6 +785,125 @@ public class NetCDFMosaicReaderTest extends Assert {
     }
 
     @Test
+    public void testPolyphemusMosaic() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
+        
+        File nc1 = new File(
+                "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_TZ.nc");
+        File mosaic = new File("./target/nc_polyphemus");
+        if (mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+        
+        File xml = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/_polyphemus.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+        
+        xml = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/indexer.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+
+        // the datastore.properties file is also mandatory...
+        File dsp = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+
+        // have the reader harvest it
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        
+        GridCoverage2D coverage = null;
+        assertNotNull(reader);
+        try {
+            String[] names = reader.getGridCoverageNames();
+            assertEquals(1, names.length);
+            assertEquals("O3", names[0]);
+            String name = names[0];
+            final String[] metadataNames = reader.getMetadataNames(name);
+            assertNotNull(metadataNames);
+            assertEquals(metadataNames.length, 18);
+            
+            assertEquals("true", reader.getMetadataValue(name, "HAS_TIME_DOMAIN"));
+            assertEquals("2013-03-01T00:00:00.000Z,2013-03-01T01:00:00.000Z",
+                    reader.getMetadataValue(name, "TIME_DOMAIN"));
+            assertEquals("2013-03-01T00:00:00.000Z", reader.getMetadataValue(name, "TIME_DOMAIN_MINIMUM"));
+            assertEquals("2013-03-01T01:00:00.000Z", reader.getMetadataValue(name, "TIME_DOMAIN_MAXIMUM"));
+        
+            assertEquals("true", reader.getMetadataValue(name, "HAS_ELEVATION_DOMAIN"));
+            assertEquals("10.0,35.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN"));
+            assertEquals("10.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN_MINIMUM"));
+            assertEquals("35.0", reader.getMetadataValue(name, "ELEVATION_DOMAIN_MAXIMUM"));
+
+            assertEquals("true", reader.getMetadataValue(name, "HAS_FILEDATE_DOMAIN"));
+            assertEquals("java.sql.Timestamp", reader.getMetadataValue(name, "UPDATED_DOMAIN_DATATYPE"));
+
+            assertEquals("true", reader.getMetadataValue(name, "HAS_UPDATED_DOMAIN"));
+            assertEquals("java.sql.Timestamp", reader.getMetadataValue(name, "UPDATED_DOMAIN_DATATYPE"));
+
+            final ParameterValue<List> time = ImageMosaicFormat.TIME.createValue();
+            final SimpleDateFormat formatD = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            formatD.setTimeZone(TimeZone.getTimeZone("GMT"));
+            final Date timeD = formatD.parse("2013-03-01T00:00:00.000Z");
+            time.setValue(new ArrayList() {
+                {
+                    add(timeD);
+                }
+            });
+
+            final ParameterValue<List> elevation = ImageMosaicFormat.ELEVATION.createValue();
+            elevation.setValue(new ArrayList() {
+                {
+                    add(35d); // Elevation
+                }
+            });
+            
+            Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(name);
+            ParameterValue updatedValue = null;
+            ParameterValue fileDateValue = null;
+            final String selectedUpdated = reader.getMetadataValue(name, "UPDATED_DOMAIN");
+            final String selectedFileDate = reader.getMetadataValue(name, "FILEDATE_DOMAIN");
+            for (ParameterDescriptor param : params) {
+                if (param.getName().getCode().equalsIgnoreCase("UPDATED")) {
+                    updatedValue = param.createValue();
+                    updatedValue.setValue(new ArrayList<String>() {
+                        {
+                            add(selectedUpdated);
+                        }
+                    });
+                }  else if (param.getName().getCode().equalsIgnoreCase("FILEDATE")) {
+                    fileDateValue = param.createValue();
+                    fileDateValue.setValue(new ArrayList<String>() {
+                        {
+                            add(selectedFileDate);
+                        }
+                    });
+                } 
+            }
+
+            GeneralParameterValue[] values = new GeneralParameterValue[] {time, elevation, updatedValue, fileDateValue };
+            coverage = reader.read(name, values);
+            assertNotNull(coverage);
+            if (TestData.isInteractiveTest()) {
+                coverage.show();
+            } else {
+                PlanarImage.wrapRenderedImage(coverage.getRenderedImage()).getTiles();
+            }
+            
+            
+        } finally {
+            if(coverage != null) {
+                ImageUtilities.disposePlanarImageChain((PlanarImage) coverage.getRenderedImage());
+                coverage.dispose(true);
+            }
+            if (reader != null) {
+                try {
+                    reader.dispose();
+                } catch (Throwable t) {
+                    // Does nothing
+                }
+            }
+        }
+    }
+
+    @Test
     @Ignore
         public void oracle() throws IOException, ParseException, NoSuchAuthorityCodeException, FactoryException {
                 final File workDir=new File("C:\\data\\dlr\\ascatL1_mosaic");
@@ -858,10 +978,8 @@ public class NetCDFMosaicReaderTest extends Assert {
                 assertNotNull(coverage);
                 //coverage.show();
                 //System.in.read();
-                
-                
         }
-    
+
     private Date parseTimeStamp(String timeStamp) throws ParseException {
         final SimpleDateFormat formatD = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         return formatD.parse(timeStamp);
@@ -875,7 +993,6 @@ public class NetCDFMosaicReaderTest extends Assert {
      */
     static void show(RenderedImage image, String title) {
         ImageIOUtilities.visualize(image, title);
-
     }
 
     /**
@@ -883,7 +1000,6 @@ public class NetCDFMosaicReaderTest extends Assert {
      */
     public static void main(String[] args) {
         TestRunner.run(NetCDFMosaicReaderTest.suite());
-
     }
 
     @Before

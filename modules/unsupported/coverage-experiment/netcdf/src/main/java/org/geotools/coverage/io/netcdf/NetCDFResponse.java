@@ -241,7 +241,7 @@ class NetCDFResponse extends CoverageResponse{
                createTimeElevationQuery(timeRange, elevation, query, requestFilter, timeFilterAttribute, elevationFilterAttribute);
 
                // handle additional params
-               additionalParamsManagement(query,domainsSubset);
+               additionalParamsManagement(query,domainsSubset, dimensionDescriptors);
                
                // bbox
                query.setFilter(
@@ -285,20 +285,28 @@ class NetCDFResponse extends CoverageResponse{
     /**
      * @param query
      * @param domainsSubset 
+     * @param dimensionDescriptors 
      */
-    private void additionalParamsManagement(Query query, Map<String, Set<?>> domainsSubset) {
+    private void additionalParamsManagement(Query query, Map<String, Set<?>> domainsSubset, List<DimensionDescriptor> dimensionDescriptors) {
         if (domainsSubset.isEmpty()){
             return;
         }
         Filter filter = query.getFilter();
         for(Entry<String, Set<?>> entry:domainsSubset.entrySet()){
             Set<?> values = entry.getValue();
+            String attribute = null; 
+            for (DimensionDescriptor dim: dimensionDescriptors) {
+                if (dim.getName().toUpperCase().equalsIgnoreCase(entry.getKey())) {
+                    attribute = dim.getStartAttribute();
+                    break;
+                }
+            }
             for(Object value:values){
                 if(value instanceof Range){
                     throw new UnsupportedOperationException();
                 } else {
                     filter=FeatureUtilities.DEFAULT_FILTER_FACTORY.and(filter,
-                            FeatureUtilities.DEFAULT_FILTER_FACTORY.equals(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(entry.getKey().toLowerCase()),
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.equals(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(attribute),
                                     FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(value)));
                 }
             }

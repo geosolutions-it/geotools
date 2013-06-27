@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<Indexer>
+    <domains>
+      <domain name="time">
+         <attributes><attribute>time</attribute></attributes>
+      </domain>
+      <domain name="elevation">
+         <attributes><attribute>z</attribute></attributes>
+      </domain>
+      <domain name="fileDate">
+         <attributes><attribute ref="fileDateCollector">fileDate</attribute></attributes>
+      </domain>
+      <domain name="updated">
+         <attributes><attribute ref="updatedCollector">updated</attribute></attributes>
+      </domain>
+    </domains>
+    <schemas>
+        <schema name="default" >
+            <attributes>the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date,z:Double,fileDate:java.util.Date,updated:java.util.Date</attributes>
+        </schema>
+    </schemas>
+    <coverages>
+        <coverage>
+            <name>O3</name>
+            <schema ref="default"></schema>
+            <domains>
+              <domain ref="time" />
+              <domain ref="elevation" />
+              <domain ref="fileDate" />
+              <domain ref="updated" />
+            </domains>
+        </coverage>
+    </coverages>
+    <collectors>
+    <collector name="fileDateCollector">
+      <value>[0-9]{8}</value>
+      <spi>TimestampFileNameExtractorSPI</spi>
+      <mapped>fileDate</mapped>
+    </collector>
+    <collector name="updatedCollector">
+      <value>MODIFY_TIME</value>
+      <spi>RuntimeExtractorSPI</spi>
+      <mapped>updated</mapped>
+    </collector>
+    </collectors>
+    <parameters>
+        <parameter name="AuxiliaryFile" value="_polyphemus.xml" />
+        <parameter name="AbsolutePath" value="true" />
+    </parameters>
+</Indexer>

@@ -371,7 +371,6 @@ public class NetCDFReaderTest extends Assert {
     }
     
     @Test
-//  @Ignore
   public void NetCDFTestAscatL1() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
       
       final URL testURL = TestData.url(this, "ascatl1.nc");
@@ -426,8 +425,20 @@ public class NetCDFReaderTest extends Assert {
               gg.setValue(new GridGeometry2D(range, reducedEnvelope));
 
               Set<ParameterDescriptor<List>> params = reader.getDynamicParameters(coverageName);
+              ParameterValue sigmaValue = null;
+              final String selectedSigma = "1";
+              for (ParameterDescriptor param : params) {
+                  if (param.getName().getCode().equalsIgnoreCase("NUMSIGMA")) {
+                      sigmaValue = param.createValue();
+                      sigmaValue.setValue(new ArrayList<String>() {
+                          {
+                              add(selectedSigma);
+                          }
+                      });
+                  } 
+              }
               
-              GeneralParameterValue[] values = new GeneralParameterValue[] { gg};
+              GeneralParameterValue[] values = new GeneralParameterValue[] { gg, sigmaValue};
               GridCoverage2D coverage = reader.read(coverageName, values);
               assertNotNull(coverage);
               if (TestData.isInteractiveTest()) {

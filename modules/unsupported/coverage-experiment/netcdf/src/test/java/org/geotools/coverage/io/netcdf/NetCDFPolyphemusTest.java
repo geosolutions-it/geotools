@@ -76,7 +76,7 @@ public final class NetCDFPolyphemusTest extends Assert {
 
     
     @Test
-    @Ignore
+//    @Ignore
     public void testImageReader() throws IllegalArgumentException, IOException, NoSuchAuthorityCodeException {
         final String[] files = TestData.file(this, ".").list(new FilenameFilter() {
             @Override
@@ -127,7 +127,7 @@ public final class NetCDFPolyphemusTest extends Assert {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void geoToolsReader() throws IllegalArgumentException, IOException, NoSuchAuthorityCodeException {
         boolean isInteractiveTest = TestData.isInteractiveTest();
 
@@ -246,7 +246,7 @@ public final class NetCDFPolyphemusTest extends Assert {
                     final Iterator<? extends NumberRange<Double>> iterator = verticalElements.iterator();
                     for (int i = 0; i < numLevels; i++) {
                         NumberRange<Double> level = iterator.next();
-                        if (i % (numLevels / 5) == 1) {
+                        if (numLevels == 1 || (i % (numLevels / 5) == 1)) {
                             requestedVerticalSubset.add(level);
                         }
                     }
@@ -258,7 +258,7 @@ public final class NetCDFPolyphemusTest extends Assert {
                     Iterator<? extends DateRange> iteratorT = temporalElements.iterator();
                     for (int i = 0; i < numTimes; i++) {
                         DateRange time = iteratorT.next();
-                        if (i % (numTimes / 5) == 1) {
+                        if (numTimes == 1 || (i % (numTimes / 5) == 1)) {
                             requestedTemporalSubset.add(time);
                         }
                     }
@@ -308,7 +308,7 @@ public final class NetCDFPolyphemusTest extends Assert {
             }
         }
     }
-    
+
     private void cleanUp() throws FileNotFoundException, IOException {
         if (TestData.isInteractiveTest()) {
             return;
