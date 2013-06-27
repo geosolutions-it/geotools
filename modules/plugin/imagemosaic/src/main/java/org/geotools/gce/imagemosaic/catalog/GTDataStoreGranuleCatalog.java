@@ -351,7 +351,7 @@ class GTDataStoreGranuleCatalog extends AbstractGranuleCatalog {
 			String typeName = query.getTypeName();
 			SimpleFeatureStore fs=null;
 			try{
-				// remove features
+				// create a writer that appends this features
 				fs = (SimpleFeatureStore) tileIndexStore.getFeatureSource(typeName);
 				final int retVal=fs.getCount(query);
 				fs.removeFeatures(query.getFilter());

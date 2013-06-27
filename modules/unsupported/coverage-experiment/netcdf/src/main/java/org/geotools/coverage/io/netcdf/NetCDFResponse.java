@@ -285,9 +285,8 @@ class NetCDFResponse extends CoverageResponse{
     /**
      * @param query
      * @param domainsSubset 
-     * @param dimensionDescriptors 
      */
-    private void additionalParamsManagement(Query query, Map<String, Set<?>> domainsSubset, List<DimensionDescriptor> dimensionDescriptors) {
+    private void additionalParamsManagement(Query query, Map<String, Set<?>> domainsSubset,  List<DimensionDescriptor> dimensionDescriptors) {
         if (domainsSubset.isEmpty()){
             return;
         }
@@ -297,8 +296,8 @@ class NetCDFResponse extends CoverageResponse{
             String attribute = null; 
             for (DimensionDescriptor dim: dimensionDescriptors) {
                 if (dim.getName().toUpperCase().equalsIgnoreCase(entry.getKey())) {
-                    attribute = dim.getStartAttribute();
-                    break;
+                     attribute = dim.getStartAttribute();
+                     break;
                 }
             }
             for(Object value:values){
