@@ -154,7 +154,7 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 		
 		final String[] metadataNames = reader.getMetadataNames();
 		assertNotNull(metadataNames);
-		assertEquals(metadataNames.length,10);
+		assertEquals(12, metadataNames.length);
 		
 		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));
 		final String timeMetadata = reader.getMetadataValue("TIME_DOMAIN");
@@ -255,7 +255,7 @@ public class ImageMosaicPostgisIndexTest extends OnlineTestCase {
 		
 		final String[] metadataNames = reader.getMetadataNames();
 		assertNotNull(metadataNames);
-		assertEquals(metadataNames.length,10);
+		assertEquals(12, metadataNames.length);
 		
 		assertEquals("true", reader.getMetadataValue("HAS_TIME_DOMAIN"));		
 		assertEquals("true", reader.getMetadataValue("HAS_ELEVATION_DOMAIN"));

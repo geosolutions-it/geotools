@@ -111,6 +111,7 @@
           <dependency>
             <artifactId>ojdbc14</artifactId>
             <groupId>com.oracle</groupId>
+            <scope>provided</scope>
             <!-- version specified in root pom -->
           </dependency>
     <dependency>
