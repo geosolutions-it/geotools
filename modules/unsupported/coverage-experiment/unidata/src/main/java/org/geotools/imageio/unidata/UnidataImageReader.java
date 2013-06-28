@@ -437,7 +437,6 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             // TODO incapsulate in coveragedescriptor
             indexSchema = createSchema(coverage, cs);
         }
-        initMapping(cs);
         return indexSchema;
     }
 
@@ -445,7 +444,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
         // check other dimensions
         for (CoordinateAxis axis : cs.getCoordinateAxes()) {
             // get from coordinate vars
-            final CoordinateVariable<?> cv = this.coordinatesVariables.get(axis.getFullName()); 
+            final CoordinateVariable<?> cv = coordinatesVariables.get(axis.getFullName()); 
             final String name = cv.getName();
             switch(cv.getAxisType()){
             case GeoX: case GeoY: case Lat: case Lon:
@@ -574,6 +573,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 coordinatesVariables.put(axis.getFullName(), CoordinateVariable.create((CoordinateAxis1D)axis));
             }
         }
+        initMapping(dataset.getCoordinateSystems().get(0));
     }
 
     @Override
