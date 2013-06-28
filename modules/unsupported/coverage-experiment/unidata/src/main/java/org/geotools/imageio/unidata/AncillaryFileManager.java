@@ -94,6 +94,9 @@ class AncillaryFileManager {
     /** coverage Name to variable mapping */
     Map<Name, String> variablesMap = null;
 
+    /** specify whether the auxiliary file contains explicit schema definition to be forced */
+    boolean hasImposedSchema = false;
+
     /** A propertyCollectors map */
     private Map<String, PropertiesCollector> collectors = null;
 
@@ -412,7 +415,7 @@ class AncillaryFileManager {
                 final SchemasType schemas = indexer.getSchemas();
                 Map<String, String> schemaMapping = new HashMap<String, String>();
                 if (schemas != null) {
-                  // Map schema names to schema attributes string
+                    // Map schema names to schema attributes string
                     List<SchemaType> schemaElements = schemas.getSchema();
                     for (SchemaType schemaElement: schemaElements) {
                         schemaMapping.put(schemaElement.getName(), schemaElement.getAttributes());
@@ -460,6 +463,7 @@ class AncillaryFileManager {
                 String coverageSchemaRef = null;
                 String schemaAttributes = null;
                 if (coverageSchema != null) {
+                    hasImposedSchema = true;
                     schemaAttributes = coverageSchema.getAttributes();
                     coverageSchemaRef = coverageSchema.getRef();
                 }
@@ -621,4 +625,8 @@ class AncillaryFileManager {
         }
         return false;
     }
+
+	public boolean isHasImposedSchema() {
+		return hasImposedSchema;
+	}
 }

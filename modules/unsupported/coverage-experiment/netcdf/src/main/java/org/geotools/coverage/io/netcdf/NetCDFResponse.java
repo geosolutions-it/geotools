@@ -188,13 +188,12 @@ class NetCDFResponse extends CoverageResponse{
                 timeFilterAttribute = dimensionDescriptor.getStartAttribute();
             }
         }
-        
+
         Set<DateRange> temporalSubset = readRequest.getTemporalSubset();
         Set<NumberRange<Double>> verticalSubset = readRequest.getVerticalSubset();
         RangeType requestedRange = readRequest.getRangeSubset();
         Set<FieldType> fieldTypes = requestedRange.getFieldTypes();
-        
-        
+
         //
         // adding GridCoverages to the results list
         //
