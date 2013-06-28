@@ -583,26 +583,7 @@ public class PyramidBuilder extends BaseArgumentsManager implements Runnable,
 	        final CatalogBuilderConfiguration configuration = new CatalogBuilderConfiguration();
 	        configuration.setParameter(Prop.ROOT_MOSAIC_DIR, new File(outputLocation, String.valueOf(level)).getAbsolutePath());
                 configuration.setParameter(Prop.INDEX_NAME, name);
-//              
-//	        configuration.setRootMosaicDirectory();   
-//                configuration.setIndexName(name);
-                
-//	        configuration.setAbsolute(runner.absolute);
-//	        configuration.setFootprintManagement(runner.footprintManagement);
-//	        configuration.setCaching(runner.caching);
-//	        configuration.setWildcard(runner.wildcardString);
-//	        configuration.setLocationAttribute(runner.locationAttribute);
-//	        
-//
-//	        final String directories = runner.indexingDirectoriesString;
-//	        final String[] dirs_ = directories.split(",");
-//	        final List<String> dirs = new ArrayList<String>();
-//	        for (String dir : dirs_)
-//	            dirs.add(dir);
-//	        configuration.setIndexingDirectories(dirs);
-                
                 configuration.setParameter(Prop.INDEXING_DIRECTORIES, configuration.getParameter(Prop.ROOT_MOSAIC_DIR));
-//                configuration.setIndexingDirectories(Arrays.asList(configuration.getRootMosaicDirectory()));
 
 	        // prepare and run the index builder
 	        final ImageMosaicWalker builder = new ImageMosaicWalker(configuration);

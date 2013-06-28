@@ -46,12 +46,8 @@ public class CatalogBuilderConfiguration {
 	private Hints hints;
 
 	private String timeAttribute;
-//
-//	private String elevationAttribute;
 
 	private String runtimeAttribute;
-
-//	private String additionalDomainAttribute;
 
 	private Indexer indexer;
 	
@@ -61,7 +57,6 @@ public class CatalogBuilderConfiguration {
 	 */
 	public String getEnvelope2D() {
 	    return getParameter(Prop.ENVELOPE2D);
-//		return envelope2D;
 	}
 
     public CatalogBuilderConfiguration() {
@@ -185,21 +180,19 @@ public class CatalogBuilderConfiguration {
         this.indexer = indexer;
     }
 
-	public String getRuntimeAttribute() {
-		return runtimeAttribute;
-	}
+    public String getRuntimeAttribute() {
+        return runtimeAttribute;
+    }
 
-	public void setRuntimeAttribute(String runtimeAttribute) {
-		this.runtimeAttribute = runtimeAttribute;
-	}
-
+    public void setRuntimeAttribute(String runtimeAttribute) {
+        this.runtimeAttribute = runtimeAttribute;
+    }
 
     /**
      * @deprecated parse indexer parameters instead.
      * @return
      */
     public String getIndexName() {
-        // return indexName;
         return getParameter(Prop.INDEX_NAME);
     }
     
@@ -208,7 +201,7 @@ public class CatalogBuilderConfiguration {
      * @return
      */
     public boolean isFootprintManagement() {
-        return  Boolean.parseBoolean(getParameter(Prop.FOOTPRINT_MANAGEMENT));
+        return Boolean.parseBoolean(getParameter(Prop.FOOTPRINT_MANAGEMENT));
 }
 
     /**
@@ -271,10 +264,6 @@ public class CatalogBuilderConfiguration {
                     return false;
                 if (!equalsParameter(this, that, Prop.ROOT_MOSAIC_DIR)) 
                     return false;
-//		if (!Utilities.deepEquals(this.indexingDirectories,
-//				that.indexingDirectories))
-//			return false;
-
 		return true;
 	}
 
@@ -291,15 +280,14 @@ public class CatalogBuilderConfiguration {
     @Override
 	public int hashCode() {
 		int seed = 37;
-		seed = Utilities.hash(isAbsolute(), seed);
-		seed = Utilities.hash(isRecursive(), seed);
-		seed = Utilities.hash(isCaching(), seed);
-		seed = Utilities.hash(isFootprintManagement(), seed);
-		seed = Utilities.hash(getLocationAttribute(), seed);
-		seed = Utilities.hash(getIndexName(), seed);
-		seed = Utilities.hash(getWildcard(), seed);
-		seed = Utilities.hash(getRootMosaicDirectory(), seed);
-//		seed = Utilities.hash(indexingDirectories, seed);
+		seed = Utilities.hash(Boolean.parseBoolean(getParameter(Prop.ABSOLUTE_PATH)), seed);
+		seed = Utilities.hash(Boolean.parseBoolean(getParameter(Prop.RECURSIVE)), seed);
+		seed = Utilities.hash(Boolean.parseBoolean(getParameter(Prop.CACHING)), seed);
+		seed = Utilities.hash(Boolean.parseBoolean(getParameter(Prop.FOOTPRINT_MANAGEMENT)), seed);
+		seed = Utilities.hash(getParameter(Prop.LOCATION_ATTRIBUTE), seed);
+		seed = Utilities.hash(getParameter(Prop.INDEX_NAME), seed);
+		seed = Utilities.hash(getParameter(Prop.WILDCARD), seed);
+		seed = Utilities.hash(getParameter(Prop.ROOT_MOSAIC_DIR), seed);
 		return seed;
 	}
 
@@ -307,16 +295,14 @@ public class CatalogBuilderConfiguration {
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("CatalogBuilderConfiguration").append("\n");
-		builder.append("wildcardString:\t\t\t").append(getWildcard()).append("\n");
-		builder.append("indexName:\t\t\t").append(getIndexName()).append("\n");
-		builder.append("absolute:\t\t\t").append(isAbsolute()).append("\n");
-		builder.append("caching:\t\t\t").append(isCaching()).append("\n");
-		builder.append("recursive:\t\t\t").append(isRecursive()).append("\n");
-		builder.append("footprintManagement:\t\t\t").append(isFootprintManagement()).append("\n");
-		builder.append("locationAttribute:\t\t\t").append(getLocationAttribute()).append("\n");
-		builder.append("rootMosaicDirectory:\t\t\t").append(getRootMosaicDirectory()).append("\n");
-//		builder.append("indexingDirectories:\t\t\t").append(
-//				Utilities.deepToString(indexingDirectories)).append("\n");
+		builder.append("wildcardString:\t\t\t").append(getParameter(Prop.WILDCARD)).append("\n");
+		builder.append("indexName:\t\t\t").append(getParameter(Prop.INDEX_NAME)).append("\n");
+		builder.append("absolute:\t\t\t").append(Boolean.parseBoolean(getParameter(Prop.ABSOLUTE_PATH))).append("\n");
+		builder.append("caching:\t\t\t").append(Boolean.parseBoolean(getParameter(Prop.CACHING))).append("\n");
+		builder.append("recursive:\t\t\t").append(Boolean.parseBoolean(getParameter(Prop.RECURSIVE))).append("\n");
+		builder.append("footprintManagement:\t\t\t").append(Boolean.parseBoolean(getParameter(Prop.FOOTPRINT_MANAGEMENT))).append("\n");
+		builder.append("locationAttribute:\t\t\t").append(getParameter(Prop.LOCATION_ATTRIBUTE)).append("\n");
+		builder.append("rootMosaicDirectory:\t\t\t").append(getParameter(Prop.ROOT_MOSAIC_DIR)).append("\n");
 		return builder.toString();
 	}
 
@@ -355,7 +341,6 @@ public class CatalogBuilderConfiguration {
         String wildcard = getParameter(Prop.WILDCARD);
         if (wildcard == null || wildcard.length() == 0)
             throw new IllegalStateException("WildcardString name cannot be empty");
-
     }
 
 }

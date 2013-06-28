@@ -948,7 +948,6 @@ public class ImageMosaicWalker implements Runnable {
         Utilities.ensureNonNull("root location", rootMosaicDir);
 
         // look for and indexer.properties file
-//        parent = new File(configuration.getRootMosaicDirectory());
         parent = new File(rootMosaicDir);
         indexerFile = new File(parent, Utils.INDEXER_XML);
         Indexer indexer = null;
@@ -972,13 +971,12 @@ public class ImageMosaicWalker implements Runnable {
                 // load it and parse it
                 final Properties props = Utils.loadPropertiesFromURL(DataUtilities
                         .fileToURL(indexerFile));
-    
+
                 indexer = createIndexer(props, params);
-                
+
                 if (props.containsKey(Prop.INDEXING_DIRECTORIES)) {
                     IndexerUtils.setParam(params.getParameter(), props, Prop.INDEXING_DIRECTORIES);
                 }
-//                
                 if (props.containsKey(Prop.AUXILIARY_FILE)) {
                     ancillaryFile = props.getProperty(Prop.AUXILIARY_FILE);
                 }
@@ -1023,6 +1021,12 @@ public class ImageMosaicWalker implements Runnable {
         }
     }
 
+    /** 
+     * Setup default params to the indexer.
+     * 
+     * @param params
+     * @param indexer
+     */
     private void copyDefaultParams(ParametersType params, Indexer indexer) {
         if (params != null) {
             List<Parameter> defaultParamList = params.getParameter();
@@ -1093,7 +1097,7 @@ public class ImageMosaicWalker implements Runnable {
             sendEvent(eventLauncher);
         }
     }
-    
+
     /**
      * Firing an event to listeners in order to inform them about what we are doing and about the percentage of work already carried out.
      * 
@@ -1150,11 +1154,6 @@ public class ImageMosaicWalker implements Runnable {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#getStop()
-     */
     public boolean getStop() {
         return stop;
     }
@@ -1195,11 +1194,6 @@ public class ImageMosaicWalker implements Runnable {
             eventLauncher.run();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.geotools.gce.imagemosaic.JMXIndexBuilderMBean#stop()
-     */
     public void stop() {
         stop = true;
     }
