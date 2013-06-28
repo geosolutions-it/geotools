@@ -22,11 +22,13 @@ import java.awt.image.BandedSampleModel;
 import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -45,6 +47,7 @@ import org.geotools.coverage.io.CoverageSource.TemporalDomain;
 import org.geotools.coverage.io.CoverageSource.VerticalDomain;
 import org.geotools.coverage.io.CoverageSourceDescriptor;
 import org.geotools.coverage.io.RasterLayout;
+import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
 import org.geotools.coverage.io.range.FieldType;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.coverage.io.range.impl.DefaultFieldType;
@@ -56,6 +59,7 @@ import org.geotools.coverage.io.util.NumberRangeComparator;
 import org.geotools.factory.GeoTools;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.Utils;
+import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.unidata.cv.CoordinateVariable;
 import org.geotools.imageio.unidata.utilities.UnidataCRSUtilities;
@@ -68,6 +72,9 @@ import org.geotools.util.SimpleInternationalString;
 import org.geotools.util.logging.Logging;
 import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.grid.GridEnvelope;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.Name;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.metadata.spatial.PixelOrientation;
@@ -366,6 +373,9 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
 
     private final static java.util.logging.Logger LOGGER = Logging.getLogger(UnidataVariableAdapter.class);
 
+    /** Usual schema are the_geom, imageIndex, so the first attribute (time or elevation) will have index = 2 */
+    private static final int FIRST_ATTRIBUTE_INDEX = 2;
+
     /**
      * Extracts the compound {@link CoordinateReferenceSystem} from the unidata variable.
      * 
@@ -425,6 +435,128 @@ public class UnidataVariableAdapter extends CoverageSourceDescriptor {
         // ADDITIONAL DOMAINS
         addAdditionalDomain(otherAxes, dimensions);
         setDimensionDescriptors(dimensions);
+        if (reader.ancillaryFileManager.isHasImposedSchema()) {
+            updateDimensions(dimensions);
+        }
+    }
+
+    /**
+     * Update the dimensions to attributes mapping for this variable if needed.
+     * Default behaviour is to get attributes from the name of the dimensions of the variable.
+     * In case the indexer.xml contains an explicit schema with different attributes for time and elevation
+     * we need to remap them and updates the dimensions mapping as well as the DimensionsDescriptors
+     * @param dimensionDescriptors
+     * @throws IOException
+     */
+    private void updateDimensions(List<DimensionDescriptor> dimensionDescriptors) throws IOException {
+        final Map<Name, String> mapping = reader.ancillaryFileManager.variablesMap;
+        final Set<Name> keys = mapping.keySet();
+        final String varName = getName();
+        for (Name key: keys) {
+
+            // Go to the current variable
+            final String origName = mapping.get(key);
+            if (origName.equalsIgnoreCase(varName)){
+
+                // Get the mapped coverage name (as an instance, NO2 for a GOME2 with var = 'z')
+                final String coverageName = key.getLocalPart();
+                final Coverage coverage = reader.ancillaryFileManager.coveragesMapping.get(coverageName);
+                if (coverage.getSchema() != null) {
+                    final CoverageSlicesCatalog catalog = reader.getCatalog();
+                    if (catalog != null) {
+                        // Current assumption is that we have a typeName for each coverage
+                        final String[] typeNames = catalog.getTypeNames();
+                        for (String typeName : typeNames) {
+
+                            // Look for matching schema 
+                            if (typeName.equalsIgnoreCase(coverageName)) {
+                                final SimpleFeatureType schemaType = catalog.getSchema(coverageName);
+                                if (schemaType != null) {
+                                    // Schema found: proceed with remapping attributes
+                                    updateMapping(schemaType, dimensionDescriptors);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Update the dimensionDescriptor attributes mapping by checking the actual attribute names from the schema
+     * @param indexSchema
+     * @param descriptors
+     * @throws IOException
+     */
+    public void updateMapping(SimpleFeatureType indexSchema, List<DimensionDescriptor> descriptors)
+            throws IOException {
+        Map<String, String> dimensionsMapping = reader.dimensionsMapping;
+        Set<String> keys = dimensionsMapping.keySet();
+        int indexAttribute = FIRST_ATTRIBUTE_INDEX;
+
+        // Remap time
+        String currentDimName = UnidataUtilities.TIME_DIM;
+        if (keys.contains(currentDimName)) {
+            if (remapAttribute(indexSchema, currentDimName, indexAttribute, descriptors,
+                    dimensionsMapping)) {
+                indexAttribute++;
+            }
+        }
+
+        // Remap elevation
+        currentDimName = UnidataUtilities.ELEVATION_DIM;
+        if (keys.contains(currentDimName)) {
+            if (remapAttribute(indexSchema, currentDimName, indexAttribute, descriptors,
+                    dimensionsMapping)) {
+                indexAttribute++;
+            }
+        }
+    }
+
+    /**
+     * Remap an attribute for a specified dimension. Get it from the schemaType and update
+     * both the related dimension Descriptor as well as the dimensions mapping.
+     * 
+     * @param indexSchema
+     * @param currentDimName
+     * @param indexAttribute
+     * @param descriptors
+     * @param dimensionsMapping
+     * @return
+     */
+    private boolean remapAttribute(final SimpleFeatureType indexSchema, final String currentDimName,
+            final int indexAttribute, final List<DimensionDescriptor> descriptors,
+            Map<String, String> dimensionsMapping) {
+        final int numAttributes = indexSchema.getAttributeCount();
+        if (numAttributes <= indexAttribute) {
+            // Stop looking for attributes in case there aren't anymore
+            return false;
+        }
+
+        // Get the attribute descriptor for that index
+        final AttributeDescriptor attributeDescriptor = indexSchema.getDescriptor(indexAttribute);
+
+        // Loop over dimensionDescriptors 
+        for (DimensionDescriptor descriptor : descriptors) {
+            // Find the descriptor related to the current dimension
+            if (descriptor.getName().toUpperCase().equalsIgnoreCase(currentDimName)) {
+                final String updatedAttribute = attributeDescriptor.getLocalName();
+                if (!updatedAttribute.equals(((DefaultDimensionDescriptor) descriptor)
+                        .getStartAttribute())) {
+                    // Remap attributes in case the schema's attribute doesn't match the current attribute
+                    ((DefaultDimensionDescriptor) descriptor).setStartAttribute(updatedAttribute);
+
+                    // Update the dimensions mapping too
+                    dimensionsMapping.put(currentDimName, updatedAttribute);
+                }
+                // the attribute has been found, prepare for the next one
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

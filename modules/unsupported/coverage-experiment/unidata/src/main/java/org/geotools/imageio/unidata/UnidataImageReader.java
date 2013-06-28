@@ -135,7 +135,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     /** Internal Cache for CoverageSourceDescriptor.**/
     private final SoftValueHashMap<String, UnidataVariableAdapter> coverageSourceDescriptorsCache= new SoftValueHashMap<String, UnidataVariableAdapter>();
 
-    private final Map<String, String> dimensionsMapping = new HashMap<String, String> ();
+    final Map<String, String> dimensionsMapping = new HashMap<String, String> ();
 
     /** The source file */
     private File file;
@@ -302,7 +302,7 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                         // TODO push into VariableWrapper
                         final SimpleFeatureType indexSchema = getIndexSchema(coverageName,cs);
 
-                        if(indexSchema==null) {
+                        if (indexSchema == null) {
                             throw new IllegalStateException("Unable to created index schema for coverage:"+coverageName);
                         }
                         // create 

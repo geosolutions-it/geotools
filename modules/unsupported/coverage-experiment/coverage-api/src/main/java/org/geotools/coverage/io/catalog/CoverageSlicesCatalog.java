@@ -144,7 +144,7 @@ public class CoverageSlicesCatalog {
             } else if (typeName != null) {
                 addTypeName(typeName, false);
             }
-            
+
             if (this.typeNames.size() > 0) {
                 extractBasicProperties(typeNames.iterator().next());
             } else {
@@ -225,28 +225,26 @@ public class CoverageSlicesCatalog {
                     "BBOXFilterExtractor::extractBasicProperties(): unable to get a featureSource for the qualified name"
                             + typeName);
         }
-        
+
         final FeatureType schema = featureSource.getSchema();
         if (schema != null) {
             geometryPropertyName = schema.getGeometryDescriptor().getLocalName();
             if (LOGGER.isLoggable(Level.FINE))
                 LOGGER.fine("BBOXFilterExtractor::extractBasicProperties(): geometryPropertyName is set to \'"
                         + geometryPropertyName + "\'.");
-
         } else {
             throw new IOException(
                     "BBOXFilterExtractor::extractBasicProperties(): unable to get a schema from the featureSource");
         }
-
     }
-    
+
     private void addTypeName(String typeName, final boolean check) {
           if (check && this.typeNames.contains(typeName)) {
               throw new IllegalArgumentException("This typeName already exists: " + typeName);
           }
           this.typeNames.add(typeName);    
   }
-    
+
     public String[] getTypeNames() {
         if (this.typeNames != null && !this.typeNames.isEmpty()) {
             return (String[]) this.typeNames.toArray(new String[]{});
@@ -368,7 +366,6 @@ public class CoverageSlicesCatalog {
             throw ioe;
         } finally {
             lock.unlock();
-
         }
     }
 
@@ -386,7 +383,6 @@ public class CoverageSlicesCatalog {
         } finally {
             lock.unlock();
         }
-
         return bounds;
     }
 
@@ -407,7 +403,6 @@ public class CoverageSlicesCatalog {
         } finally {
             lock.unlock();
         }
-
     }
 
     public void createType(String identification, String typeSpec) throws SchemaException,
@@ -416,7 +411,6 @@ public class CoverageSlicesCatalog {
         Utilities.ensureNonNull("identification", identification);
         final SimpleFeatureType featureType = DataUtilities.createType(identification, typeSpec);
         createType(featureType);
-
     }
 
     public SimpleFeatureType getSchema(final String typeName) throws IOException {
@@ -431,7 +425,6 @@ public class CoverageSlicesCatalog {
         } finally {
             lock.unlock();
         }
-
     }
 
     public void computeAggregateFunction(Query query, FeatureCalc function) throws IOException {
@@ -451,7 +444,6 @@ public class CoverageSlicesCatalog {
         } finally {
             lock.unlock();
         }
-
     }
 
     public QueryCapabilities getQueryCapabilities(final String typeName) {
@@ -483,7 +475,6 @@ public class CoverageSlicesCatalog {
             // try to dispose the underlying store if it has not been disposed yet
             this.dispose();
         }
-
     }
 
     public void removeGranules(String typeName,Filter filter, Transaction transaction) throws IOException {
@@ -495,7 +486,6 @@ public class CoverageSlicesCatalog {
             lock.lock();
             // check if the index has been cleared
             checkStore();
-            
 
             final SimpleFeatureStore store = (SimpleFeatureStore) slicesIndexStore.getFeatureSource(typeName);
             store.setTransaction(transaction);
