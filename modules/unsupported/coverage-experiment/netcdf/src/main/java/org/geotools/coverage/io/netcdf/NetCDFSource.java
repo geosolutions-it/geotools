@@ -78,7 +78,7 @@ public class NetCDFSource extends DefaultCoverageSource {
         if (dynamicParameters == null) {
             dynamicParameters = new HashSet<ParameterDescriptor<List>>();
             List<AdditionalDomain> domains = getAdditionalDomains();
-            if (!domains.isEmpty()) {
+            if (domains != null && !domains.isEmpty()) {
                 for (AdditionalDomain domain : domains) {
                     dynamicParameters.add(DefaultParameterDescriptor.create(
                             domain.getName().toUpperCase() , 
