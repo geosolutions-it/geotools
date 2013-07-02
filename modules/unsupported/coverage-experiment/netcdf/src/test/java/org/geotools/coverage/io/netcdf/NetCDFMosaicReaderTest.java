@@ -932,7 +932,7 @@ public class NetCDFMosaicReaderTest extends Assert {
         System.clearProperty("org.geotools.referencing.forceXY");
         System.clearProperty("user.timezone");
         System.clearProperty("org.geotools.shapefile.datetime");
-
+        CRS.reset("all");
     }
 
     /**
