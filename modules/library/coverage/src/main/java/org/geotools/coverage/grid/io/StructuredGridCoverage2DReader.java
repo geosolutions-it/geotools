@@ -16,7 +16,6 @@
  */
 package org.geotools.coverage.grid.io;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -63,15 +62,15 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
     boolean removeCoverage(String coverageName) throws IOException, UnsupportedOperationException;
     
     /**
-     * Harvests the specified file into the reader. Depending on the implementation, the original file
+     * Harvests the specified source into the reader. Depending on the implementation, the original source
      * is harvested in place (e.g., image mosaic), or might be copied into the reader persistent storage (e.g., database raster handling)
      *
-     * @param defaultCoverage Default target coverage, to be used in case the files being harvested are not structured ones. The parameter is optional,
+     * @param defaultCoverage Default target coverage, to be used in case the sources being harvested are not structured ones. The parameter is optional,
      *                        in case it's missing the reader will use the first coverage as the default target. 
      *                        
      * @param source The source can be any kind of object, it's up to the reader implementation to understand and use it.
      *               Commons source types could be a single file, or a folder. 
-     * @param hints Used to provide implementation specific hints on how to harvest the files
+     * @param hints Used to provide implementation specific hints on how to harvest the sources
      * @throws IOException
      * @throws UnsupportedOperationException
      */
