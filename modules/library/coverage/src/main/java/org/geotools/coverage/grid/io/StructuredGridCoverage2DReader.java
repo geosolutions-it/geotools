@@ -69,13 +69,13 @@ public interface StructuredGridCoverage2DReader extends GridCoverage2DReader {
      * @param defaultCoverage Default target coverage, to be used in case the files being harvested are not structured ones. The parameter is optional,
      *                        in case it's missing the reader will use the first coverage as the default target. 
      *                        
-     * @param source The source can be a single file, or a folder. The file types supported by the harvest operation
-     *               vary depending on the implementation, but generally speaking, all coverages having a reader should be supported.
+     * @param source The source can be any kind of object, it's up to the reader implementation to understand and use it.
+     *               Commons source types could be a single file, or a folder. 
      * @param hints Used to provide implementation specific hints on how to harvest the files
      * @throws IOException
      * @throws UnsupportedOperationException
      */
-    List<HarvestedFile> harvest(String defaultTargetCoverage, File source, Hints hints) throws IOException,
+    List<HarvestedSource> harvest(String defaultTargetCoverage, Object source, Hints hints) throws IOException,
             UnsupportedOperationException;
     
     /**

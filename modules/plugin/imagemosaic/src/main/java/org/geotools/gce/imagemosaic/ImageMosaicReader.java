@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,10 +48,10 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
-import org.geotools.coverage.grid.io.DefaultHarvestedFile;
+import org.geotools.coverage.grid.io.DefaultHarvestedSource;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
-import org.geotools.coverage.grid.io.HarvestedFile;
+import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStoreFactorySpi;
@@ -903,14 +904,31 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
     }
 
     @Override
-    public List<HarvestedFile> harvest(String defaultCoverage, File source, Hints hints) throws IOException, UnsupportedOperationException {
+    public List<HarvestedSource> harvest(String defaultCoverage, Object source, Hints hints) throws IOException, UnsupportedOperationException {
+        File file = null;
+        if(source instanceof File) {
+            file = (File) source;
+        }
+        if(source instanceof String) {
+            file = new File((String) source);
+        }
+
+        final List<HarvestedSource> result = new ArrayList<HarvestedSource>();
+        if(file == null) {
+            result.add(new DefaultHarvestedSource(source, false, "Unrecognized source type"));
+            return result;
+        } else if(!file.exists()) {
+            result.add(new DefaultHarvestedSource(source, false, "Specified file path does not exist"));
+            return result;
+        }
+        
         // the mosaic walker works on a single directory, if we need to harvest 
         // a single file we'll have to use the parent folder and add a filter
         IOFileFilter filter = null;
-        File directory = source;
-        if(!source.isDirectory()) {
-            directory = source.getParentFile();
-            filter = FileFilterUtils.nameFileFilter(source.getName());
+        File directory = file;
+        if(!file.isDirectory()) {
+            directory = file.getParentFile();
+            filter = FileFilterUtils.nameFileFilter(file.getName());
         }
         
         // prepare the walker configuration
@@ -934,14 +952,13 @@ public class ImageMosaicReader extends AbstractGridCoverage2DReader implements S
         // run the walker and collect information
         ImageMosaicWalker walker = new ImageMosaicWalker(configuration);
         walker.setFileFilter(filter);
-        final List<HarvestedFile> result = new ArrayList<HarvestedFile>();
         walker.addProcessingEventListener(new ImageMosaicWalker.ProcessingEventListener() {
             
             @Override
             public void getNotification(ProcessingEvent event) {
                 if(event instanceof FileProcessingEvent) {
                     FileProcessingEvent fileEvent = (FileProcessingEvent) event;
-                    result.add(new DefaultHarvestedFile(fileEvent.getFile(), fileEvent.isIngested(), fileEvent.getMessage()));
+                    result.add(new DefaultHarvestedSource(fileEvent.getFile(), fileEvent.isIngested(), fileEvent.getMessage()));
                 }
             }
             

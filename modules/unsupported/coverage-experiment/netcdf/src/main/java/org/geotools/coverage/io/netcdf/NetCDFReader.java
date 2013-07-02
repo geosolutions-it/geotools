@@ -54,7 +54,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.geotools.coverage.grid.io.HarvestedFile;
+import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.coverage.io.CoverageAccess;
@@ -79,9 +79,9 @@ import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.imageio.unidata.UnidataImageReader;
 import org.geotools.imageio.unidata.UnidataVariableAdapter;
 import org.geotools.imageio.unidata.UnidataVariableAdapter.UnidataSpatialDomain;
-import org.geotools.imageio.unidata.UnidataImageReader;
 import org.geotools.referencing.operation.transform.IdentityTransform;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.resources.coverage.CoverageUtilities;
@@ -869,7 +869,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     }
 
     @Override
-    public List<HarvestedFile> harvest(String defaultCoverage, File source, Hints hints) throws IOException, UnsupportedOperationException {
+    public List<HarvestedSource> harvest(String defaultCoverage, Object source, Hints hints) throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("This operation is not supported on this reader");
     }
 

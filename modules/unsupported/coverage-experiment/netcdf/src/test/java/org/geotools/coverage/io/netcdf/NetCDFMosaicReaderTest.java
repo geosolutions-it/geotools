@@ -49,7 +49,7 @@ import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridFormatFinder;
-import org.geotools.coverage.grid.io.HarvestedFile;
+import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -248,10 +248,10 @@ public class NetCDFMosaicReaderTest extends Assert {
             File nc2 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130302_test.nc");
             FileUtils.copyFileToDirectory(nc2, mosaic);
             File fileToHarvest = new File(mosaic, "polyphemus_20130302_test.nc");
-            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+            List<HarvestedSource> harvestSummary = reader.harvest(null, fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
-            HarvestedFile hf = harvestSummary.get(0);
-            assertEquals("polyphemus_20130302_test.nc", hf.getFile().getName());
+            HarvestedSource hf = harvestSummary.get(0);
+            assertEquals("polyphemus_20130302_test.nc", ((File) hf.getSource()).getName());
             assertTrue(hf.success());
             assertEquals(1, reader.getGridCoverageNames().length);
             
@@ -349,10 +349,10 @@ public class NetCDFMosaicReaderTest extends Assert {
             File target = new File(mosaic, "polyphemus_20130301_test.nc");
             FileUtils.copyFile(nc2, target, false);
             File fileToHarvest = new File(mosaic, "polyphemus_20130301_test.nc");
-            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+            List<HarvestedSource> harvestSummary = reader.harvest(null, fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
-            HarvestedFile hf = harvestSummary.get(0);
-            assertEquals("polyphemus_20130301_test.nc", hf.getFile().getName());
+            HarvestedSource hf = harvestSummary.get(0);
+            assertEquals("polyphemus_20130301_test.nc", ((File) hf.getSource()).getName());
             assertTrue(hf.success());
             assertEquals(1, reader.getGridCoverageNames().length);
             
@@ -442,10 +442,10 @@ public class NetCDFMosaicReaderTest extends Assert {
             File nc2 = new File("./src/test/resources/org/geotools/coverage/io/netcdf/test-data/polyphemus_20130301_NO2.nc");
             FileUtils.copyFileToDirectory(nc2, mosaic);
             File fileToHarvest = new File(mosaic, "polyphemus_20130301_NO2.nc");
-            List<HarvestedFile> harvestSummary = reader.harvest(null, fileToHarvest, null);
+            List<HarvestedSource> harvestSummary = reader.harvest(null, fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
-            HarvestedFile hf = harvestSummary.get(0);
-            assertEquals("polyphemus_20130301_NO2.nc", hf.getFile().getName());
+            HarvestedSource hf = harvestSummary.get(0);
+            assertEquals("polyphemus_20130301_NO2.nc", ((File) hf.getSource()).getName());
             assertTrue(hf.success());
             // check we have two coverages now
             names = reader.getGridCoverageNames();
@@ -539,13 +539,13 @@ public class NetCDFMosaicReaderTest extends Assert {
                     "./src/test/resources/org/geotools/coverage/io/netcdf/test-data/20130116.METOPA.GOME2.NO2.DUMMY.nc");
             FileUtils.copyFileToDirectory(nc2, mosaic);
             File fileToHarvest = new File(mosaic, "20130116.METOPA.GOME2.NO2.DUMMY.nc");
-            List<HarvestedFile> harvestSummary = reader.harvest("NO2", fileToHarvest, null);
+            List<HarvestedSource> harvestSummary = reader.harvest("NO2", fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
             granules = source.getGranules(q);
             assertEquals(2, granules.size());
             
-            HarvestedFile hf = harvestSummary.get(0);
-            assertEquals("20130116.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
+            HarvestedSource hf = harvestSummary.get(0);
+            assertEquals("20130116.METOPA.GOME2.NO2.DUMMY.nc", ((File) hf.getSource()).getName());
             assertTrue(hf.success());
             assertEquals(1, reader.getGridCoverageNames().length);
 
@@ -556,7 +556,7 @@ public class NetCDFMosaicReaderTest extends Assert {
             harvestSummary = reader.harvest("NO2", fileToHarvest, null);
             assertEquals(1, harvestSummary.size());
             hf = harvestSummary.get(0);
-            assertEquals("20130108.METOPA.GOME2.NO2.DUMMY.nc", hf.getFile().getName());
+            assertEquals("20130108.METOPA.GOME2.NO2.DUMMY.nc", ((File) hf.getSource()).getName());
             assertTrue(hf.success());
             assertEquals(1, reader.getGridCoverageNames().length);
 
@@ -893,6 +893,7 @@ public class NetCDFMosaicReaderTest extends Assert {
         System.setProperty("org.geotools.referencing.forceXY", "true");
         System.setProperty("user.timezone", "GMT");
         System.setProperty("org.geotools.shapefile.datetime", "true");
+        CRS.reset("all");
 
         INTERACTIVE = TestData.isInteractiveTest();
 //        IIORegistry registry = IIORegistry.getDefaultInstance();

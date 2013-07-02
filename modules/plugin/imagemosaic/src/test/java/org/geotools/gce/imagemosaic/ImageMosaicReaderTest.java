@@ -65,7 +65,7 @@ import org.geotools.coverage.grid.io.DefaultDimensionDescriptor;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GridFormatFinder;
-import org.geotools.coverage.grid.io.HarvestedFile;
+import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.DataUtilities;
@@ -1773,10 +1773,10 @@ public class ImageMosaicReaderTest extends Assert{
             assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
             
             // now go and harvest the other file
-            List<HarvestedFile> summary = reader.harvest(null, renamed, null);
+            List<HarvestedSource> summary = reader.harvest(null, renamed, null);
             assertEquals(1, summary.size());
-            HarvestedFile hf = summary.get(0);
-            assertEquals(renamed.getCanonicalFile(), hf.getFile().getCanonicalFile());
+            HarvestedSource hf = summary.get(0);
+            assertEquals(renamed.getCanonicalFile(), ((File) hf.getSource()).getCanonicalFile());
             assertTrue(hf.success());
             
             // the harvest put the file in the same coverage
@@ -1844,9 +1844,9 @@ public class ImageMosaicReaderTest extends Assert{
             assertEquals("2004-02-01T00:00:00.000Z,2004-05-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
             
             // now go and harvest the other directory
-            List<HarvestedFile> summary = reader.harvest(null, directory2, null);
+            List<HarvestedSource> summary = reader.harvest(null, directory2, null);
             assertEquals(2, summary.size());
-            for (HarvestedFile hf : summary) {
+            for (HarvestedSource hf : summary) {
                 assertTrue(hf.success());
             }
             
@@ -1892,11 +1892,11 @@ public class ImageMosaicReaderTest extends Assert{
             // now go and try to make it harvest an invalid file
             File bogus = new File(directory, "test.tiff");
             assertTrue(bogus.createNewFile());
-            List<HarvestedFile> summary = reader.harvest(null, bogus, null);
+            List<HarvestedSource> summary = reader.harvest(null, bogus, null);
             assertEquals(1, summary.size());
-            HarvestedFile hf = summary.get(0);
+            HarvestedSource hf = summary.get(0);
             assertFalse(hf.success());
-            assertEquals("test.tiff", hf.getFile().getName());
+            assertEquals("test.tiff", ((File) hf.getSource()).getName());
         } finally {
             reader.dispose();
         }
@@ -1967,10 +1967,10 @@ public class ImageMosaicReaderTest extends Assert{
             assertEquals("2004-02-01T00:00:00.000Z", reader.getMetadataValue(metadataNames[0]));
 
             // now go and harvest the other file
-            List<HarvestedFile> summary = reader.harvest(null, renamed, null);
+            List<HarvestedSource> summary = reader.harvest(null, renamed, null);
             assertEquals(1, summary.size());
-            HarvestedFile hf = summary.get(0);
-            assertEquals(renamed.getCanonicalFile(), hf.getFile().getCanonicalFile());
+            HarvestedSource hf = summary.get(0);
+            assertEquals(renamed.getCanonicalFile(), ((File) hf.getSource()).getCanonicalFile());
             assertTrue(hf.success());
 
             // the harvest put the file in the same coverage
