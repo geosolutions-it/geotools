@@ -1116,7 +1116,16 @@
         <version>1.0-beta-2</version>
       </extension>
     </extensions>
-
+    
+    <!--.............................................-->
+    <!--       GeoSolutions (using wagon ftp)       -->
+    <!--.............................................-->
+      <extension>                                  
+       <groupId>org.apache.maven.wagon</groupId>   
+       <artifactId>wagon-ftp</artifactId>           
+       <version>1.0-beta-2</version>               
+      </extension>  
+    </extensions>
 
 
     <plugins>
@@ -1390,17 +1399,16 @@
   </reporting>
 
   <distributionManagement>
-    <repository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>osgeo</id>
-      <name>Open Source Geospatial Foundation - Maven 2 repo</name>
-      <url>dav:http://download.osgeo.org/webdav/geotools/</url>
-    </repository>
+      <repository>
+       <uniqueVersion>false</uniqueVersion>
+       <id>geosolutions</id>
+       <url>ftp://demo.geo-solutions.it</url>
+      </repository>
     <snapshotRepository>
-        <id>opengeo</id>
         <uniqueVersion>false</uniqueVersion>
-        <name>OpenGeo Maven Repository</name>
-        <url>dav:http://repo.opengeo.org</url>
+        <name>GeoSolutions Maven Repository</name>
+       <id>geosolutions</id>
+       <url>ftp://demo.geo-solutions.it</url>
     </snapshotRepository>
   </distributionManagement>
 
@@ -1415,12 +1423,14 @@
       <url>http://download.java.net/maven/2</url>
     </repository>
     
-
-    <repository>
-      <id>geosolutions</id>
-      <name>geosolutions repository</name>
-      <url>http://maven.geo-solutions.it/</url>
-    </repository>
+  <repository>
+   <id>geosolutions</id>
+   <name>GeoSolutions Maven Repository</name>
+   <url>http://maven.geo-solutions.it/</url>
+   <snapshots>
+     <enabled>true</enabled>
+   </snapshots>
+  </repository>  
 
     <repository>
       <id>osgeo</id>
