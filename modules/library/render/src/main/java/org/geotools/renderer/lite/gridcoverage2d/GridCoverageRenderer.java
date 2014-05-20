@@ -40,6 +40,8 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
+import javax.media.jai.operator.AffineDescriptor;
 
 import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.GridSampleDimension;
@@ -57,6 +59,7 @@ import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
+import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.geotools.resources.i18n.ErrorKeys;
 import org.geotools.resources.i18n.Errors;
 import org.geotools.styling.RasterSymbolizer;
@@ -376,14 +379,8 @@ public final class GridCoverageRenderer {
         //
         // ///////////////////////////////////////////////////////////////////
         final GridCoverage2D preSymbolizer= affine(afterReprojection,bkgValues);
+        RenderedImageBrowser.showChain(preReprojection.getRenderedImage(),false,false,"preSymbolizer");
         
-       
-//        final ParameterValueGroup param = (ParameterValueGroup) GridCoverageRendererUtilities.RESAMPLING_PARAMS.clone();
-//        param.parameter("source").setValue(gridCoverage);
-//        param.parameter("GridGeometry").setValue(new GridGeometry2D(new GridEnvelope2D(destinationSize), destinationEnvelope));
-//        param.parameter("InterpolationType").setValue(interpolation);
-//        final GridCoverage2D preSymbolizer =(GridCoverage2D) GridCoverageRendererUtilities.RESAMPLE_FACTORY.doOperation(param, hints);
-//  
         // ///////////////////////////////////////////////////////////////////
         //
         // RASTERSYMBOLIZER
@@ -414,34 +411,31 @@ public final class GridCoverageRenderer {
     }            	
 
     /**
-     * @param preResample
+     * @param inputCoverage
      * @param doReprojection 
      * @param bkgValues 
      * @return
      * @throws FactoryException 
      */
-    private GridCoverage2D reproject(GridCoverage2D preResample, boolean doReprojection, double[] bkgValues) throws FactoryException {
-        GridCoverage2D afterReprojection=null;
+    private GridCoverage2D reproject(GridCoverage2D inputCoverage, boolean doReprojection, double[] bkgValues) throws FactoryException {
+        GridCoverage2D outputCoverage=null;
         try{
             if (doReprojection) {
-                afterReprojection = GridCoverageRendererUtilities.reproject(
-                        preResample, 
+                outputCoverage = GridCoverageRendererUtilities.reproject(
+                        inputCoverage, 
                         destinationCRS,
                         interpolation, 
-                        destinationEnvelope,
                         bkgValues,
                         hints);
-                if (LOGGER.isLoggable(Level.FINE))
-                    LOGGER.fine("Reprojecting to crs "+ destinationCRS.toWKT());
             } else{
-                afterReprojection = preResample;
+                outputCoverage = inputCoverage;
             }
-            return afterReprojection;
+            return outputCoverage;
         }finally{
             if (DEBUG) {
-                if(afterReprojection!=null){
+                if(outputCoverage!=null){
                     writeRenderedImage(
-                            afterReprojection.geophysics(false).getRenderedImage(),
+                            outputCoverage.geophysics(false).getRenderedImage(),
                             "afterReprojection");
                 }
             }
@@ -472,7 +466,7 @@ public final class GridCoverageRenderer {
         try{
             GeneralEnvelope renderingEnvelopeInCoverageCRS=null; 
             if(doReprojection){
-               GridCoverageRendererUtilities.reprojectEnvelopeWithWGS84Pivot(destinationEnvelope, coverageCRS);
+                renderingEnvelopeInCoverageCRS=GridCoverageRendererUtilities.reprojectEnvelopeWithWGS84Pivot(destinationEnvelope, coverageCRS);
             }else{
                 // NO REPROJECTION
                 renderingEnvelopeInCoverageCRS = new GeneralEnvelope(destinationEnvelope);
@@ -528,11 +522,11 @@ public final class GridCoverageRenderer {
      // NOTICE that at this stage the image we get should be 8 bits, either RGB, RGBA, Gray, GrayA
         // either multiband or indexed. It could also be 16 bits indexed!!!!
         final RenderedImage finalImage = input.getRenderedImage();
-        final GridGeometry2D preSymbolizerGridGeometry = ((GridGeometry2D) input.getGridGeometry());
+        final GridGeometry2D inputGridGeometry = ((GridGeometry2D) input.getGridGeometry());
         // I need to translate half of a pixel since in wms the envelope
         // map to the corners of the raster space not to the center of the
         // pixels.
-        final MathTransform2D finalGCTransform=preSymbolizerGridGeometry.getGridToCRS2D(PixelOrientation.UPPER_LEFT);
+        final MathTransform2D finalGCTransform=inputGridGeometry.getGridToCRS2D(PixelOrientation.UPPER_LEFT);
         if (!(finalGCTransform instanceof AffineTransform)) {
             throw new UnsupportedOperationException(
                     "Non-affine transformations not yet implemented"); // TODO
@@ -552,47 +546,40 @@ public final class GridCoverageRenderer {
         final AffineTransform finalRasterTransformation = (AffineTransform) finalWorldToGrid.clone();
         finalRasterTransformation.concatenate(finalGCgridToWorld);
        
-        //paranoiac check to avoid that JAI freaks out when computing its internal layouT on images that are too small
-        Rectangle2D finalLayout= GridCoverageRendererUtilities.layoutHelper(
-                        finalImage, 
-                        (float)finalRasterTransformation.getScaleX(), 
-                        (float)finalRasterTransformation.getScaleY(), 
-                        (float)finalRasterTransformation.getTranslateX(), 
-                        (float)finalRasterTransformation.getTranslateY(), 
-                        interpolation);
-        if(finalLayout.isEmpty()){
-                if(LOGGER.isLoggable(java.util.logging.Level.FINE))
-                        LOGGER.fine("Unable to create a granuleDescriptor "+this.toString()+ " due to jai scale bug");
-                return null;
-        }
-//
-//        // final transformation
-//        final ImageLayout2 layout = new ImageLayout2(finalImage);
-//        if(tileDimension!=null){
-//            layout.unsetImageBounds();
-//            layout.unsetValid(ImageLayout.COLOR_MODEL_MASK&ImageLayout.SAMPLE_MODEL_MASK);
-//            layout.setTileGridXOffset(0).setTileGridYOffset(0).setTileHeight(tileDimension.height).setTileWidth(tileDimension.width);            
-//        }
-//        final RenderingHints localHints = this.hints.clone(); 
-//        localHints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
-//        
-//        // === interpolation management
-//        // others, make sure we don't force the colormodel if it is indexed with layout as it might lead to NO color expansion        
-//        if (!(interpolation instanceof InterpolationNearest)&& finalImage.getColorModel() instanceof IndexColorModel){
-//            layout.unsetValid(ImageLayout2.COLOR_MODEL_MASK).unsetValid(ImageLayout2.SAMPLE_MODEL_MASK);
-//        }
-
-        RenderedImage im=null;
+        // paranoiac check to avoid that JAI freaks out when computing its internal layouT on images
+        // that are too small
+        RenderedImage im = null;
         try {
+            Rectangle2D finalLayout = GridCoverageRendererUtilities.layoutHelper(finalImage,
+                    (float) finalRasterTransformation.getScaleX(),
+                    (float) finalRasterTransformation.getScaleY(),
+                    (float) finalRasterTransformation.getTranslateX(),
+                    (float) finalRasterTransformation.getTranslateY(), interpolation);
+            if (finalLayout.isEmpty()) {
+                if (LOGGER.isLoggable(java.util.logging.Level.FINE))
+                    LOGGER.fine("Unable to create a granuleDescriptor " + this.toString()
+                            + " due to jai scale bug");
+                return null;
+            }
+
+
             ImageWorker iw = new ImageWorker(finalImage);
             iw.setRenderingHints(hints);
             iw.affine(finalRasterTransformation, interpolation, bkgValues);
             im = iw.getRenderedImage();
-        } finally {
-                if(DEBUG){
-                    writeRenderedImage(im, "postAffine");
-                }
-        }        
+            // force the chain to run computation
+            im.getSampleModel().getNumBands();
+        } catch (Exception e) {
+            // if we get here, the single affine will fail too, we have to force two subsequent ones
+            RenderedOp step1 = AffineDescriptor.create(finalImage, finalWorldToGrid, interpolation,
+                    bkgValues, hints);
+            im = AffineDescriptor
+                    .create(step1, finalGCgridToWorld, interpolation, bkgValues, hints);
+        }
+        if (DEBUG) {
+            writeRenderedImage(im, "postAffine");
+        }
+
         // recreate gridCoverage
         int numBands = im.getSampleModel().getNumBands();
         GridSampleDimension[] sd = new GridSampleDimension[numBands];

@@ -17,6 +17,7 @@
 package org.geotools.renderer.lite;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.awt.Color;
@@ -38,6 +39,8 @@ import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.factory.GeoTools;
+import org.geotools.factory.Hints;
+import org.geotools.gce.arcgrid.ArcGridReader;
 import org.geotools.gce.geotiff.GeoTiffReader;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.GeneralEnvelope;
@@ -57,6 +60,7 @@ import org.geotools.referencing.operation.DefaultMathTransformFactory;
 import org.geotools.styling.RasterSymbolizer;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleBuilder;
+import org.junit.Before;
 import org.junit.Test;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.parameter.ParameterValueGroup;
@@ -80,6 +84,25 @@ public class GridCoverageRendererTest  {
 
 
 	String FILENAME = "TestGridCoverage.jpg";
+
+    @Before
+    public void setup() throws Exception {
+        File file = TestData.copy(this, "arcgrid/arcgrid.zip");
+        assertTrue(file.exists());
+
+        // unzip it
+        TestData.unzipFile(this, "arcgrid/arcgrid.zip");
+
+        System.setProperty("org.geotools.referencing.forceXY", "true");
+        CRS.reset("all");
+    }
+
+    protected void tearDown() throws Exception {
+        System.clearProperty("org.geotools.referencing.forceXY");
+        Hints.removeSystemDefault(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER);
+        CRS.reset("all");
+    }
+
 
 	/**
 	 * Returns a {@link GridCoverage} which may be used as a "real world"
@@ -325,6 +348,28 @@ public class GridCoverageRendererTest  {
         // there used to be a white triangle in the lower right corner of the output
         ImageAssert.assertEquals(new File("src/test/resources/org/geotools/renderer/lite/reprojectBuffer.png"), result, 0);
 	}
+
+    @Test
+    public void testReprojectStereoPolar() throws Exception {
+        final File testFile = TestData.file(this, "arcgrid/precip30min.asc");
+        Hints hints = new Hints(Hints.DEFAULT_COORDINATE_REFERENCE_SYSTEM,
+                DefaultGeographicCRS.WGS84);
+        ArcGridReader reader = new ArcGridReader(testFile, hints);
+        Style style = RendererBaseTest.loadStyle(this, "rain.sld");
+        MapContent mc = new MapContent();
+
+        mc.addLayer(new GridReaderLayer(reader, style));
+        ReferencedEnvelope renderEnvelope = new ReferencedEnvelope(-20000000, 20000000, -20000000,
+                20000000, CRS.decode("EPSG:3031", true));
+        // mc.getViewport().setBounds(renderEnvelope);
+        StreamingRenderer sr = new StreamingRenderer();
+        sr.setMapContent(mc);
+        BufferedImage result = RendererBaseTest.showRender("testGridCoverageBoundsReprojection",
+                sr, 1000, renderEnvelope);
+        ImageAssert.assertEquals(new File(
+                "src/test/resources/org/geotools/renderer/lite/reprojectStereoPolar.png"), result,
+                0);
+    }
 
 
 }

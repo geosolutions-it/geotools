@@ -290,13 +290,8 @@ final class GridCoverageRendererUtilities {
             final GridCoverage2D gc,
             CoordinateReferenceSystem crs, 
             final Interpolation interpolation,
-            final GeneralEnvelope destinationEnvelope, 
             final double bkgValues[],
             final Hints hints) throws FactoryException {
-        // paranoiac check
-        assert CRS.equalsIgnoreMetadata(destinationEnvelope.getCoordinateReferenceSystem(), crs)
-                || CRS.findMathTransform(destinationEnvelope.getCoordinateReferenceSystem(), crs)
-                        .isIdentity();
     
         final ParameterValueGroup param = (ParameterValueGroup) RESAMPLING_PARAMS.clone();
         param.parameter("source").setValue(gc);
@@ -375,7 +370,6 @@ final class GridCoverageRendererUtilities {
         
         GridCoverageRendererUtilities.ensureNotNull(inputEnvelope, "destinationEnvelope");
         GridCoverageRendererUtilities.ensureNotNull(targetCRS, "coverageCRS");
-        final CoordinateReferenceSystem destinationCRS=inputEnvelope.getCoordinateReferenceSystem();
 
         // //
         //
@@ -391,9 +385,7 @@ final class GridCoverageRendererUtilities {
             // some erros (it usually
             // increases the envelope we want to check) but it is still
             // useful.
-            GeneralEnvelope output = CRS.transform(
-                    CRS.findMathTransform(destinationCRS, targetCRS, true),//lenient
-                    inputEnvelope);
+            GeneralEnvelope output = CRS.transform(inputEnvelope, targetCRS);
             output.setCoordinateReferenceSystem(targetCRS);
             return output;
         } catch (TransformException te) {
