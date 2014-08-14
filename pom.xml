@@ -1385,17 +1385,16 @@
   </reporting>
 
   <distributionManagement>
-    <repository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>osgeo</id>
-      <name>Open Source Geospatial Foundation - Maven 2 repo</name>
-      <url>dav:http://download.osgeo.org/webdav/geotools/</url>
-    </repository>
+      <repository>
+       <uniqueVersion>false</uniqueVersion>
+       <id>geosolutions</id>
+       <url>ftp://demo.geo-solutions.it</url>
+      </repository>
     <snapshotRepository>
-        <id>opengeo</id>
         <uniqueVersion>false</uniqueVersion>
-        <name>OpenGeo Maven Repository</name>
-        <url>dav:http://repo.opengeo.org</url>
+        <name>GeoSolutions Maven Repository</name>
+       <id>geosolutions</id>
+       <url>ftp://demo.geo-solutions.it</url>
     </snapshotRepository>
   </distributionManagement>
 
