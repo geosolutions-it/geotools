@@ -17,11 +17,16 @@
  */
 package org.geotools.coverage.processing.operation;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.geom.Point2D;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -35,20 +40,26 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.Warp;
 import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
-import javax.media.jai.operator.BorderDescriptor;
+import javax.media.jai.operator.ConstantDescriptor;
 
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
+import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.geotools.util.Utilities;
+import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.metadata.spatial.PixelOrientation;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -57,6 +68,7 @@ import org.opengis.referencing.operation.NoninvertibleTransformException;
 import org.opengis.referencing.operation.TransformException;
 
 import com.sun.media.jai.util.ImageUtil;
+import com.sun.media.jai.util.PropertyGeneratorImpl;
 
 /**
  * A RenderedImage that provides values coming from a source GridCoverage2D, with a backing grid
@@ -93,6 +105,14 @@ public class GridCoverage2DRIA extends GeometricOpImage {
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null; // ETj: just for keeping compiler quiet: let's see if we really
 
+    private ROI roi;
+
+    private boolean hasROI;
+
+    private Rectangle roiBounds;
+
+    private PlanarImage roiImage;
+
     /**
      * Wrap the src coverage in the dst layout. <BR>
      * The resulting RenderedImage will contain the data in src, and will be accessible via the grid
@@ -108,7 +128,17 @@ public class GridCoverage2DRIA extends GeometricOpImage {
      * @return an instance of Coverage2RenderedImageAdapter
      */
     public static GridCoverage2DRIA create(final GridCoverage2D src, final GridGeometry2D dst, final double nodata) {
+        return create(src, dst, nodata, null, null);
+    }
+    
+    public static GridCoverage2DRIA create(final GridCoverage2D src, final GridCoverage2D dst,
+            final double nodata) {
         return create(src, dst, nodata, null);
+    }
+    
+    public static GridCoverage2DRIA create(GridCoverage2D src, GridGeometry2D dst,
+            double nodata, Hints hints){
+        return create(src, dst, nodata, hints, null);
     }
 
     /**
@@ -124,10 +154,11 @@ public class GridCoverage2DRIA extends GeometricOpImage {
      *            the nodata value to set for cells not covered by src but included in dst. All
      *            bands will share the same nodata value.
      * @param hints hints to use for the Rendering, Actually only ImageLayout is considered
+     * @param roi 
      * @return an instance of Coverage2RenderedImageAdapter
      */
     public static GridCoverage2DRIA create(GridCoverage2D src, GridGeometry2D dst,
-            double nodata, Hints hints) {
+            double nodata, Hints hints, ROI roi) {
         
         Utilities.ensureNonNull("dst", dst);
         
@@ -161,9 +192,14 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         //
         BorderExtender extender = new BorderExtenderConstant(new double[] { nodata });
         
+        // Check if the input coverage contains a ROI
+        ROI property = CoverageUtilities.getROIProperty(src);
+        if(property != null){
+            roi = roi != null ? roi.intersect(property) : property;
+        }
         return new GridCoverage2DRIA(src, dst, vectorize(src.getRenderedImage()), imageLayout,
                 null, false, extender, Interpolation.getInstance(Interpolation.INTERP_NEAREST),
-                new double[] { nodata });
+                new double[] { nodata }, roi);
         
     }
     
@@ -181,10 +217,11 @@ public class GridCoverage2DRIA extends GeometricOpImage {
      * @param nodata
      *            the nodata value to set for cells not covered by src but included in dst. All
      *            bands will share the same nodata value.
+     * @param roi 
      * @return an instance of Coverage2RenderedImageAdapter
      */
     public static GridCoverage2DRIA create(final GridCoverage2D src, final GridCoverage2D dst,
-            final double nodata) {
+            final double nodata, ROI roi) {
 
         // === Create Layout
         final ImageLayout imageLayout = new ImageLayout(dst.getRenderedImage());
@@ -203,16 +240,22 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         // so to avoid problems with interpolation at source raster borders.
         //
         BorderExtender extender = new BorderExtenderConstant(new double[] { nodata });
+        
+        // Check if the input coverage contains a ROI
+        ROI property = CoverageUtilities.getROIProperty(src);
+        if(property != null){
+            roi = roi != null ? roi.intersect(property) : property;
+        }
 
         return new GridCoverage2DRIA(src, dst.getGridGeometry(), vectorize(src.getRenderedImage()), imageLayout,
                 null, false, extender, Interpolation.getInstance(Interpolation.INTERP_NEAREST),
-                new double[] { nodata });
+                new double[] { nodata }, roi);
     }
 
     protected GridCoverage2DRIA(final GridCoverage2D src, final GridGeometry2D dst,
             final Vector sources, final ImageLayout layout, final Map configuration,
             final boolean cobbleSources, final BorderExtender extender, final Interpolation interp,
-            final double[] nodata) {
+            final double[] nodata, ROI roi) {
 
         super(sources, layout, configuration, cobbleSources, extender, interp, nodata);
 
@@ -247,6 +290,14 @@ public class GridCoverage2DRIA extends GeometricOpImage {
             throw new IllegalArgumentException("Can't create a transform between CRS", e);
         } catch (NoninvertibleTransformException e) {
             throw new IllegalArgumentException("Can't create a transform between CRS", e);
+        }
+        
+        // Input ROI 
+        this.roi = roi;
+        this.hasROI = roi != null;
+        if(hasROI){
+            this.roiBounds = roi.getBounds();
+            setProperty("roi", roi);
         }
 
     }
@@ -500,25 +551,88 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         RasterFormatTag[] formatTags = getFormatTags();
 
         RasterAccessor d = new RasterAccessor(dest, destRect, formatTags[1], getColorModel());
+        
+        ROI roiTile = null;
+        
+        RandomIter roiIter = null;
+
+        boolean roiContainsTile = false;
+        boolean roiDisjointTile = false;
+        
+        // If a ROI is present, then only the part contained inside the current tile bounds is taken.
+        if (hasROI) {
+            Rectangle srcRectExpanded = null;//mapDestRect(destRect, 0);
+            int x = (int) destRect.getMinX();
+            int y = (int) destRect.getMinY();
+            int w = (int) destRect.getWidth();
+            int h = (int) destRect.getHeight();
+            float[] src = new float[w * h * 2];
+            warpRect(x, y, w, h, src);
+            
+            double minX = Double.POSITIVE_INFINITY;
+            double minY = Double.POSITIVE_INFINITY;
+            double maxX = Double.NEGATIVE_INFINITY;
+            double maxY = Double.NEGATIVE_INFINITY;
+            int numP = src.length;
+            for(int i = 0; i < numP; i=i+2){
+                float xi = src[i];
+                float yi = src[i + 1];
+                minX = xi < minX ? xi : minX;
+                minY = yi < minY ? yi : minY;
+                maxX = xi > maxX ? xi : maxX;
+                maxY = yi > maxY ? yi : maxY;
+            }
+            srcRectExpanded = new Rectangle((int)minX, (int)minY, (int)(maxX - minX) + 1, (int)(maxY - minY) + 1);
+            
+            
+            // The tile dimension is extended for avoiding border errors
+            srcRectExpanded.setRect(
+                    srcRectExpanded.getMinX() - interp.getLeftPadding(), 
+                    srcRectExpanded.getMinY() - interp.getTopPadding(), 
+                    srcRectExpanded.getWidth() + interp.getRightPadding() + interp.getLeftPadding(), 
+                    srcRectExpanded.getHeight() + interp.getBottomPadding() + interp.getTopPadding());
+            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
+            
+            if(!roiBounds.intersects(srcRectExpanded)) {
+                roiDisjointTile = true;
+            } else {
+                roiContainsTile = roiTile.contains(srcRectExpanded);
+                if (!roiContainsTile) {
+                    if (!roiTile.intersects(srcRectExpanded)) {
+                        roiDisjointTile = true;
+                    }else{
+                        PlanarImage roiIMG = getImage();
+                        roiIter = RandomIterFactory.create(roiIMG, null, true, true);
+                    }
+                }
+            }
+        }
+        
+        if(roiDisjointTile){
+            double[] bkg = setBackground ? backgroundValues : new double[dest.getNumBands()];
+            ImageUtil.fillBackground(dest, destRect, bkg);
+            return;
+        }
+        
 
         switch (d.getDataType()) {
         case DataBuffer.TYPE_BYTE:
-            computeRectByte(sources[0], d);
+            computeRectByte(sources[0], d, roiIter, roiContainsTile);
             break;
         case DataBuffer.TYPE_USHORT:
-            computeRectUShort(sources[0], d);
+            computeRectUShort(sources[0], d, roiIter, roiContainsTile);
             break;
         case DataBuffer.TYPE_SHORT:
-            computeRectShort(sources[0], d);
+            computeRectShort(sources[0], d, roiIter, roiContainsTile);
             break;
         case DataBuffer.TYPE_INT:
-            computeRectInt(sources[0], d);
+            computeRectInt(sources[0], d, roiIter, roiContainsTile);
             break;
         case DataBuffer.TYPE_FLOAT:
-            computeRectFloat(sources[0], d);
+            computeRectFloat(sources[0], d, roiIter, roiContainsTile);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            computeRectDouble(sources[0], d);
+            computeRectDouble(sources[0], d, roiIter, roiContainsTile);
             break;
         }
 
@@ -528,7 +642,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectByte(PlanarImage src, RasterAccessor dst) {
+    private void computeRectByte(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -599,7 +713,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                     int xfrac = (int) ((sx - xint) * precH);
                     int yfrac = (int) ((sy - yint) * precV);
 
-                    if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                    if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
@@ -643,7 +757,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                     int xfrac = (int) ((sx - xint) * precH);
                     int yfrac = (int) ((sy - yint) * precV);
 
-                    if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                    if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
@@ -674,7 +788,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectUShort(PlanarImage src, RasterAccessor dst) {
+    private void computeRectUShort(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -744,7 +858,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                 int xfrac = (int) ((sx - xint) * precH);
                 int yfrac = (int) ((sy - yint) * precV);
 
-                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                     /* Fill with a background color. */
                     if (setBackground) {
                         for (int b = 0; b < dstBands; b++) {
@@ -772,7 +886,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectShort(PlanarImage src, RasterAccessor dst) {
+    private void computeRectShort(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -842,7 +956,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                 int xfrac = (int) ((sx - xint) * precH);
                 int yfrac = (int) ((sy - yint) * precV);
 
-                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                     /* Fill with a background color. */
                     if (setBackground) {
                         for (int b = 0; b < dstBands; b++) {
@@ -870,7 +984,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectInt(PlanarImage src, RasterAccessor dst) {
+    private void computeRectInt(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -940,7 +1054,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                 int xfrac = (int) ((sx - xint) * precH);
                 int yfrac = (int) ((sy - yint) * precV);
 
-                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                     /* Fill with a background color. */
                     if (setBackground) {
                         for (int b = 0; b < dstBands; b++) {
@@ -968,7 +1082,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectFloat(PlanarImage src, RasterAccessor dst) {
+    private void computeRectFloat(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -1035,7 +1149,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                 float xfrac = sx - xint;
                 float yfrac = sy - yint;
 
-                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                     /* Fill with a background color. */
                     if (setBackground) {
                         for (int b = 0; b < dstBands; b++) {
@@ -1063,7 +1177,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
         }
     }
 
-    private void computeRectDouble(PlanarImage src, RasterAccessor dst) {
+    private void computeRectDouble(PlanarImage src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int lpad, rpad, tpad, bpad;
         if (interp != null) {
             lpad = interp.getLeftPadding();
@@ -1125,7 +1239,7 @@ public class GridCoverage2DRIA extends GeometricOpImage {
                 float xfrac = sx - xint;
                 float yfrac = sy - yint;
 
-                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY) {
+                if (xint < minX || xint >= maxX || yint < minY || yint >= maxY || !inROI(xint, yint, roiIter, roiContainsTile)) {
                     /* Fill with a background color. */
                     if (setBackground) {
                         for (int b = 0; b < dstBands; b++) {
@@ -1230,13 +1344,142 @@ public class GridCoverage2DRIA extends GeometricOpImage {
             int topPad, int bottomPad, BorderExtender extender) {
         RandomIter iterSource;
         if (extender != null) {
-            RenderedOp op = BorderDescriptor.create(src, leftPad, rightPad, topPad, bottomPad,
-                    extender, GeoTools.getDefaultHints());
-            iterSource = RandomIterFactory.create(op, op.getBounds());
+            ImageWorker w = new ImageWorker(src).setRenderingHints(GeoTools.getDefaultHints());
+            RenderedOp op = w.border(leftPad, rightPad, topPad, bottomPad, extender).getRenderedOperation();
+//                    BorderDescriptor.create(src, leftPad, rightPad, topPad, bottomPad,
+//                    extender, GeoTools.getDefaultHints());
+            iterSource = RandomIterFactory.create(op, op.getBounds(), true, true);
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds());
+            iterSource = RandomIterFactory.create(src, src.getBounds(), true, true);
         }
         return iterSource;
     }
+    
+    /**
+     * This method provides a lazy initialization of the image associated to the ROI.
+     * The method uses the Double-checked locking in order to maintain thread-safety
+     * 
+     * @return
+     */
+    private PlanarImage getImage() {
+        PlanarImage img = roiImage;
+        if (img == null) {
+            synchronized (this) {
+                img = roiImage;
+                if (img == null) {
+                    roiImage = img = roi.getAsImage();
+                }
+            }
+        }
+        return img;
+    }
+    
+    private boolean inROI(int x, int y, RandomIter roiIter, boolean roiContainsTile){
+        if(hasROI){
+            if(roiContainsTile){
+                return true;
+            }
+            return roiBounds.contains(x, y) && (roiIter.getSample(x, y, 0) > 0);
+        }else{
+            return true;
+        }
+    }
 
+    /**
+     * This property generator computes the properties for the operation "GridCoverage2DRIA" dynamically.
+     */
+    static class GridCoverage2DRIAPropertyGenerator extends PropertyGeneratorImpl {
+
+        /** Constructor. */
+        public GridCoverage2DRIAPropertyGenerator() {
+            super(new String[] { "ROI" }, new Class[] { ROI.class }, new Class[] { GridCoverage2DRIA.class });
+        }
+
+        /**
+         * Returns the specified property.
+         * 
+         * @param name Property name.
+         * @param opNode Operation node.
+         */
+        public Object getProperty(String name, Object opNode) {
+            validate(name, opNode);
+
+            if (opNode instanceof GridCoverage2DRIA && name.equalsIgnoreCase("roi")) {
+                GridCoverage2DRIA op = (GridCoverage2DRIA) opNode;
+
+                // Retrieve the rendered source image and its ROI.
+                RenderedImage src = (RenderedImage) op.src.getRenderedImage();
+                Object property = op.getProperty("ROI");
+                if (property == null || property.equals(java.awt.Image.UndefinedProperty)
+                        || !(property instanceof ROI)) {
+                    return java.awt.Image.UndefinedProperty;
+                }
+
+                // Return undefined also if source ROI is empty.
+                ROI srcROI = (ROI) property;
+                if (srcROI.getBounds().isEmpty()) {
+                    return java.awt.Image.UndefinedProperty;
+                }
+
+                // Retrieve the Interpolation object.
+                InterpolationNearest interp = (InterpolationNearest) Interpolation.getInstance(Interpolation.INTERP_NEAREST);
+
+                // Determine the effective source bounds.
+                Rectangle srcBounds = null;
+                PlanarImage dst = op;
+                if (dst instanceof GeometricOpImage
+                        && ((GeometricOpImage) dst).getBorderExtender() == null) {
+                    srcBounds = new Rectangle(src.getMinX() + interp.getLeftPadding(), src.getMinY()
+                            + interp.getTopPadding(), src.getWidth() - interp.getWidth() + 1,
+                            src.getHeight() - interp.getHeight() + 1);
+                } else {
+                    srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
+                            src.getHeight());
+                }
+
+                // If necessary, clip the ROI to the effective source bounds.
+                if (!srcBounds.contains(srcROI.getBounds())) {
+                    srcROI = srcROI.intersect(new ROIShape(srcBounds));
+                }
+
+                // Setting constant image to be warped as a ROI
+                Rectangle dstBounds = op.getBounds();
+
+                // Setting layout of the constant image
+                ImageLayout2 layout = new ImageLayout2();
+                int minx = (int) srcBounds.getMinX();
+                int miny = (int) srcBounds.getMinY();
+                int w = (int) srcBounds.getWidth();
+                int h = (int) srcBounds.getHeight();
+                layout.setMinX(minx);
+                layout.setMinY(miny);
+                layout.setWidth(w);
+                layout.setHeight(h);
+                RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+
+                final PlanarImage constantImage = ConstantDescriptor.create(new Float(w), new Float(h),
+                        new Byte[] { (byte) 255 }, hints);
+                
+                GridCoverage2D input = new GridCoverageFactory(GeoTools.getDefaultHints()).create(
+                        name, constantImage, op.src.getEnvelope());
+                PlanarImage roiImage = null;
+
+                // Creating warped roi by the same way (Warp, Interpolation, source ROI) we warped the
+                // input image.
+                roiImage = create(input, op.dst, 0d, null, srcROI);
+
+                ROI dstROI = new ROI(roiImage, 1);
+
+                // If necessary, clip the warped ROI to the destination bounds.
+                if (!dstBounds.contains(dstROI.getBounds())) {
+                    dstROI = dstROI.intersect(new ROIShape(dstBounds));
+                }
+
+                // Return the warped and possibly clipped ROI.
+                return dstROI;
+            }
+
+            return java.awt.Image.UndefinedProperty;
+        }
+    }
 }

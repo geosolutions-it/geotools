@@ -49,7 +49,7 @@ public class BandSelectProcess implements RasterProcess {
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
 
     /** The {@link SelectSampleDimension} operation to execute */
-    private static final Operation BANDSELECT = PROCESSOR.getOperation("SelectSampleDimension");
+    //private static final Operation BANDSELECT = PROCESSOR.getOperation("SelectSampleDimension");
 
     @DescribeResult(name = "result", description = "A selection on the input rasters")
     public GridCoverage2D execute(
@@ -63,7 +63,7 @@ public class BandSelectProcess implements RasterProcess {
         // Parameters definition
         //
         // //
-        final ParameterValueGroup param = BANDSELECT.getParameters();
+        final ParameterValueGroup param = PROCESSOR.getOperation("SelectSampleDimension").getParameters();
         // Setting of the source
         param.parameter("Source").setValue(coverage);
         // Setting of the Sample Dimension

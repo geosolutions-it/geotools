@@ -16,6 +16,8 @@
  */
 package org.geotools.coverage.processing;
 
+import it.geosolutions.jaiext.JAIExt;
+
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Rectangle2D;
@@ -160,6 +162,17 @@ public abstract class BaseStatisticsOperationJAI extends
 	 * Constructor for {@link BaseStatisticsOperationJAI}.
 	 * @param name of the underlying JAI operation.
 	 */
+	public BaseStatisticsOperationJAI(String name, OperationDescriptor operationDescriptor) {
+		super(getOperationDescriptor(JAIExt.getOperationName(name)),new ExtendedImagingParameterDescriptors(
+				name,
+				operationDescriptor,
+				new HashSet<ParameterDescriptor>(REPLACED_DESCRIPTORS)));
+	}
+	
+    /**
+	 * Constructor for {@link BaseStatisticsOperationJAI}.
+	 * @param name of the underlying JAI operation.
+	 */
 	public BaseStatisticsOperationJAI(String name) {
 		super(getOperationDescriptor(name),new ImagingParameterDescriptors(
 				getOperationDescriptor(name),
@@ -283,6 +296,10 @@ public abstract class BaseStatisticsOperationJAI extends
 					block.setParameter("roi", new ROIShape(shapePolygon));
 				}
 			}
+			
+			// Handle JAI-EXT parameters if needed
+			handleJAIEXTParams(block, parameters);
+			// Returning the parameterBlock
 			return block;
 		} catch (Exception e) {
 			// //
@@ -308,7 +325,7 @@ public abstract class BaseStatisticsOperationJAI extends
 	 * @throws TransformException
 	 *             in case the provided {@link MathTransform} chokes.
 	 */
-	private static java.awt.Polygon convertPolygon(final Polygon roiInput,
+	protected static java.awt.Polygon convertPolygon(final Polygon roiInput,
 			MathTransform worldToGridTransform) throws TransformException {
 		final boolean isIdentity = worldToGridTransform.isIdentity();
 		final java.awt.Polygon retValue = new java.awt.Polygon();

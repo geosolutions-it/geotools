@@ -50,7 +50,7 @@ public class CoverageToolsConstants {
 			.createInstance(BorderExtender.BORDER_COPY);
 	public final static FilteredSubsample FILTERED_SUBSAMPLE_FACTORY = new FilteredSubsample();
 	public static final SubsampleAverage SUBSAMPLE_AVERAGE_FACTORY = new SubsampleAverage();
-	public static final Scale SCALE_FACTORY = new Scale();
+	//public static final Scale SCALE_FACTORY = new Scale();
 
 	public static final int DEFAULT_INTERNAL_TILE_WIDTH = 512;
 	public static final int DEFAULT_INTERNAL_TILE_HEIGHT = 512;

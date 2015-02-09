@@ -17,6 +17,9 @@
  */
 package org.geotools.process.raster;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.process.ProcessException;
@@ -39,7 +42,7 @@ import org.opengis.util.ProgressListener;
 public class AddCoveragesProcess implements RasterProcess {
 
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
-    private static final Operation ADD = PROCESSOR.getOperation("Add");
+    //private static final Operation ADD = PROCESSOR.getOperation("Add");
 
     @DescribeResult(name = "result", description = "Summed rasters")
     public GridCoverage2D execute(
@@ -59,9 +62,13 @@ public class AddCoveragesProcess implements RasterProcess {
         // Doing the Operation
         //
         // //
-        final ParameterValueGroup param = ADD.getParameters();
-        param.parameter("Source0").setValue(coverageA);
-        param.parameter("Source1").setValue(coverageB);
+        final ParameterValueGroup param = PROCESSOR.getOperation("Add").getParameters();
+        List<GridCoverage2D> sources = new ArrayList<GridCoverage2D>();
+        sources.add(coverageA);
+        sources.add(coverageB);
+        param.parameter("Sources").setValue(sources);
+        //param.parameter("Source0").setValue(coverageA);
+        //param.parameter("Source1").setValue(coverageB);
         return (GridCoverage2D) PROCESSOR.doOperation(param);
     }
 

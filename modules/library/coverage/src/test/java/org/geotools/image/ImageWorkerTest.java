@@ -19,9 +19,11 @@ package org.geotools.image;
 import static org.junit.Assert.*;
 import it.geosolutions.imageio.utilities.ImageIOUtilities;
 import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
 import java.awt.geom.AffineTransform;
@@ -34,6 +36,7 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -49,9 +52,9 @@ import javax.imageio.stream.ImageInputStream;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
-import javax.media.jai.operator.BandMergeDescriptor;
 import javax.media.jai.operator.ConstantDescriptor;
 
 import org.geotools.TestData;
@@ -702,11 +705,13 @@ public final class ImageWorkerTest extends GridProcessingTestBase {
     	Assert.assertEquals(minimums4a[0],minimums4b[0],1E-10);
     	
     	// now test multibands case
-    	final RenderedImage multiband=BandMergeDescriptor.create(test2, test3, null);
+    	ParameterBlock pb = new ParameterBlock();
+    	pb.addSource(test2).addSource(test3);
+    	final RenderedImage multiband=JAI.create("BandMerge", pb, null);//BandMergeDescriptor.create(test2, test3, null);
     	ImageWorker testmultibandI=new ImageWorker(multiband);
     	final double[] maximums5a = testmultibandI.getMaximums();
     	final double[] minimums5a = testmultibandI.getMinimums();    
-    	testmultibandI.rescaleToBytes();
+    	testmultibandI.rescaleToBytes().setnoData(null);
     	final double[] maximums5b = testmultibandI.getMaximums();
     	final double[] minimums5b = testmultibandI.getMinimums();
     	Assert.assertEquals(maximums5a[0],maximums5b[0],1E-10);
@@ -1009,7 +1014,35 @@ public final class ImageWorkerTest extends GridProcessingTestBase {
         int sample = image.getTile(0, 0).getSample(0, 0, 1);
         assertEquals(128, sample);
     }
+
+    @Test
+    public void testOpacityGrayROI() {
+        assertTrue("Assertions should be enabled.", ImageWorker.class.desiredAssertionStatus());
+        ImageWorker worker = new ImageWorker(gray);
+        worker.setROI(new ROIShape(new Rectangle(1, 1 , 1, 1)));
+        worker.applyOpacity(0.5f);
+        
+        RenderedImage image = worker.getRenderedImage();
+        assertTrue(image.getColorModel() instanceof ComponentColorModel);
+        assertTrue(image.getColorModel().hasAlpha());
+        int sample = image.getTile(0, 0).getSample(0, 0, 1);
+        assertEquals(0, sample);
+    }
     
+    @Test
+    public void testOpacityGrayNoData() {
+        assertTrue("Assertions should be enabled.", ImageWorker.class.desiredAssertionStatus());
+        ImageWorker worker = new ImageWorker(gray);
+        worker.setnoData(RangeFactory.convert(RangeFactory.create(255, 255), gray.getSampleModel().getDataType()));
+        worker.applyOpacity(0.5f);
+        
+        RenderedImage image = worker.getRenderedImage();
+        assertTrue(image.getColorModel() instanceof ComponentColorModel);
+        assertTrue(image.getColorModel().hasAlpha());
+        int sample = image.getTile(0, 0).getSample(0, 0, 1);
+        assertEquals(0, sample);
+    }
+
     @Test
     public void testOpacityGrayAlpha() {
         assertTrue("Assertions should be enabled.", ImageWorker.class.desiredAssertionStatus());

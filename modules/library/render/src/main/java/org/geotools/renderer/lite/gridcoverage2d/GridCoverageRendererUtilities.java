@@ -56,7 +56,7 @@ import com.sun.media.jai.util.Rational;
  */
 final class GridCoverageRendererUtilities {
 
-
+	private static final CoverageProcessor processor = CoverageProcessor.getInstance(new Hints(Hints.LENIENT_DATUM_SHIFT, Boolean.TRUE));
 
     static {
     
@@ -65,17 +65,17 @@ final class GridCoverageRendererUtilities {
         // Caching parameters for performing the various operations.
         //      
         // ///////////////////////////////////////////////////////////////////
-        final CoverageProcessor processor = new CoverageProcessor(new Hints(Hints.LENIENT_DATUM_SHIFT, Boolean.TRUE));
-        RESAMPLING_PARAMS = processor.getOperation("Resample").getParameters();
-        CROP_PARAMS = processor.getOperation("CoverageCrop").getParameters();
-        MOSAIC_PARAMS = processor.getOperation("Mosaic").getParameters();
+        
+        //RESAMPLING_PARAMS = processor.getOperation("Resample").getParameters();
+        //CROP_PARAMS = processor.getOperation("CoverageCrop").getParameters();
+        //MOSAIC_PARAMS = processor.getOperation("Mosaic").getParameters();
     }
     
     /** Cached factory for the {@link Crop} operation. */
-     final static Crop CROP_FACTORY = new Crop();
+     //final static Crop CROP_FACTORY = new Crop();
      
     /** Cached factory for the {@link Crop} operation. */
-    final static Mosaic MOSAIC_FACTORY = new Mosaic();
+    //final static Mosaic MOSAIC_FACTORY = new Mosaic();
 
     // FORMULAE FOR FORWARD MAP are derived as follows
     //     Nearest
@@ -284,16 +284,16 @@ final class GridCoverageRendererUtilities {
     }
 
     /** Parameters used to control the {@link Resample} operation. */
-    final static ParameterValueGroup RESAMPLING_PARAMS;
+    //final static ParameterValueGroup RESAMPLING_PARAMS;
     
     /** Parameters used to control the {@link Crop} operation. */
-    static ParameterValueGroup CROP_PARAMS;
+    //static ParameterValueGroup CROP_PARAMS;
     
     /** Parameters used to control the {@link Mosaic} operation. */
-    static ParameterValueGroup MOSAIC_PARAMS;
+    //static ParameterValueGroup MOSAIC_PARAMS;
 
     /** Parameters used to control the {@link Scale} operation. */
-    static final Resample RESAMPLE_FACTORY = new Resample();
+    //static final Resample RESAMPLE_FACTORY = new Resample();
     /**
      * Reprojecting the input coverage using the provided parameters.
      * 
@@ -315,14 +315,14 @@ final class GridCoverageRendererUtilities {
                 || CRS.findMathTransform(destinationEnvelope.getCoordinateReferenceSystem(), crs)
                         .isIdentity();
     
-        final ParameterValueGroup param = RESAMPLING_PARAMS.clone();
+        final ParameterValueGroup param = processor.getOperation("Resample").getParameters().clone();
         param.parameter("source").setValue(gc);
         param.parameter("CoordinateReferenceSystem").setValue(crs);
         param.parameter("InterpolationType").setValue(interpolation);
         if(bkgValues!=null){
             param.parameter("BackgroundValues").setValue(bkgValues);
         }
-        return (GridCoverage2D) RESAMPLE_FACTORY.doOperation(param, hints);
+        return (GridCoverage2D) ((Resample)processor.getOperation("Resample")).doOperation(param, hints);
     
     }
 
@@ -352,10 +352,10 @@ final class GridCoverageRendererUtilities {
         }
     
         // crop
-        final ParameterValueGroup param = CROP_PARAMS.clone();
+        final ParameterValueGroup param = processor.getOperation("CoverageCrop").getParameters().clone();
         param.parameter("source").setValue(gc);
         param.parameter("Envelope").setValue(intersectionEnvelope);
-        return (GridCoverage2D) CROP_FACTORY.doOperation(param, hints);
+        return (GridCoverage2D) ((Crop)processor.getOperation("CoverageCrop")).doOperation(param, hints);
     
     }
 
@@ -420,10 +420,10 @@ final class GridCoverageRendererUtilities {
             GridGeometry2D gridGeometry = new GridGeometry2D(gridRange, targetEnvelope);
 
             // mosaic
-            final ParameterValueGroup param = MOSAIC_PARAMS.clone();
+            final ParameterValueGroup param = processor.getOperation("Mosaic").getParameters().clone();
             param.parameter("sources").setValue(coverages);
             param.parameter("geometry").setValue(gridGeometry);
-            return (GridCoverage2D) MOSAIC_FACTORY.doOperation(param, hints);
+            return (GridCoverage2D) ((Mosaic)processor.getOperation("Mosaic")).doOperation(param, hints);
         } catch (Exception e) {
             throw new RuntimeException("Failed to mosaic the input coverages", e);
         }

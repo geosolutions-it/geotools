@@ -16,6 +16,10 @@
  */
 package org.geotools.referencing.piecewise;
 
+import it.geosolutions.jaiext.piecewise.DefaultDomainElement1D;
+import it.geosolutions.jaiext.piecewise.DomainElement1D;
+import it.geosolutions.jaiext.range.Range;
+
 import java.util.Arrays;
 
 import org.geotools.referencing.operation.transform.LinearTransform1D;
@@ -34,12 +38,12 @@ import org.opengis.referencing.operation.MathTransform1D;
  * @author Simone Giannecchini, GeoSolutions.
  * 
  */
-class PiecewiseUtilities {
+class PiecewiseUtilitiesss {
 
 	/**
 	 * 
 	 */
-	private PiecewiseUtilities() {
+	private PiecewiseUtilitiesss() {
 	}
 
 	/**
@@ -53,12 +57,12 @@ class PiecewiseUtilities {
 	 static void domainElementsOverlap(DomainElement1D[] domainElements, int idx) {
 		// Two domain elements have overlapping ranges;
 		// Format an error message...............
-		final NumberRange<? extends Number> range1 = domainElements[idx - 1]
+		final Range range1 = domainElements[idx - 1]
 				.getRange();
-		final NumberRange<? extends Number> range2 =  domainElements[idx].getRange();
-		final Comparable[] args = new Comparable[] { range1.getMinValue(),
-				range1.getMaxValue(), range2.getMinValue(),
-				range2.getMaxValue() };
+		final Range range2 =  domainElements[idx].getRange();
+		final Comparable[] args = new Comparable[] { (Comparable) range1.getMin(),
+				(Comparable) range1.getMax(), (Comparable) range2.getMin(),
+				(Comparable) range2.getMax() };
 		for (int j = 0; j < args.length; j++) {
 			if (args[j] instanceof Number) {
 				final double value = ((Number) args[j]).doubleValue();
@@ -285,7 +289,7 @@ class PiecewiseUtilities {
 		// transform
 		//
 		// //
-		if (PiecewiseUtilities.compare(minDestination, maxDestination) == 0)
+		if (PiecewiseUtilitiesss.compare(minDestination, maxDestination) == 0)
 			return LinearTransform1D.create(0, minDestination);
 
 		// //
@@ -294,7 +298,7 @@ class PiecewiseUtilities {
 		// only if we map to another single value
 		//
 		// //
-		if (PiecewiseUtilities.compare(minSource, maxSource) == 0)
+		if (PiecewiseUtilitiesss.compare(minSource, maxSource) == 0)
 			throw new IllegalArgumentException("Impossible to map a single value to a range.");
 
 		double scale = (maxDestination - minDestination)

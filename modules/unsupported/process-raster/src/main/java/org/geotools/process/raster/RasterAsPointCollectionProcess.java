@@ -87,7 +87,7 @@ import com.vividsolutions.jts.geom.Point;
 @DescribeProcess(title = "Raster As Point Collection", description = "Returns a collection of point features for the pixels of a raster.  The band values are provided as attributes.")
 public class RasterAsPointCollectionProcess implements RasterProcess {
 
-    protected static final Operation AFFINE = CoverageProcessor.getInstance().getOperation("Affine");
+    //protected static final Operation AFFINE = CoverageProcessor.getInstance().getOperation("Affine");
     
     @DescribeResult(name = "result", description = "Point features")
     public SimpleFeatureCollection execute(

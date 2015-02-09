@@ -16,9 +16,12 @@
  */
 package org.geotools.renderer.lite.gridcoverage2d;
 
+import it.geosolutions.jaiext.classifier.ConstantColorMapElement;
+import it.geosolutions.jaiext.classifier.LinearColorMapElement;
+import it.geosolutions.jaiext.piecewise.DefaultPiecewiseTransform1DElement;
+
 import java.awt.Color;
 
-import org.geotools.referencing.piecewise.DefaultPiecewiseTransform1DElement;
 import org.geotools.renderer.i18n.ErrorKeys;
 import org.geotools.renderer.i18n.Errors;
 import org.opengis.geometry.DirectPosition;

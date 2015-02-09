@@ -54,7 +54,6 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
-import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
@@ -675,11 +674,8 @@ public final class ImageUtilities {
             final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
 
             // reading the image
-            final ParameterBlockJAI pbjFormat = new ParameterBlockJAI("Format");
-            pbjFormat.addSource(image);
-            pbjFormat.setParameter("dataType", image.getSampleModel().getDataType());
-
-            return JAI.create("Format", pbjFormat, hints);
+            return new ImageWorker(image).setRenderingHints(hints)
+                    .format(image.getSampleModel().getDataType()).getRenderedOperation();
         }
         return image;
     }

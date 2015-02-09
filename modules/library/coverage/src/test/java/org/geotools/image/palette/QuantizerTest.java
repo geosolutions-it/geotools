@@ -18,6 +18,9 @@ package org.geotools.image.palette;
 
 import static org.junit.Assert.*;
 
+import it.geosolutions.jaiext.colorindexer.ColorIndexer;
+import it.geosolutions.jaiext.colorindexer.Quantizer;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -28,14 +31,15 @@ import java.awt.image.RenderedImage;
 
 import javax.media.jai.PlanarImage;
 
+import org.geotools.image.ImageWorker;
 import org.geotools.image.test.ImageAssert;
 import org.junit.Test;
 
 public class QuantizerTest {
 
-    static {
-        ColorIndexerDescriptor.register();
-    }
+//    static {
+//        ColorIndexerDescriptor.register();
+//    }
 
     @Test
     public void testThreeColors() {
@@ -56,7 +60,8 @@ public class QuantizerTest {
         assertEquals(3, icm.getNumComponents());
 
         // quantize and check
-        RenderedImage indexed = ColorIndexerDescriptor.create(bi, indexer, null);
+        RenderedImage indexed = new ImageWorker(bi).colorIndex(indexer).getRenderedImage();
+        //ColorIndexerDescriptor.create(bi, indexer, null);
         IndexColorModel icm2 = (IndexColorModel) indexed.getColorModel();
         assertEquals(icm, icm2);
 
@@ -80,7 +85,8 @@ public class QuantizerTest {
         assertEquals(3, icm.getNumComponents());
 
         // quantize and check
-        RenderedImage indexed = ColorIndexerDescriptor.create(bi, indexer, null);
+        RenderedImage indexed = new ImageWorker(bi).colorIndex(indexer).getRenderedImage();
+                //ColorIndexerDescriptor.create(bi, indexer, null);
         IndexColorModel icm2 = (IndexColorModel) indexed.getColorModel();
         assertEquals(icm, icm2);
         assertImagesSimilar(bi, indexed, 0);
@@ -103,7 +109,8 @@ public class QuantizerTest {
         assertEquals(3, icm.getNumComponents());
 
         // quantize and check
-        RenderedImage indexed = ColorIndexerDescriptor.create(bi, indexer, null);
+        RenderedImage indexed = new ImageWorker(bi).colorIndex(indexer).getRenderedImage();
+                //ColorIndexerDescriptor.create(bi, indexer, null);
         IndexColorModel icm2 = (IndexColorModel) indexed.getColorModel();
         assertEquals(icm, icm2);
         assertImagesSimilar(bi, indexed, 2); // allow a very small color difference
@@ -135,7 +142,8 @@ public class QuantizerTest {
         assertEquals(4, icm.getNumComponents());
 
         // quantize and check
-        RenderedImage indexed = ColorIndexerDescriptor.create(bi, indexer, null);
+        RenderedImage indexed = new ImageWorker(bi).colorIndex(indexer).getRenderedImage();
+                //ColorIndexerDescriptor.create(bi, indexer, null);
         IndexColorModel icm2 = (IndexColorModel) indexed.getColorModel();
         assertEquals(icm, icm2);
 
@@ -173,7 +181,8 @@ public class QuantizerTest {
         assertEquals(4, icm.getNumComponents());
 
         // quantize and check
-        RenderedImage indexed = ColorIndexerDescriptor.create(bi, indexer, null);
+        RenderedImage indexed = new ImageWorker(bi).colorIndex(indexer).getRenderedImage();
+                //ColorIndexerDescriptor.create(bi, indexer, null);
         IndexColorModel icm2 = (IndexColorModel) indexed.getColorModel();
         assertEquals(icm, icm2);
 

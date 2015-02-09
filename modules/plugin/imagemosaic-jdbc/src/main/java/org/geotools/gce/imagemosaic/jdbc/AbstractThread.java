@@ -26,9 +26,9 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
-import javax.media.jai.operator.ScaleDescriptor;
 
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.image.ImageWorker;
 
 /**
  * this class is the base class for concrete thread classes
@@ -98,8 +98,14 @@ abstract class AbstractThread extends Thread {
         if (config.getInterpolation().intValue() == 3) 
                    interpolation = Interpolation.INTERP_BICUBIC;
 
-
-        RenderedOp result = ScaleDescriptor.create(planarImage, new Float(rescaleX), new Float(rescaleY), 0.0f, 0.0f, Interpolation.getInstance(interpolation), null);
+        ImageWorker w = new ImageWorker(planarImage);
+        w.scale(new Float(rescaleX), 
+                new Float(rescaleY), 
+                0.0f, 
+                0.0f, 
+                Interpolation.getInstance(interpolation));
+        RenderedOp result = w.getRenderedOperation();
+        //RenderedOp result = ScaleDescriptor.create(planarImage, new Float(rescaleX), new Float(rescaleY), 0.0f, 0.0f, Interpolation.getInstance(interpolation), null);
         WritableRaster scaledImageRaster = (WritableRaster) result.getData();
 
         ColorModel colorModel = image.getColorModel();

@@ -41,7 +41,7 @@ import org.opengis.parameter.ParameterValueGroup;
 public class ScaleCoverage implements RasterProcess {
 
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
-    private static final Operation SCALE = PROCESSOR.getOperation("Scale");
+    //private static final Operation SCALE = PROCESSOR.getOperation("Scale");
 
     @DescribeResult(name = "result", description = "Scaled raster")
     public GridCoverage2D execute(
@@ -51,7 +51,7 @@ public class ScaleCoverage implements RasterProcess {
             @DescribeParameter(name = "xTranslate", description = "Offset along the x axis") double xTranslate,
             @DescribeParameter(name = "yTranslate", description = "Offset along the y axis") double yTranslate,
             @DescribeParameter(name = "interpolation", description = "Interpolation function to use.  Values are NEAREST, BILINEAR, BICUBIC2, BICUBIC", min = 0) Interpolation interpolation) throws IOException {
-        final ParameterValueGroup param = SCALE.getParameters();
+        final ParameterValueGroup param = PROCESSOR.getOperation("Scale").getParameters();
         
         param.parameter("Source").setValue(coverage);
         param.parameter("xScale").setValue(xScale);

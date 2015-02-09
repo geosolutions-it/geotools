@@ -67,7 +67,7 @@ public class GridCoverageReaderHelper {
 
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
 
-    private static final Operation CROP = PROCESSOR.getOperation("CoverageCrop");
+    //private static final Operation CROP = PROCESSOR.getOperation("CoverageCrop");
 
     private static final int DEFAULT_PADDING = 10;
 
@@ -256,7 +256,7 @@ public class GridCoverageReaderHelper {
     }
 
     private GridCoverage2D cropCoverage(GridCoverage2D coverage, ReferencedEnvelope cropEnvelope) {
-        final ParameterValueGroup param = CROP.getParameters();
+        final ParameterValueGroup param = PROCESSOR.getOperation("CoverageCrop").getParameters();
         param.parameter("Source").setValue(coverage);
         param.parameter("Envelope").setValue(cropEnvelope);
 

@@ -16,8 +16,14 @@
  */
 package org.geotools.coverage.processing.operation;
 
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.stats.HistogramWrapper;
+import it.geosolutions.jaiext.stats.Statistics;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
+
 import java.awt.Shape;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +35,7 @@ import javax.media.jai.operator.HistogramDescriptor;
 
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.processing.BaseStatisticsOperationJAI;
+import org.geotools.resources.coverage.CoverageUtilities;
 import org.opengis.coverage.processing.OperationNotFoundException;
 import org.opengis.parameter.ParameterValueGroup;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -95,9 +102,13 @@ public class Histogram extends BaseStatisticsOperationJAI {
 	 * @throws OperationNotFoundException
 	 */
 	public Histogram() throws OperationNotFoundException {
-		super(getOperationDescriptor("Histogram"));
+		super("Histogram", getOperationDescriptor(JAIExt.getOperationName("Histogram")));
 	}
 
+    public String getName() {
+        return "Histogram";
+    }
+	
 	/**
 	 * This operation MUST be performed on the geophysics data for this
 	 * {@link GridCoverage2D}.
@@ -135,16 +146,48 @@ public class Histogram extends BaseStatisticsOperationJAI {
 		if (data instanceof RenderedOp) {
 			// XXX remove me with 1.5
 			final RenderedOp result = (RenderedOp) data;
+			
+                        final Map<String, Object> synthProp = new HashMap<String, Object>();
 
-			// get the properties
-			final javax.media.jai.Histogram hist = (javax.media.jai.Histogram) result
-					.getProperty(GT_SYNTHETIC_PROPERTY_HISTOGRAM);
+			if(JAIExt.isJAIExtOperation("Stats")){
+		                // get the properties
+	                        Statistics[][] results = ((Statistics[][])result.getProperty(Statistics.STATS_PROPERTY));
+	                        // Extracting the bins
+	                        int numBands = result.getNumBands();
+	                        int[][] bins = new int[numBands][];
+	                        
+	                        // Cycle on the bands
+	                        for(int i = 0; i < results.length; i++){
+	                            Statistics stat = results[i][0];
+	                            double[] binsDouble = (double[]) stat.getResult();
+	                            bins[i] = new int[binsDouble.length];
+	                            for(int j = 0; j < binsDouble.length; j++){
+	                                bins[i][j] = (int) binsDouble[j];
+	                            }
+	                        }
+	                        // Getting numBins, LowBounds, MaxBounds parameters
+	                        ParameterBlock parameterBlock = result.getParameterBlock();
+	                        double[] lowValues = (double[]) parameterBlock.getObjectParameter(7);
+	                        double[] highValues = (double[]) parameterBlock.getObjectParameter(8);
+	                        int[] numBins = (int[]) parameterBlock.getObjectParameter(9);
+	                        
+	                        HistogramWrapper wrapper = new HistogramWrapper(numBins, lowValues, highValues, bins);
 
-			// return the map
-			final Map<String, javax.media.jai.Histogram> synthProp = new HashMap<String, javax.media.jai.Histogram>();
-			synthProp.put(GT_SYNTHETIC_PROPERTY_HISTOGRAM, hist);
+	                        // return the map
+	                        synthProp.put(GT_SYNTHETIC_PROPERTY_HISTOGRAM, wrapper);
+                            } else {
+                
+                                final javax.media.jai.Histogram hist = (javax.media.jai.Histogram) result
+                                        .getProperty(GT_SYNTHETIC_PROPERTY_HISTOGRAM);
+                
+                                // return the map
+                                synthProp.put(GT_SYNTHETIC_PROPERTY_HISTOGRAM, hist);
+                            }
+			// Addition of the ROI property and NoData property
+			GridCoverage2D source = sources[0];
+			CoverageUtilities.setROIProperty(synthProp, CoverageUtilities.getROIProperty(source));
+			CoverageUtilities.setNoDataProperty(synthProp, CoverageUtilities.getNoDataProperty(source));
 			return Collections.unmodifiableMap(synthProp);
-
 		}
 		return super.getProperties(data, crs, name, toCRS, sources, parameters);
 	}
@@ -155,6 +198,26 @@ public class Histogram extends BaseStatisticsOperationJAI {
         block.setParameter("lowValue", parameters.parameter("lowValue").getValue());
         block.setParameter("highValue", parameters.parameter("highValue").getValue());
         block.setParameter("numBins", parameters.parameter("numBins").getValue());
+        if (JAIExt.isJAIExtOperation("Stats")) {
+            handleJAIEXTParams(block, parameters);
+        }
         return block;
+    }
+    
+    protected void handleJAIEXTParams(ParameterBlockJAI parameters, ParameterValueGroup parameters2) {
+        if(JAIExt.isJAIExtOperation("Stats")){
+            GridCoverage2D source = (GridCoverage2D) parameters2.parameter("source0").getValue();
+            // Handle ROI and NoData
+            handleROINoDataInternal(parameters, source, "Stats", 2, 3);
+            // Setting the Statistic operation
+            parameters.set(new StatsType[]{StatsType.HISTOGRAM}, 6);
+            // Check on the band numnber
+            int b = source.getRenderedImage().getSampleModel().getNumBands();
+            int[] indexes = new int[b];
+            for(int i = 0; i < b; i++){
+                indexes[i] = i;
+            }
+            parameters.set(indexes, 5);
+        }
     }
 }

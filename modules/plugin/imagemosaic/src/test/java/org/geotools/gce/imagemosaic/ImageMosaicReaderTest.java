@@ -20,6 +20,7 @@ import it.geosolutions.imageio.pam.PAMDataset;
 import it.geosolutions.imageio.pam.PAMDataset.PAMRasterBand;
 import it.geosolutions.imageio.pam.PAMParser;
 import it.geosolutions.imageio.utilities.ImageIOUtilities;
+import it.geosolutions.jaiext.JAIExt;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -1690,7 +1691,7 @@ public class ImageMosaicReaderTest extends Assert{
         // red background
         final ParameterValue<double[]> bgp =  ImageMosaicFormat.BACKGROUND_VALUES.createValue();
         bgp.setValue(new double[] {255, 0, 0, 255});
-        
+
         // read and check we actually got a coverage in the requested area
         GridCoverage2D coverage = reader.read(new GeneralParameterValue[] {ggp, bgp});
         assertNotNull(coverage);

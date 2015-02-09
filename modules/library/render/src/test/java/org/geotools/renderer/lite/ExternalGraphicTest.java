@@ -19,14 +19,16 @@ import org.geotools.map.MapContent;
 import org.geotools.referencing.CRS;
 import org.geotools.styling.Style;
 import org.geotools.test.TestData;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * 
  *
  * @source $URL$
  */
-public class ExternalGraphicTest extends TestCase {
+public class ExternalGraphicTest {//extends TestCase {
     private static final long TIME = 3000;
     SimpleFeatureSource pointFS;
     SimpleFeatureSource lineFS;
@@ -38,8 +40,8 @@ public class ExternalGraphicTest extends TestCase {
         CRS.reset("all");
     }
 
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         // setup data
         File property = new File(TestData.getResource(this, "point.properties").toURI());
         PropertyDataStore ds = new PropertyDataStore(property.getParentFile());
@@ -47,7 +49,7 @@ public class ExternalGraphicTest extends TestCase {
         lineFS = ds.getFeatureSource("line");
         bounds = new ReferencedEnvelope(0, 10, 0, 10, CRS.decode("EPSG:4326"));
         
-        // System.setProperty("org.geotools.test.interactive", "true");
+         //System.setProperty("org.geotools.test.interactive", "true");
     }
     
     private StreamingRenderer setupMap(String styleFile) throws IOException {
@@ -70,6 +72,7 @@ public class ExternalGraphicTest extends TestCase {
     }
 
 
+    @Test
     public void testExternalGraphic() throws Exception {
         StreamingRenderer renderer = setupMap("externalGraphic.sld");
         
@@ -78,6 +81,7 @@ public class ExternalGraphicTest extends TestCase {
         ImageAssert.assertEquals(file("externalGraphic"), image, 50);
     }
 
+    @Test
     public void testExternalGraphicAnchor() throws Exception {
         StreamingRenderer renderer = setupMap("externalGraphicAnchor.sld");
 
@@ -86,6 +90,7 @@ public class ExternalGraphicTest extends TestCase {
         ImageAssert.assertEquals(file("externalGraphicAnchor"), image, 50);
     }
 
+    @Test
     public void testExternalGraphicDisplacement() throws Exception {
         StreamingRenderer renderer = setupMap("externalGraphicDisplacement.sld");
 

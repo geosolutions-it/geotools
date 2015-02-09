@@ -17,11 +17,23 @@
 package org.geotools.coverage.processing.operation;
 
 // JAI dependencies (for javadoc)
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+
+import java.awt.image.RenderedImage;
+import java.util.Map;
+
+import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.operator.AddConstDescriptor;
 
-// Geotools dependencies
-import org.geotools.util.NumberRange;
+import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.processing.OperationJAI;
+import org.geotools.util.NumberRange;
+import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.util.InternationalString;
+// Geotools dependencies
 
 
 /**
@@ -80,7 +92,11 @@ public class AddConst extends OperationJAI {
      * Constructs a default {@code "AddConst"} operation.
      */
     public AddConst() {
-        super("AddConst");
+        super(JAIExt.getOperationName("AddConst"));
+    }
+    
+    public String getName() {
+        return "AddConst";
     }
 
     /**
@@ -96,5 +112,19 @@ public class AddConst extends OperationJAI {
             return NumberRange.create(min, max);
         }
         return super.deriveRange(ranges, parameters);
+    }
+    
+    protected void handleJAIEXTParams(ParameterBlockJAI parameters, ParameterValueGroup parameters2) {
+        GridCoverage2D source = (GridCoverage2D) parameters2.parameter("source0").getValue();
+        if(JAIExt.isJAIExtOperation("operationConst")){
+            parameters.set(Operator.SUM, 1);
+        }
+        handleROINoDataInternal(parameters, source, "operationConst", 2, 3);
+    }
+    
+    protected Map<String, ?> getProperties(RenderedImage data, CoordinateReferenceSystem crs,
+            InternationalString name, MathTransform gridToCRS, GridCoverage2D[] sources,
+            Parameters parameters) {
+        return handleROINoDataProperties(null, parameters.parameters, sources[0], "operationConst", 2, 3, 4);
     }
 }

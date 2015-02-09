@@ -83,8 +83,8 @@ public abstract class RenderingTransformationHelper {
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
     
     // the crop and scale operations
-    private static final Operation CROP = PROCESSOR.getOperation("CoverageCrop");
-    private static final Operation SCALE = PROCESSOR.getOperation("Scale");
+    //private static final Operation CROP = PROCESSOR.getOperation("CoverageCrop");
+    //private static final Operation SCALE = PROCESSOR.getOperation("Scale");
 
     
     public Object applyRenderingTransformation(Expression transformation,
@@ -154,7 +154,7 @@ public abstract class RenderingTransformationHelper {
                         }
                         if(coverage.getEnvelope2D().intersects(renderingEnvelope)) {
                             // the resulting coverage might be larger than the readGG envelope, shall we crop it?
-                            final ParameterValueGroup param = CROP.getParameters();
+                            final ParameterValueGroup param = PROCESSOR.getOperation("CoverageCrop").getParameters();
                             param.parameter("Source").setValue(coverage);
                             param.parameter("Envelope").setValue(renderingEnvelope);
                             coverage = (GridCoverage2D) PROCESSOR.doOperation(param);
@@ -173,7 +173,7 @@ public abstract class RenderingTransformationHelper {
                                 final double ratioY = coverageAt.getScaleY() / renderingAt.getScaleY();
                                 if(ratioX < 0.7 && ratioY < 0.7) {
                                     // resolution is too different
-                                    final ParameterValueGroup param = SCALE.getParameters();
+                                    final ParameterValueGroup param = PROCESSOR.getOperation("Scale").getParameters();
                                     param.parameter("Source").setValue(coverage);
                                     param.parameter("xScale").setValue(ratioX);
                                     param.parameter("yScale").setValue(ratioY);

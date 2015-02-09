@@ -1,5 +1,7 @@
 package org.geotools.process.raster;
 
+import it.geosolutions.jaiext.range.RangeFactory;
+
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.image.DataBuffer;
@@ -218,6 +220,42 @@ public class CoverageUtilities {
     return rltBuilder.build();
   }
 
+  public static it.geosolutions.jaiext.rlookup.RangeLookupTable getRangeLookupTableJAIEXT(List<Range> classificationRanges, final int[] outputPixelValues,
+          final Number noDataValue, final int transferType)
+      {
+        final it.geosolutions.jaiext.rlookup.RangeLookupTable.Builder rltBuilder = new it.geosolutions.jaiext.rlookup.RangeLookupTable.Builder();
+        final int size = classificationRanges.size();
+        final boolean useCustomOutputPixelValues = outputPixelValues != null && outputPixelValues.length == size;
+
+        Class<? extends Number> noDataClass = it.geosolutions.jaiext.range.Range.DataType.classFromType(transferType);
+        //Class<? extends Number> widestClass = noDataValue.getClass();
+        Class<? extends Number> widestClass = noDataClass;
+        for (int i = 0; i < size; i++) {
+          final Range range = classificationRanges.get(i);
+          final Class<? extends Number> rangeClass = range.getMin().getClass();
+
+          if (widestClass != rangeClass) {
+           widestClass = ClassChanger.getWidestClass(widestClass, rangeClass);
+          }
+          int rangeType = it.geosolutions.jaiext.range.Range.DataType.dataTypeFromClass(rangeClass);
+
+          final int reference = useCustomOutputPixelValues ? outputPixelValues [i] : i + 1;
+            it.geosolutions.jaiext.range.Range rangeJaiext = RangeFactory
+                    .convert(RangeFactory.create(range.getMin().doubleValue(), range.isMinIncluded(), range.getMax()
+                            .doubleValue(), range.isMaxIncluded()), rangeType);
+          rltBuilder.add(rangeJaiext, convert(reference, noDataClass));
+        }
+
+        // Add the largest range that contains the no data value
+        int rangeType = it.geosolutions.jaiext.range.Range.DataType.dataTypeFromClass(widestClass);
+        it.geosolutions.jaiext.range.Range rangeJaiext = RangeFactory.convert(
+                RangeFactory.create(getClassMinimum(widestClass).doubleValue(),
+                        getClassMaximum(widestClass).doubleValue()), rangeType);
+        rltBuilder.add(rangeJaiext, noDataValue);
+
+        return rltBuilder.build();
+      }
+  
   private static Number getClassMinimum(Class<? extends Number> numberClass) {
     if (numberClass == null) {
       return null;

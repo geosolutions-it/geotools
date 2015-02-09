@@ -26,7 +26,6 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
-import javax.media.jai.operator.BorderDescriptor;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
 
@@ -99,14 +98,22 @@ public enum MergeBehavior {
                             Rectangle currentExtent = PlanarImage.wrapRenderedImage(sources[0]).getBounds();
                             
                             // add BORDER to the current source
-                            sources[i]=BorderDescriptor.create(
-                                    sources[i], 
-                                    union.x-currentExtent.x, 
+                            ImageWorker worker = new ImageWorker(sources[i]).setRenderingHints(hints);
+                            worker.border(union.x-currentExtent.x, 
                                     union.x+union.width-currentExtent.x-currentExtent.width, 
                                     union.y-currentExtent.y, 
-                                    union.y+union.height-currentExtent.y-currentExtent.height,
-                                    borderExtenderConstant, 
-                                    hints);
+                                    union.y+union.height-currentExtent.y-currentExtent.height, 
+                                    borderExtenderConstant);
+                            sources[i] = worker.getRenderedImage();
+                            
+                            //sources[i]=BorderDescriptor.create(
+                                    //sources[i], 
+                                    //union.x-currentExtent.x, 
+                                    //union.x+union.width-currentExtent.x-currentExtent.width, 
+                                    //union.y-currentExtent.y, 
+                                    //union.y+union.height-currentExtent.y-currentExtent.height,
+                                    //borderExtenderConstant, 
+                                    //hints);
                         }                        
                     } else {
                         // use msoaic in case we have source ROIs
@@ -119,14 +126,10 @@ public enum MergeBehavior {
                         } else {
                             localHints=new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
                         }
-                        return MosaicDescriptor.create(
-                                sources, 
-                              MosaicDescriptor.MOSAIC_TYPE_OVERLAY, 
-                              sourceAlpha, 
-                              sourceROI, 
-                              inputThreshold, 
-                              backgroundValues, 
-                              localHints);
+                        return new ImageWorker(localHints)
+                                .setDestinationNoData(backgroundValues)
+                                .mosaic(sources, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, sourceAlpha, 
+                                        sourceROI, inputThreshold, null).getRenderedImage();
                     }
                 }
             }
@@ -152,14 +155,19 @@ public enum MergeBehavior {
                 ROI[] sourceROI,
                 MosaicType mosaicType, 
                 RenderingHints localHints) {
-            return MosaicDescriptor.create(
-                  sources, 
-                  mosaicType, 
-                  sourceAlpha, 
-                  sourceROI, 
-                  inputThreshold, 
-                  backgroundValues, 
-                  localHints);
+            return new ImageWorker(localHints)
+            .setDestinationNoData(backgroundValues)
+            .mosaic(sources, mosaicType, sourceAlpha, 
+                    sourceROI, inputThreshold, null).getRenderedImage();
+
+            //return MosaicDescriptor.create(
+                  //sources, 
+                  //mosaicType, 
+                  //sourceAlpha, 
+                  //sourceROI, 
+                  //inputThreshold, 
+                  //backgroundValues, 
+                  //localHints);
         }
     };
     

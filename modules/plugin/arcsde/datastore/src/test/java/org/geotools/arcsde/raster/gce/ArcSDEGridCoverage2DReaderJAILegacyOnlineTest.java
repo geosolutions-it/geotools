@@ -11,7 +11,6 @@ import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
-import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -44,6 +43,7 @@ import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.image.ImageWorker;
 import org.geotools.image.jai.Registry;
 import org.geotools.parameter.Parameter;
 import org.geotools.util.logging.Logging;
@@ -539,10 +539,12 @@ public class ArcSDEGridCoverage2DReaderJAILegacyOnlineTest {
     }
 
     private void writeBand(RenderedImage image, int[] bands, String channel) throws Exception {
-        ParameterBlock pb = new ParameterBlock();
-        pb.addSource(image);
-        pb.add(bands);
-        PlanarImage alpha = JAI.create("bandSelect", pb);
+        //ParameterBlock pb = new ParameterBlock();
+        //pb.addSource(image);
+        //pb.add(bands);
+        //PlanarImage alpha = JAI.create("bandSelect", pb);
+        ImageWorker w = new ImageWorker(image);
+        PlanarImage alpha = w.retainBands(bands).getPlanarImage();
         writeToDisk(alpha, tableName + "_" + channel);
     }
 

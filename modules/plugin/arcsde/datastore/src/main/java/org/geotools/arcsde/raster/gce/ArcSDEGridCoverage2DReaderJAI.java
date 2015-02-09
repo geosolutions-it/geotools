@@ -27,7 +27,6 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,11 +41,9 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageTypeSpecifier;
 import javax.media.jai.ImageLayout;
-import javax.media.jai.InterpolationNearest;
+import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
-import javax.media.jai.ParameterBlockJAI;
-import javax.media.jai.operator.FormatDescriptor;
 import javax.media.jai.operator.MosaicDescriptor;
 
 import org.geotools.arcsde.raster.info.RasterDatasetInfo;
@@ -69,6 +66,7 @@ import org.geotools.data.ServiceInfo;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.coverage.ColorInterpretation;
@@ -453,6 +451,7 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
 
         for (RasterQueryInfo query : queries) {
             RenderedImage image = query.getResultImage();
+            ImageWorker worker = new ImageWorker(image);
             log.log(image, query.getRasterId(), "01_original");
             if (expandCM) {
                 if (LOGGER.isLoggable(Level.FINER)) {
@@ -463,12 +462,14 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
                 /*
                  * reformat the image as a 4 band rgba backed by byte data
                  */
-                image = FormatDescriptor.create(image, Integer.valueOf(DataBuffer.TYPE_BYTE), null);
-
+                //image = FormatDescriptor.create(image, Integer.valueOf(DataBuffer.TYPE_BYTE), null);
+                image = worker.format(Integer.valueOf(DataBuffer.TYPE_BYTE)).getRenderedImage();
                 log.log(image, query.getRasterId(), "04_1_colorExpanded");
             }
 
-            image = cropToRequiredDimension(image, query.getResultGridRange());
+            //image = cropToRequiredDimension(image, query.getResultGridRange());
+            cropToRequiredDimension(worker, query.getResultGridRange());
+            image = worker.getRenderedImage();
             log.log(image, query.getRasterId(), "02_crop");
 
             // Raster data = image.getData();
@@ -484,15 +485,19 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
             Float translateY = Float.valueOf(0);
 
             if (!(Float.valueOf(1.0F).equals(scaleX) && Float.valueOf(1.0F).equals(scaleY))) {
-                ParameterBlock pb = new ParameterBlock();
-                pb.addSource(image);
-                pb.add(scaleX);
-                pb.add(scaleY);
-                pb.add(translateX);
-                pb.add(translateY);
-                pb.add(new InterpolationNearest());
+                //ParameterBlock pb = new ParameterBlock();
+                //pb.addSource(image);
+                //pb.add(scaleX);
+                //pb.add(scaleY);
+                //pb.add(translateX);
+                //pb.add(translateY);
+                //pb.add(new InterpolationNearest());
+                
+                worker.scale(scaleX, scaleY, translateX, translateY,
+                        Interpolation.getInstance(Interpolation.INTERP_NEAREST));
 
-                image = JAI.create("scale", pb);
+                //image = JAI.create("scale", pb);
+                image = worker.getRenderedImage();
                 log.log(image, query.getRasterId(), "03_scale");
 
                 int width = image.getWidth();
@@ -505,13 +510,15 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
             if (image.getMinX() != mosaicLocation.getLow(0)
                     || image.getMinY() != mosaicLocation.getLow(1)) {
                 // translate
-                ParameterBlock pb = new ParameterBlock();
-                pb.addSource(image);
-                pb.add(Float.valueOf(mosaicLocation.getLow(0) - image.getMinX()));
-                pb.add(Float.valueOf(mosaicLocation.getLow(1) - image.getMinY()));
-                pb.add(null);
-
-                image = JAI.create("translate", pb);
+                // ParameterBlock pb = new ParameterBlock();
+                //pb.addSource(image);
+                //pb.add(Float.valueOf(mosaicLocation.getLow(0) - image.getMinX()));
+                //pb.add(Float.valueOf(mosaicLocation.getLow(1) - image.getMinY()));
+                //pb.add(null);
+                worker.translate(Float.valueOf(mosaicLocation.getLow(0) - image.getMinX()),
+                        Float.valueOf(mosaicLocation.getLow(1) - image.getMinY()), null);
+                image = worker.getRenderedImage();
+                //image = JAI.create("translate", pb);
                 log.log(image, query.getRasterId(), "04_translate");
 
                 assert image.getMinX() == mosaicLocation.getLow(0) : image.getMinX() + " != "
@@ -540,8 +547,9 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
             /*
              * adapted from RasterLayerResponse.java in the imagemosaic module
              */
-            ParameterBlockJAI mosaicParams = new ParameterBlockJAI("Mosaic");
-            mosaicParams.setParameter("mosaicType", MosaicDescriptor.MOSAIC_TYPE_OVERLAY);
+            //ParameterBlockJAI mosaicParams = new ParameterBlockJAI("Mosaic");
+            //mosaicParams.setParameter("mosaicType", MosaicDescriptor.MOSAIC_TYPE_OVERLAY);
+            ImageWorker w = new ImageWorker();
 
             // set background values to raster's no-data
             double[] backgroundValues;
@@ -557,7 +565,7 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
                     backgroundValues[bn] = noDataValue.doubleValue();
                 }
             }
-            mosaicParams.setParameter("backgroundValues", backgroundValues);
+            //mosaicParams.setParameter("backgroundValues", backgroundValues);
 
             final ImageLayout layout = new ImageLayout(mosaicGeometry.getLow(0),
                     mosaicGeometry.getLow(1), mosaicGeometry.getSpan(0), mosaicGeometry.getSpan(1));
@@ -568,15 +576,22 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
 
             final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
 
+            RenderedImage[] images = new RenderedImage[transformed.size()];
+            int i = 0;
             for (RenderedImage img : transformed) {
-                mosaicParams.addSource(img);
+                //mosaicParams.addSource(img);
+                images[i] = img;
                 log.appendLoggingGeometries(LoggingHelper.MOSAIC_RESULT, img);
+                i++;
             }
             log.log(LoggingHelper.MOSAIC_RESULT);
 
             LOGGER.fine("Creating mosaic out of " + queries.size() + " raster tiles");
-            mosaic = JAI.create("Mosaic", mosaicParams, hints);
-
+            //mosaic = JAI.create("Mosaic", mosaicParams, hints);
+            w.setRenderingHints(hints);
+            w.setDestinationNoData(backgroundValues);
+            mosaic = w.mosaic(images, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null, null)
+                    .getRenderedImage();
             log.log(mosaic, 0L, "05_mosaic_result");
         }
         return mosaic;
@@ -591,11 +606,12 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
      * @param cropTo
      * @return
      */
-    private RenderedImage cropToRequiredDimension(final RenderedImage fullTilesRaster,
+    private void cropToRequiredDimension(//final RenderedImage fullTilesRaster,
+            final ImageWorker worker,
             final GridEnvelope cropTo) {
         GridEnvelope2D crop = new GridEnvelope2D(cropTo.getLow(0), cropTo.getLow(1),
                 cropTo.getSpan(0), cropTo.getSpan(1));
-
+        RenderedImage fullTilesRaster = worker.getRenderedImage();
         GridEnvelope2D origDim = new GridEnvelope2D(fullTilesRaster.getMinX(),
                 fullTilesRaster.getMinY(), fullTilesRaster.getWidth(), fullTilesRaster.getHeight());
         if (!origDim.contains(crop)) {
@@ -608,25 +624,32 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
                         + fullTilesRaster.getHeight() + ", target: " + crop.getSpan(0) + "x"
                         + crop.getSpan(1));
             }
-            return fullTilesRaster;
+            //return fullTilesRaster;
+            return;
         }
 
-        ParameterBlock cropParams = new ParameterBlock();
+        //ParameterBlock cropParams = new ParameterBlock();
 
-        cropParams.addSource(fullTilesRaster);// Source
+        //cropParams.addSource(fullTilesRaster);// Source
         // cropParams.add(Float.valueOf(cropTo.x - tiledImageGridRange.x)); // x origin for each
         // band
         // cropParams.add(Float.valueOf(cropTo.y - tiledImageGridRange.y)); // y origin for each
         // band
-        cropParams.add(Float.valueOf(crop.getLow(0))); // x origin for each band
-        cropParams.add(Float.valueOf(crop.getLow(1))); // y origin for each band
-        cropParams.add(Float.valueOf(crop.getSpan(0)));// width for each band
-        cropParams.add(Float.valueOf(crop.getSpan(1)));// height for each band
+        //cropParams.add(Float.valueOf(crop.getLow(0))); // x origin for each band
+        //cropParams.add(Float.valueOf(crop.getLow(1))); // y origin for each band
+        //cropParams.add(Float.valueOf(crop.getSpan(0)));// width for each band
+        //cropParams.add(Float.valueOf(crop.getSpan(1)));// height for each band
 
         final RenderingHints hints = new RenderingHints(JAI.KEY_OPERATION_BOUND,
                 OpImage.OP_NETWORK_BOUND);
-        RenderedImage image = JAI.create("Crop", cropParams, hints);
+        //RenderedImage image = JAI.create("Crop", cropParams, hints);
+        worker.crop(Float.valueOf(crop.getLow(0)), // x origin for each band
+                Float.valueOf(crop.getLow(1)),     // y origin for each band
+                Float.valueOf(crop.getSpan(0)),    // width for each band
+                Float.valueOf(crop.getSpan(1)));   // height for each band
 
+        RenderedImage image = worker.getRenderedImage();
+        
         // assert cropTo.x - tiledImageGridRange.x == image.getMinX();
         // assert cropTo.y - tiledImageGridRange.y == image.getMinY();
         assert crop.getLow(0) == image.getMinX();
@@ -638,7 +661,7 @@ public final class ArcSDEGridCoverage2DReaderJAI extends AbstractGridCoverage2DR
         // assert cropTo.y == image.getMinY();
         // assert cropTo.width == image.getWidth();
         // assert cropTo.height == image.getHeight();
-        return image;
+        //return image;
     }
 
     static class ReadParameters {

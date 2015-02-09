@@ -16,6 +16,10 @@
  */
 package org.geotools.coverage.processing.operation;
 
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
+
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -23,7 +27,6 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
-import java.awt.image.renderable.ParameterBlock;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.Warp;
 import javax.media.jai.WarpGrid;
@@ -53,6 +57,7 @@ import org.geotools.coverage.processing.CannotReprojectException;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.geotools.referencing.operation.AbstractCoordinateOperationFactory;
@@ -162,7 +167,8 @@ final class Resampler2D extends GridCoverage2D {
                                          final GridGeometry2D geometry,
                                          final String         operation,
                                          final Warp           warp,
-                                         final Hints          hints)
+                                         final Hints          hints,
+                                         final Map<String, Serializable> inProperties)
     {
         GridSampleDimension[] sampleDimensions = source.getSampleDimensions();
 
@@ -188,6 +194,7 @@ final class Resampler2D extends GridCoverage2D {
                 }
             }
         }
+        properties.putAll(inProperties);
         /*
          * The resampling may have been performed on the geophysics view.
          * Try to restore the original view.
@@ -386,6 +393,15 @@ final class Resampler2D extends GridCoverage2D {
          */
         PlanarImage sourceImage = PlanarImage.wrapRenderedImage(sourceCoverage.getRenderedImage());
         assert sourceCoverage.getCoordinateReferenceSystem() == sourceCRS : sourceCoverage;
+        
+        // Getting optional ROI and NoData as properties
+        Map sourceProps = sourceCoverage.getProperties();
+        sourceProps = sourceProps != null ? new HashMap<>(sourceProps) : new HashMap<>();
+        Object roiProp = sourceProps.get("GC_ROI");
+        NoDataContainer nodataProp = CoverageUtilities.getNoDataProperty(sourceCoverage);
+        ROI roi = (roiProp != null && roiProp instanceof ROI) ? (ROI)roiProp : null;
+        Range nodata = nodataProp != null ? nodataProp.getAsRange() : null;
+        
         // From this point, consider 'sourceCoverage' as final.
 
         ////////////////////////////////////////////////////////////////////////////////////////
@@ -585,7 +601,15 @@ final class Resampler2D extends GridCoverage2D {
          * delegates the work to a "Crop" operation.
          */
         final String operation;
-        final ParameterBlock paramBlk = new ParameterBlock().addSource(sourceImage);
+        //final ParameterBlock paramBlk = new ParameterBlock().addSource(sourceImage);
+        // Using ImageWorker instead
+        ImageWorker w = new ImageWorker(sourceImage);
+        w.setROI(roi);
+        w.setDestinationNoData(background);
+        w.setnoData(nodata);
+        w.setRenderingHints(targetHints);
+        ROI newROI = null;
+        Range newNoData = null;
         final Map<String, Object> imageProperties = new HashMap<String, Object>();
         Warp warp = null;
         if (allSteps.isIdentity() || (allSteps instanceof AffineTransform &&
@@ -597,8 +621,9 @@ final class Resampler2D extends GridCoverage2D {
              */
             
             sourceImage = PlanarImage.wrapRenderedImage(sourceCoverage.getRenderedImage());
-            paramBlk.removeSources();
-            paramBlk.addSource(sourceImage);
+            w.setImage(sourceImage);
+            ///paramBlk.removeSources();
+            //paramBlk.addSource(sourceImage);
             if (targetBB.equals(sourceBB)) {
                 /*
                  * Optimization in case we have nothing to do, not even a crop. Reverts to the
@@ -609,18 +634,32 @@ final class Resampler2D extends GridCoverage2D {
                  */
                 
                 sourceImage = PlanarImage.wrapRenderedImage(sourceCoverage.getRenderedImage());
-                return create(sourceCoverage, sourceImage, targetGG, null, null, hints);
+                return create(sourceCoverage, sourceImage, targetGG, null, null, hints, sourceProps);
             }
             if (sourceBB.contains(targetBB)) {
+                w.crop(Float.valueOf(targetBB.x), 
+                        Float.valueOf(targetBB.y), 
+                        Float.valueOf(targetBB.width), 
+                        Float.valueOf(targetBB.height));
+                newROI = w.getROI();
+                newNoData = w.getNoData();
+                CoverageUtilities.setROIProperty(sourceProps, newROI);
+                CoverageUtilities.setNoDataProperty(sourceProps, newNoData);
                 operation = "Crop";
-                paramBlk.add(Float.valueOf(targetBB.x))
-                        .add(Float.valueOf(targetBB.y))
-                        .add(Float.valueOf(targetBB.width))
-                        .add(Float.valueOf(targetBB.height));
+//                paramBlk.add(Float.valueOf(targetBB.x))
+//                        .add(Float.valueOf(targetBB.y))
+//                        .add(Float.valueOf(targetBB.width))
+//                        .add(Float.valueOf(targetBB.height));
             } else {
+                w.setnoData(null);
+                w.mosaic(new RenderedImage[]{sourceImage}, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, new ROI[]{roi}, null, nodata != null ? new Range[]{nodata} : null);
+                newROI = w.getROI();
+                newNoData = w.getNoData();
+                CoverageUtilities.setROIProperty(sourceProps, newROI);
+                CoverageUtilities.setNoDataProperty(sourceProps, newNoData);
                 operation = "Mosaic";
-                paramBlk.add(MosaicDescriptor.MOSAIC_TYPE_OVERLAY)
-                        .add(null).add(null).add(null).add(background);
+//                paramBlk.add(MosaicDescriptor.MOSAIC_TYPE_OVERLAY)
+//                        .add(null).add(null).add(null).add(background);
             }
         } else {
             /*
@@ -653,12 +692,17 @@ final class Resampler2D extends GridCoverage2D {
                      * using heuristic rules. Only the constructor with a MathTransform argument
                      * is fully accurate.
                      */
-                    return create(sourceCoverage, sourceImage, targetGG, null, null, hints);
+                    return create(sourceCoverage, sourceImage, targetGG, null, null, hints, sourceProps);
                 }
                 // More general approach: apply the affine transform.
-                operation = "Affine";
                 final AffineTransform affine = (AffineTransform) allSteps.inverse();
-                paramBlk.add(affine).add(interpolation).add(background);
+                w.affine(affine, interpolation, backgroundValues);
+                operation = "Affine";
+                newROI = w.getROI();
+                newNoData = w.getNoData();
+                CoverageUtilities.setROIProperty(sourceProps, newROI);
+                CoverageUtilities.setNoDataProperty(sourceProps, newNoData);
+//                paramBlk.add(affine).add(interpolation).add(background);
             } else {
                 /*
                  * General case: constructs the warp transform.
@@ -705,10 +749,15 @@ final class Resampler2D extends GridCoverage2D {
                 // it with affine transforms down the chain
                 imageProperties.put("MathTransform", transform);
                 imageProperties.put("SourceBoundingBox", sourceBB);
-                paramBlk.add(warp).add(interpolation).add(background);
+                //paramBlk.add(warp).add(interpolation).add(background);
+                w.warp(warp, interpolation);
+                newROI = w.getROI();
+                newNoData = w.getNoData();
+                CoverageUtilities.setROIProperty(sourceProps, newROI);
+                CoverageUtilities.setNoDataProperty(sourceProps, newNoData);
             }
         }
-        final RenderedOp targetImage = getJAI(hints).createNS(operation, paramBlk, targetHints);
+        final RenderedOp targetImage = w.getRenderedOperation();//getJAI(hints).createNS(operation, paramBlk, targetHints);
         for (Map.Entry<String, Object> entry : imageProperties.entrySet()) {
             targetImage.setProperty(entry.getKey(), entry.getValue());
         }
@@ -746,7 +795,7 @@ final class Resampler2D extends GridCoverage2D {
          *     is "Warp" with "Nearest" interpolation on geophysics pixels values. Background
          *     value is 255.
          */
-        targetCoverage = create(sourceCoverage, targetImage, targetGG, operation, warp, hints);
+        targetCoverage = create(sourceCoverage, targetImage, targetGG, operation, warp, hints, sourceProps);
         assert CRS.equalsIgnoreMetadata(targetCoverage.getCoordinateReferenceSystem(), targetCRS) : targetGG;
         assert targetCoverage.getGridGeometry().getGridRange2D().equals(targetImage.getBounds())  : targetGG;
         if (CoverageProcessor.LOGGER.isLoggable(LOGGING_LEVEL)) {
@@ -779,6 +828,14 @@ final class Resampler2D extends GridCoverage2D {
     private static GridCoverage2D existingCoverage(GridCoverage2D coverage,
               CoordinateReferenceSystem targetCRS, GridGeometry2D targetGG)
     {
+        // NoData and ROI must be handled
+        ROI roiProp = CoverageUtilities.getROIProperty(coverage);
+        Object nodataProp = CoverageUtilities.getNoDataProperty(coverage);
+        boolean hasROI = (roiProp != null);
+        boolean hasNoData = (nodataProp != null);
+        if(hasROI || hasNoData){
+            return null;
+        }
         while (!equivalent(coverage.getGridGeometry(), targetGG) ||
               (!CRS.equalsIgnoreMetadata(targetCRS, coverage.getCoordinateReferenceSystem()) &&
                !CRS.equalsIgnoreMetadata(targetCRS, coverage.getCoordinateReferenceSystem2D())))
@@ -786,6 +843,7 @@ final class Resampler2D extends GridCoverage2D {
             if (!(coverage instanceof Resampler2D)) {
                 return null;
             }
+
             final List<GridCoverage> sources = coverage.getSources();
             assert sources.size() == 1 : sources;
             coverage = (GridCoverage2D) sources.get(0);

@@ -34,6 +34,7 @@ import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.image.ImageWorker;
 import org.geotools.util.NumberRange;
 import org.junit.Test;
 
@@ -117,7 +118,7 @@ public final class CoverageUtilitiesTest extends Assert {
 
     	// test coverage no data property
     	final HashMap properties= new HashMap();
-    	properties.put("GC_NODATA", Double.valueOf(-9999.0));
+    	CoverageUtilities.setNoDataProperty(properties, Double.valueOf(-9999.0));
     	final GridGeometry2D gg2D = new GridGeometry2D(
     			new Rectangle(0,0,800,600),
     			new Rectangle(-180,90,360,180));
@@ -125,7 +126,7 @@ public final class CoverageUtilitiesTest extends Assert {
     	GridCoverage2D gc= CoverageFactoryFinder.getGridCoverageFactory(null).
     	create(
     			"test", 
-    			ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
+    			new ImageWorker().function(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f)).getRenderedImage(),//ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
     			gg2D, 
     			null, 
     			null, 
@@ -141,7 +142,8 @@ public final class CoverageUtilitiesTest extends Assert {
     	gc= CoverageFactoryFinder.getGridCoverageFactory(null).
     	create(
     			"test", 
-    			ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
+    			new ImageWorker().function(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f)).getRenderedImage(),
+    			//ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
     			gg2D, 
     			new GridSampleDimension[]{gsd}, 
     			null, 
@@ -155,7 +157,8 @@ public final class CoverageUtilitiesTest extends Assert {
     	gc= CoverageFactoryFinder.getGridCoverageFactory(null).
     	create(
     			"test", 
-    			ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
+    			new ImageWorker().function(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f)).getRenderedImage(),
+    			//ImageFunctionDescriptor.create(new MyImageFunction(), Integer.valueOf(800), Integer.valueOf(600), Float.valueOf(1.0f),  Float.valueOf(1.0f),  Float.valueOf(0.0f),  Float.valueOf(0.0f), null), 
     			gg2D, 
     			null, 
     			null, 

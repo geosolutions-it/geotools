@@ -17,11 +17,24 @@
 package org.geotools.coverage.processing.operation;
 
 // JAI dependencies (for javadoc)
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+
+import java.awt.image.RenderedImage;
+import java.util.Collection;
+import java.util.Map;
+
+import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.operator.ExpDescriptor;
 
-// Geotools dependencies
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.processing.BaseMathOperationJAI;
 import org.geotools.util.NumberRange;
-import org.geotools.coverage.processing.OperationJAI;
+import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.util.InternationalString;
+// Geotools dependencies
 
 
 /**
@@ -57,7 +70,7 @@ import org.geotools.coverage.processing.OperationJAI;
  * @see org.geotools.coverage.processing.Operations#exp
  * @see ExpDescriptor
  */
-public class Exp extends OperationJAI {
+public class Exp extends BaseMathOperationJAI {
     /**
      * Serial number for interoperability with different versions.
      */
@@ -67,7 +80,11 @@ public class Exp extends OperationJAI {
      * Constructs a default {@code "Exp"} operation.
      */
     public Exp() {
-        super("Exp");
+    	super("Exp", getOperationDescriptor(JAIExt.getOperationName("Exp")));
+    }
+    
+    public String getName() {
+        return "Exp";
     }
 
     /**
@@ -78,5 +95,21 @@ public class Exp extends OperationJAI {
         final double min = Math.exp(range.getMinimum());
         final double max = Math.exp(range.getMaximum());
         return NumberRange.create(min, max);
+    }
+    
+    protected void handleJAIEXTParams(ParameterBlockJAI parameters, ParameterValueGroup parameters2) {
+        if(JAIExt.isJAIExtOperation("algebric")){
+            parameters.set(Operator.EXP, 0);
+            Collection<GridCoverage2D> sources = (Collection<GridCoverage2D>) parameters2.parameter("sources").getValue();
+            for(GridCoverage2D source : sources){
+                handleROINoDataInternal(parameters, source, "algebric", 1, 2);
+            }
+        }
+    }
+    
+    protected Map<String, ?> getProperties(RenderedImage data, CoordinateReferenceSystem crs,
+            InternationalString name, MathTransform gridToCRS, GridCoverage2D[] sources,
+            Parameters parameters) {
+        return handleROINoDataProperties(null, parameters.parameters, sources[0], "algebric", 1, 2, 3);
     }
 }

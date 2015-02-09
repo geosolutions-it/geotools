@@ -89,27 +89,30 @@ public final class ArcGridWriter extends AbstractGridCoverageWriter implements G
 	/** Imageio {@link AsciiGridsImageWriter} we will use to write out. */
 	private AsciiGridsImageWriter mWriter = new AsciiGridsImageWriter(
 			new AsciiGridsImageWriterSpi());
+	
+	private final static CoverageProcessor processor = CoverageProcessor.getInstance(new Hints(
+				Hints.LENIENT_DATUM_SHIFT, Boolean.TRUE));
 
 	/** Default {@link ParameterValueGroup} for doing a bandselect. */
-	private final static ParameterValueGroup bandSelectParams;
+	//private final static ParameterValueGroup bandSelectParams;
 
 	/** Default {@link ParameterValueGroup} for doing a reshape. */
-	private final static ParameterValueGroup reShapeParams;
+	//private final static ParameterValueGroup reShapeParams;
 
 	/** Caching a {@link Resample} operation. */
-	private static final Resample resampleFactory = new Resample();
+	//private static final Resample resampleFactory = new Resample();
 
 	/** Caching a {@link SelectSampleDimension} operation. */
-	private static final SelectSampleDimension bandSelectFactory = new SelectSampleDimension();
-	static {
-		CoverageProcessor processor = new CoverageProcessor(new Hints(
-				Hints.LENIENT_DATUM_SHIFT, Boolean.TRUE));
-		bandSelectParams = (ParameterValueGroup) processor.getOperation(
-				"SelectSampleDimension").getParameters();
-
-		reShapeParams = (ParameterValueGroup) processor
-				.getOperation("Resample").getParameters();
-	}
+	//private static final SelectSampleDimension bandSelectFactory = new SelectSampleDimension();
+//	static {
+//		CoverageProcessor processor = new CoverageProcessor(new Hints(
+//				Hints.LENIENT_DATUM_SHIFT, Boolean.TRUE));
+//		bandSelectParams = (ParameterValueGroup) processor.getOperation(
+//				"SelectSampleDimension").getParameters();
+//
+//		reShapeParams = (ParameterValueGroup) processor
+//				.getOperation("Resample").getParameters();
+//	}
 
 	/** Small number for comparisons of angles in this pugin. */
 	private static final double ROTATION_EPS = 1E-3;
@@ -277,12 +280,14 @@ public final class ArcGridWriter extends AbstractGridCoverageWriter implements G
 				else
 					visibleBand = CoverageUtilities.getVisibleBand(gc);
 
-				final ParameterValueGroup param = (ParameterValueGroup) ArcGridWriter.bandSelectParams
+				final ParameterValueGroup param = (ParameterValueGroup)processor.getOperation(
+						"SelectSampleDimension").getParameters()
 						.clone();
 				param.parameter("source").setValue(gc);
 				param.parameter("SampleDimensions").setValue(
 						new int[] { visibleBand });
-				gc = (GridCoverage2D) bandSelectFactory
+				gc = (GridCoverage2D) ((SelectSampleDimension)processor.getOperation(
+						"SelectSampleDimension"))
 						.doOperation(param, null);
 			}
 			// /////////////////////////////////////////////////////////////////
@@ -431,7 +436,8 @@ public final class ArcGridWriter extends AbstractGridCoverageWriter implements G
 		// Reshaping using the resample operation for having best precision.
 		//
 		// /////////////////////////////////////////////////////////////////////
-		final ParameterValueGroup param = (ParameterValueGroup) reShapeParams
+		final ParameterValueGroup param = (ParameterValueGroup) processor.getOperation(
+				"Resample").getParameters()
 				.clone();
 		param.parameter("source").setValue(gc);
 		param.parameter("CoordinateReferenceSystem").setValue(
@@ -439,7 +445,8 @@ public final class ArcGridWriter extends AbstractGridCoverageWriter implements G
 		param.parameter("GridGeometry").setValue(newGridGeometry);
 		param.parameter("InterpolationType").setValue(
 				Interpolation.getInstance(Interpolation.INTERP_NEAREST));
-		return (GridCoverage2D) resampleFactory.doOperation(param, hints);
+		return (GridCoverage2D) ((Resample)processor.getOperation(
+				"Resample")).doOperation(param, hints);
 	}
 
 	/**

@@ -28,6 +28,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptor;
+import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
 
 import org.geotools.coverage.GridSampleDimension;

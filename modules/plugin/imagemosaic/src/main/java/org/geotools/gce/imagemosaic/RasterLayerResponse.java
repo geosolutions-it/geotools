@@ -17,6 +17,9 @@
 package org.geotools.gce.imagemosaic;
 
 import it.geosolutions.imageio.pam.PAMDataset;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -58,9 +61,7 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.TileCache;
 import javax.media.jai.TileScheduler;
 import javax.media.jai.operator.ConstantDescriptor;
-import javax.media.jai.operator.FormatDescriptor;
 import javax.media.jai.operator.MosaicDescriptor;
-import javax.media.jai.operator.TranslateDescriptor;
 
 import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.Category;
@@ -81,7 +82,6 @@ import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
 import org.geotools.gce.imagemosaic.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
-import org.geotools.gce.imagemosaic.processing.ArtifactsFilterDescriptor;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.JTS;
@@ -112,7 +112,6 @@ import org.opengis.filter.sort.SortOrder;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
-import org.opengis.referencing.operation.MathTransform1D;
 import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.InternationalString;
@@ -623,7 +622,11 @@ class RasterLayerResponse{
                     if (LOGGER.isLoggable(Level.FINE)){
                         LOGGER.log(Level.FINE, "Filtering granules artifacts");
                     }
-                    granule = ArtifactsFilterDescriptor.create(granule, imageROI, new double[]{0}, artifactThreshold, 3, hints);
+                    ImageWorker w = new ImageWorker(granule).setRenderingHints(hints).setROI(imageROI);
+                    w.setDestinationNoData(new double[]{0});
+                    w.artifactsFilter(artifactThreshold, 3);
+                    granule = w.getRenderedImage();
+                    //granule = ArtifactsFilterDescriptor.create(granule, imageROI, new double[]{0}, artifactThreshold, 3, hints);
                 }
             }
             
@@ -852,9 +855,10 @@ class RasterLayerResponse{
                     images[i++] = roi.getAsImage();
                 }
                 ROI[] roisArray = (ROI[]) rois.toArray(new ROI[rois.size()]);
-                RenderedOp overallROI = MosaicDescriptor.create(images,
-                        MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, roisArray,
-                        new double[][] { { 1.0 } }, new double[] { 0.0 }, hints);
+                RenderedImage overallROI = new ImageWorker(hints)
+                        .setDestinationNoData(new double[] { 0.0 })
+                        .mosaic(images, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, roisArray,
+                                new double[][] { { 1.0 } }, null).getRenderedImage();
                 return new ROI(overallROI);
             }
         }
@@ -1665,9 +1669,15 @@ class RasterLayerResponse{
             finalImage = ConstantDescriptor.create(Float.valueOf(rasterBounds.width),
                     Float.valueOf(rasterBounds.height), values, renderingHints);
             if (rasterBounds.x != 0 || rasterBounds.y != 0) {
-                finalImage = TranslateDescriptor.create(finalImage, Float.valueOf(rasterBounds.x),
-                        Float.valueOf(rasterBounds.y),
-                        Interpolation.getInstance(Interpolation.INTERP_NEAREST), null);
+                ImageWorker w = new ImageWorker(finalImage);
+                w.translate(Float.valueOf(rasterBounds.x), 
+                        Float.valueOf(rasterBounds.y), 
+                        Interpolation.getInstance(Interpolation.INTERP_NEAREST));
+                finalImage = w.getRenderedImage();
+                
+                //finalImage = TranslateDescriptor.create(finalImage, Float.valueOf(rasterBounds.x),
+                        //Float.valueOf(rasterBounds.y),
+                        //Interpolation.getInstance(Interpolation.INTERP_NEAREST), null);
             }
 
             // impose the color model and samplemodel as the constant operation does not take them
@@ -1676,8 +1686,8 @@ class RasterLayerResponse{
                 il.setColorModel(rasterManager.defaultCM);
                 il.setSampleModel(rasterManager.defaultCM.createCompatibleSampleModel(
                         tileSize.width, tileSize.height));
-                finalImage = FormatDescriptor.create(finalImage,
-                        Integer.valueOf(il.getSampleModel(null).getDataType()), renderingHints);
+                finalImage = new ImageWorker(finalImage).setRenderingHints(renderingHints).
+                        format(il.getSampleModel(null).getDataType()).getRenderedImage();
             }
         } else {
             il.setWidth(rasterBounds.width).setHeight(rasterBounds.height);
@@ -1698,10 +1708,18 @@ class RasterLayerResponse{
             }
             Assert.isTrue(il.isValid(ImageLayout.WIDTH_MASK | ImageLayout.HEIGHT_MASK
                     | ImageLayout.SAMPLE_MODEL_MASK));
-            finalImage = MosaicDescriptor.create(new RenderedImage[0],
-                    MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null,
-                    new double[][] { { CoverageUtilities.getMosaicThreshold(il.getSampleModel(null)
-                            .getDataType()) } }, bkgValues, renderingHints);
+            ImageWorker w = new ImageWorker(renderingHints);
+            w.setDestinationNoData(bkgValues);
+            w.mosaic(new RenderedImage[0], MosaicDescriptor.MOSAIC_TYPE_OVERLAY, 
+                    null, null, 
+                    new double[][] { { CoverageUtilities.
+                        getMosaicThreshold(il.getSampleModel(null).getDataType()) } },
+                        new Range[]{RangeFactory.create(0, 0)});
+            finalImage = w.getRenderedImage();
+            //finalImage = MosaicDescriptor.create(new RenderedImage[0],
+                    //MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null,
+                    //new double[][] { { CoverageUtilities.getMosaicThreshold(il.getSampleModel(null)
+                            //.getDataType()) } }, bkgValues, renderingHints);
         }
         if (footprintBehavior != null) {
             finalImage = footprintBehavior.postProcessBlankResponse(finalImage, renderingHints);
@@ -1753,8 +1771,10 @@ class RasterLayerResponse{
 	        // set some no data values, as well as Min and Max values
 	        final double noData;
 	        double min=-Double.MAX_VALUE,max=Double.MAX_VALUE;
-	        if(backgroundValues!=null)
-	        {
+	        Double noDataAsProperty = getNoDataProperty(image);
+	        if (noDataAsProperty != null) {
+	            noData = noDataAsProperty.doubleValue();
+	        } else if(backgroundValues != null) {
 	        	// sometimes background values are not specified as 1 per each band, therefore we need to be careful
 	        	noData= backgroundValues[backgroundValues.length > i ? i:0];
 	        }
@@ -1840,6 +1860,10 @@ class RasterLayerResponse{
         if (mosaicOutput.pamDataset != null) {
             properties.put(Utils.PAM_DATASET, mosaicOutput.pamDataset);
         }
+        // Setting NoData as the NoData for the first Band
+        ImageWorker w = new ImageWorker(image);
+        CoverageUtilities.setNoDataProperty(properties, w.getNoData());
+        
         return coverageFactory.create(
                 rasterManager.getCoverageIdentifier(),
                 image,
@@ -1852,5 +1876,20 @@ class RasterLayerResponse{
                 bands,
                 null, 
                 properties);
+    }
+
+    private Double getNoDataProperty(RenderedImage image) {
+        if (image != null) {
+            Object obj = image.getProperty(NoDataContainer.GC_NODATA);
+            if (obj != null) {
+                if(obj instanceof NoDataContainer){
+                    return ((NoDataContainer) obj).getAsSingleValue();
+                }else if(obj instanceof Double){
+                    return (Double) obj;
+                }
+                 
+            }
+        }
+        return null;
     }
 }

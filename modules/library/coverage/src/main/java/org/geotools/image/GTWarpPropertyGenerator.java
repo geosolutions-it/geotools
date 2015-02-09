@@ -1,5 +1,7 @@
 package org.geotools.image;
 
+import it.geosolutions.jaiext.warp.WarpDescriptor;
+
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
@@ -17,7 +19,6 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.Warp;
 import javax.media.jai.operator.ConstantDescriptor;
-import javax.media.jai.operator.WarpDescriptor;
 
 import org.geotools.factory.Hints;
 import org.jaitools.imageutils.ImageLayout2;

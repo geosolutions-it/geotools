@@ -40,7 +40,7 @@ public class AffineProcess implements RasterProcess {
 
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
 
-    private static final Operation AFFINE = PROCESSOR.getOperation("Affine");
+    //private static final Operation AFFINE = PROCESSOR.getOperation("Affine");
 
     @DescribeResult(name = "result", description = "Raster transformed by an Affine transformation")
     public GridCoverage2D execute(
@@ -74,7 +74,7 @@ public class AffineProcess implements RasterProcess {
         // Selection of the Operation parameters
         //
         // //
-        final ParameterValueGroup params = AFFINE.getParameters();
+        final ParameterValueGroup params = PROCESSOR.getOperation("Affine").getParameters();
         // Setting of the Source Coverage
         params.parameter("Source").setValue(coverage);
         // Setting of the Transformation parameter

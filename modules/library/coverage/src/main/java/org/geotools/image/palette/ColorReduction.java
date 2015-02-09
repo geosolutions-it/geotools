@@ -33,6 +33,8 @@ import javax.media.jai.operator.BandMergeDescriptor;
 import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.MultiplyConstDescriptor;
 
+import org.geotools.image.ImageWorker;
+
 /**
  * {@link PointOpImage} to perform color reduction on an image using the palette builder.
  * 
@@ -73,9 +75,13 @@ public class ColorReduction extends PointOpImage {
 			layout.setColorModel(new ComponentColorModel(ColorSpace
 					.getInstance(ColorSpace.CS_sRGB), true, false,
 					Transparency.BITMASK, DataBuffer.TYPE_BYTE));
-			image = BandMergeDescriptor.create(image, alpha,
-					new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout))
-					.getNewRendering();
+                        ImageWorker w = new ImageWorker(image).setRenderingHints(new RenderingHints(
+                                JAI.KEY_IMAGE_LAYOUT, layout));
+			w.addBand(alpha, false);
+			image = w.getRenderedImage();
+//			image = BandMergeDescriptor.create(image, alpha,
+//					new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout))
+//					.getNewRendering();
 			this.setSource(image, 0);
 		}
 

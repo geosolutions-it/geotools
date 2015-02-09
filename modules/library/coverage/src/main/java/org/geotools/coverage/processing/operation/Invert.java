@@ -17,11 +17,24 @@
 package org.geotools.coverage.processing.operation;
 
 // JAI dependencies (for javadoc)
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+
+import java.awt.image.RenderedImage;
+import java.util.Collection;
+import java.util.Map;
+
+import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.operator.InvertDescriptor;
 
-// Geotools dependencies
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.processing.BaseMathOperationJAI;
 import org.geotools.util.NumberRange;
-import org.geotools.coverage.processing.OperationJAI;
+import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.util.InternationalString;
+// Geotools dependencies
 
 
 /**
@@ -62,7 +75,7 @@ import org.geotools.coverage.processing.OperationJAI;
  * @see org.geotools.coverage.processing.Operations#invert
  * @see InvertDescriptor
  */
-public class Invert extends OperationJAI {
+public class Invert extends BaseMathOperationJAI {
     /**
      * Serial number for interoperability with different versions.
      */
@@ -72,7 +85,11 @@ public class Invert extends OperationJAI {
      * Constructs a default {@code "Invert"} operation.
      */
     public Invert() {
-        super("Invert");
+    	super("Invert", getOperationDescriptor(JAIExt.getOperationName("Invert")));
+    }
+    
+    public String getName() {
+        return "Invert";
     }
 
     /**
@@ -83,5 +100,21 @@ public class Invert extends OperationJAI {
         final double min = -range.getMaximum();
         final double max = -range.getMinimum();
         return NumberRange.create(min, max);
+    }
+    
+    protected void handleJAIEXTParams(ParameterBlockJAI parameters, ParameterValueGroup parameters2) {
+        if(JAIExt.isJAIExtOperation("algebric")){
+            parameters.set(Operator.INVERT, 0);
+            Collection<GridCoverage2D> sources = (Collection<GridCoverage2D>) parameters2.parameter("sources").getValue();
+            for(GridCoverage2D source : sources){
+                handleROINoDataInternal(parameters, source, "algebric", 1, 2);
+            }
+        }
+    }
+    
+    protected Map<String, ?> getProperties(RenderedImage data, CoordinateReferenceSystem crs,
+            InternationalString name, MathTransform gridToCRS, GridCoverage2D[] sources,
+            Parameters parameters) {
+        return handleROINoDataProperties(null, parameters.parameters, sources[0], "algebric", 1, 2, 3);
     }
 }

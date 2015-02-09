@@ -87,7 +87,7 @@ public class RasterZonalStatistics implements RasterProcess {
 
     private final static CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
 
-    private final static Operation CROPOPERATION = PROCESSOR.getOperation("CoverageCrop");
+    //private final static Operation CROPOPERATION = PROCESSOR.getOperation("CoverageCrop");
     
     @DescribeResult(name = "statistics", description = "A feature collection with the attributes of the zone layer (prefixed by 'z_') and the statistics fields count,min,max,sum,avg,stddev")
     public SimpleFeatureCollection execute(
@@ -326,7 +326,7 @@ public class RasterZonalStatistics implements RasterProcess {
                 /*
                  * crop on region of interest
                  */
-                ParameterValueGroup param = CROPOPERATION.getParameters();
+                ParameterValueGroup param = PROCESSOR.getOperation("CoverageCrop").getParameters();
                 param.parameter("Source").setValue(dataCoverage);
                 param.parameter("Envelope").setValue(new GeneralEnvelope(geometryEnvelope));
                 cropped = (GridCoverage2D) PROCESSOR.doOperation(param);

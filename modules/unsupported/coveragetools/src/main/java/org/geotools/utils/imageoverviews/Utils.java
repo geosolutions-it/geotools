@@ -27,8 +27,8 @@ import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TileCache;
-import javax.media.jai.operator.ScaleDescriptor;
 
+import org.geotools.image.ImageWorker;
 import org.geotools.resources.image.ImageUtilities;
 /**
  * Utilities methods for the {@link OverviewsEmbedder} class.
@@ -178,14 +178,20 @@ class Utils {
     		final RenderingHints newHints = new RenderingHints(JAI.KEY_TILE_CACHE,scaleTC);
     		newHints.add(ImageUtilities.DONT_REPLACE_INDEX_COLOR_MODEL);
     		newHints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, borderExtender));
-    		
-    		return ScaleDescriptor.create(src, 
-    		        Float.valueOf(1.0f/downsampleStep), 
-    		        Float.valueOf(1.0f/downsampleStep), 
-    		        Float.valueOf(0.0f), 
-    		        Float.valueOf(0.0f), 
-    		        interpolation, 
-    		        newHints);
+    		ImageWorker w = new ImageWorker(src).setRenderingHints(newHints);
+    		w.scale(Float.valueOf(1.0f/downsampleStep),
+    		        Float.valueOf(1.0f/downsampleStep),
+    		        Float.valueOf(0.0f),
+    		        Float.valueOf(0.0f),
+    		        interpolation);
+    		return w.getRenderedOperation();
+    		//return ScaleDescriptor.create(src, 
+    		        //Float.valueOf(1.0f/downsampleStep), 
+    		        //Float.valueOf(1.0f/downsampleStep), 
+    		        //Float.valueOf(0.0f), 
+    		        //Float.valueOf(0.0f), 
+    		        //interpolation, 
+    		        //newHints);
     		
     //		// using filtered subsample operator to do a subsampling
     //		final ParameterBlockJAI pb = new ParameterBlockJAI("filteredsubsample");
