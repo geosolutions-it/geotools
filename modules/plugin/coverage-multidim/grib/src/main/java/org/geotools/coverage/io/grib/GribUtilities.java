@@ -20,8 +20,7 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
-import ucar.nc2.grib.GribCollection;
+import ucar.nc2.grib.collection.GribCollection;
 import ucar.nc2.util.DiskCache2;
 
 /**
@@ -48,9 +47,7 @@ public class GribUtilities {
             String dir = (String) cacheDir;
             final File file = new File(dir);
             if (isValid(file)) {
-                DiskCache2 cache = new DiskCache2();
-                cache.setRootDirectory(dir);
-                cache.setAlwaysUseCache(true);
+                DiskCache2 cache = new DiskCache2(dir, true, 0, 0);
                 GribCollection.setDiskCache2(cache);
             }
         }
