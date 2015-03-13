@@ -78,6 +78,7 @@ import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.coverage.grid.io.OverviewPolicy;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.coverage.grid.io.UnknownFormat;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -3218,6 +3219,53 @@ public class ImageMosaicReaderTest extends Assert{
                 FileUtils.deleteQuietly(f);
             }
         }
+    }
+    
+    /**
+     * Tests {@link ImageMosaicReader} when the native CRS differs from the requested CRS only because of metadata.
+     * Test case uses 3857 data bt request with 909913
+     *  
+     * @throws Exception
+     */
+    @Test
+    public void testSameCRS() throws Exception {
+        final String strangeWGS84="PROJCS[\"WGS84 / Simple Mercator\", GEOGCS[\"WGS 84\","+
+			"DATUM[\"WGS_1984\", SPHEROID[\"WGS_1984\", 6378137.0, 298.257223563]], "+
+			"PRIMEM[\"Greenwich\", 0.0], UNIT[\"degree\", 0.017453292519943295], "+
+			"AXIS[\"Longitude\", EAST], AXIS[\"Latitude\", NORTH]],"+
+			"PROJECTION[\"Mercator_1SP_Google\"], "+
+			"PARAMETER[\"latitude_of_origin\", 0.0], PARAMETER[\"central_meridian\", 0.0], "+
+			"PARAMETER[\"scale_factor\", 1.0], PARAMETER[\"false_easting\", 0.0], "+
+			"PARAMETER[\"false_northing\", 0.0], UNIT[\"m\", 1.0], AXIS[\"x\", EAST],"+
+			"AXIS[\"y\", NORTH]]";
+
+        // Get the resources as needed.
+        URL testURL = TestData.url(this, "same_crs/");
+        Assert.assertNotNull(testURL);
+        
+        // Get the reader
+        final AbstractGridFormat format = TestUtils.getFormat(testURL);
+        Assert.assertNotNull(format);
+        Assert.assertFalse(format instanceof UnknownFormat);
+
+        // Read the Directory
+        ImageMosaicReader reader = TestUtils.getReader(testURL, format);
+        
+        // create the same BBOX with strange CRS
+        final GeneralEnvelope targetBBOX=new GeneralEnvelope(reader.getOriginalEnvelope());
+        targetBBOX.setCoordinateReferenceSystem(CRS.parseWKT(strangeWGS84));
+
+        // create the GridGeometry
+        final ParameterValue<GridGeometry2D> readGG = AbstractGridFormat.READ_GRIDGEOMETRY2D.createValue();
+        readGG.setValue(new GridGeometry2D(reader.getOriginalGridRange(), targetBBOX));
+
+        // Test the output coverage
+        TestUtils.checkCoverage(reader, new GeneralParameterValue[] { readGG }, "Test Same CRS");
+
+
+        // test the coverage
+        reader.dispose();
+        
     }
 
     @AfterClass
