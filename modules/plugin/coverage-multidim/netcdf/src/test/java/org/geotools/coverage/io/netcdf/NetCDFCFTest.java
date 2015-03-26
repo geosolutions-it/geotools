@@ -19,6 +19,7 @@ package org.geotools.coverage.io.netcdf;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Set;
 
 import javax.xml.bind.JAXBException;
 
@@ -49,5 +50,11 @@ public final class NetCDFCFTest extends Assert {
         assertNull(parser.getEntryFromAlias("MissingAliasEntry"));
         entry = parser.getEntryFromAlias("atmosphere_sulfate_content");
         assertSame(entry, parser.getEntry("atmosphere_mass_content_of_sulfate"));
+
+        // Testing entries
+        Set<String> entries = parser.getEntryIds();
+        assertNotNull(entries);
+        assertTrue(!entries.isEmpty());
+        assertTrue(entries.contains("air_potential_temperature"));
     }
 }

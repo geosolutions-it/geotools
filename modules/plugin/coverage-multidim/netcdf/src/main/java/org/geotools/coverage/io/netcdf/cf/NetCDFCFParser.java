@@ -20,6 +20,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBContext;
@@ -48,6 +50,9 @@ public class NetCDFCFParser {
     /** Map containing all the defined alias */
     private Map<String, Alias> aliasMap;
 
+    /** {@link Set} containing all the keys*/
+    private Set<String> keys;
+
     public boolean hasEntryId(String id) {
         return entriesMap.containsKey(id);
     }
@@ -61,6 +66,10 @@ public class NetCDFCFParser {
             return entriesMap.get(id);
         }
         return null;
+    }
+
+    public Set<String> getEntryIds(){
+        return keys;
     }
 
     public Entry getEntryFromAlias(String id) {
@@ -87,6 +96,11 @@ public class NetCDFCFParser {
     private NetCDFCFParser(Map<String, Entry> entriesMap, Map<String, Alias> aliasMap) {
         this.entriesMap = entriesMap;
         this.aliasMap = aliasMap;
+        // Create the KeySet
+        keys = new TreeSet<String>();
+        // Populate the keySet
+        keys.addAll(entriesMap.keySet());
+        keys.addAll(aliasMap.keySet());
     }
 
     /**
