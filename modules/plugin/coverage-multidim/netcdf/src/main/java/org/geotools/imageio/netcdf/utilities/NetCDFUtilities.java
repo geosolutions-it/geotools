@@ -119,6 +119,18 @@ public class NetCDFUtilities {
 
     public static final String COORDSYS = "latLonCoordSys";
 
+    public final static String Y = "y";
+
+    public final static String Y_COORD_PROJ = "y coordinate of projection";
+
+    public final static String Y_PROJ_COORD = "projection_y_coordinate";
+
+    public final static String X = "x";
+
+    public final static String X_COORD_PROJ = "x coordinate of projection";
+
+    public final static String X_PROJ_COORD = "projection_x_coordinate";
+    
     public final static String LATITUDE = "latitude";
 
     public final static String LAT = "lat";
@@ -139,8 +151,6 @@ public class NetCDFUtilities {
 
     public final static String TIME = "time";
 
-    public final static String COORDINATE_AXIS_TYPE = "_CoordinateAxisType";
-
     public static final String POSITIVE = "positive";
 
     public static final String UNITS = "units";
@@ -157,6 +167,8 @@ public class NetCDFUtilities {
 
     public final static String DESCRIPTION = "description";
 
+    public final static String M = "m";
+
     public final static String BOUNDS_SUFFIX = "_bnds";
 
     public final static String LON_UNITS = "degrees_east";
@@ -172,6 +184,25 @@ public class NetCDFUtilities {
     public final static String BOUNDARY_DIMENSION = "nv";
 
     public final static TimeZone UTC;
+
+    public final static String GRID_MAPPING = "grid_mapping";
+
+    public final static String GRID_MAPPING_NAME = "grid_mapping_name";
+
+    public final static String COORDINATE_AXIS_TYPE = "_CoordinateAxisType";
+
+    public final static String CONVENTIONS = "Conventions";
+
+    public final static String COORD_SYS_BUILDER = "_CoordSysBuilder";
+
+    public final static String COORD_SYS_BUILDER_CONVENTION = "ucar.nc2.dataset.conv.CF1Convention";
+
+    public final static String COORDINATE_TRANSFORM_TYPE = "_CoordinateTransformType";
+
+    // They are recognized from GDAL
+    public final static String SPATIAL_REF = "spatial_ref";
+
+    public final static String GEO_TRANSFORM = "GeoTransform";
 
     final static Set<String> EXCLUDED_ATTRIBUTES = new HashSet<String>();
 
