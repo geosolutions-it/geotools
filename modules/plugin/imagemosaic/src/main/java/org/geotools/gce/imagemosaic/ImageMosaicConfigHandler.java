@@ -474,7 +474,7 @@ public class ImageMosaicConfigHandler {
 
             // TODO: Consider revisit this using different name/folder
             final String baseName = runConfiguration.getParameter(Prop.ROOT_MOSAIC_DIR) + "/";
-            filePath = baseName + (useName ? mosaicConfiguration.getName() : "") + "crs.prj";
+            filePath = baseName + (useName ? mosaicConfiguration.getName() : "crs") + ".prj";
             try {
                 Utils.storePRJ(new File(filePath), crs);
             } catch (IOException e) {
