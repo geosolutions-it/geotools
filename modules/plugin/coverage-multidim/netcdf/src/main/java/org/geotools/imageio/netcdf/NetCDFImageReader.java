@@ -35,14 +35,11 @@ import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,6 +54,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.geotools.coverage.grid.io.FileSetManager;
 import org.geotools.coverage.io.catalog.CoverageSlice;
 import org.geotools.coverage.io.catalog.CoverageSlicesCatalog;
+import org.geotools.coverage.io.netcdf.crs.NetCDFProjection;
 import org.geotools.coverage.io.range.FieldType;
 import org.geotools.coverage.io.range.RangeType;
 import org.geotools.data.DefaultTransaction;
@@ -66,10 +64,8 @@ import org.geotools.feature.NameImpl;
 import org.geotools.feature.SchemaException;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer.Coverages.Coverage;
 import org.geotools.gce.imagemosaic.catalog.index.SchemaType;
-import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.GeoSpatialImageReader;
 import org.geotools.imageio.netcdf.cv.CoordinateVariable;
-import org.geotools.imageio.netcdf.cv.NetCDFProjection;
 import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities.CheckType;
@@ -84,8 +80,6 @@ import org.opengis.feature.type.Name;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.GeographicCRS;
 
-import com.vividsolutions.jts.geom.Envelope;
-
 import ucar.ma2.Array;
 import ucar.ma2.IndexIterator;
 import ucar.ma2.InvalidRangeException;
@@ -93,9 +87,7 @@ import ucar.ma2.Range;
 import ucar.ma2.Section;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
-import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
-import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateSystem;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.VariableDS;
@@ -148,7 +140,7 @@ public class NetCDFImageReader extends GeoSpatialImageReader implements FileSetM
      */
     private NetcdfDataset dataset;
 
-    NetCDFGeoreferencing georeferencing;
+    NetCDFGeoreferenceManager georeferencing;
 
     private CheckType checkType = CheckType.UNSET;
 
@@ -452,7 +444,7 @@ public class NetCDFImageReader extends GeoSpatialImageReader implements FileSetM
                 checkType = NetCDFUtilities.getCheckType(dataset);
 
                 // get the coordinate variables
-                georeferencing = new NetCDFGeoreferencing(dataset);
+                georeferencing = new NetCDFGeoreferenceManager(dataset);
                 final File slicesIndexFile = ancillaryFileManager.getSlicesIndexFile();
 
                 if (slicesIndexFile != null) {

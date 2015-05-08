@@ -25,10 +25,10 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geotools.coverage.io.netcdf.NetCDFCRSAuthorityFactory;
+import org.geotools.coverage.io.netcdf.crs.NetCDFCRSAuthorityFactory;
+import org.geotools.coverage.io.netcdf.crs.NetCDFProjection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.netcdf.cv.CoordinateVariable;
-import org.geotools.imageio.netcdf.cv.NetCDFProjection;
 import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.CRS;
@@ -50,7 +50,7 @@ import ucar.nc2.dataset.NetcdfDataset;
 /**
  * Store information about the underlying NetCDF georeferencing.
  */
-class NetCDFGeoreferencing {
+class NetCDFGeoreferenceManager {
 
     private static AbstractAuthorityFactory crsFactory;
     
@@ -66,7 +66,7 @@ class NetCDFGeoreferencing {
     }
     }
     
-    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferencing.class.toString());
+    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class.toString());
     
     /**
      * Set it to {@code true} in case the dataset contains multiple 2D coordinates definitions. Used to quickly access the bbox in case there is only
@@ -154,7 +154,7 @@ class NetCDFGeoreferencing {
      * Main constructor to setup the NetCDF Georeferencing based on the available
      * information stored within the NetCDF dataset. 
      * */
-    public NetCDFGeoreferencing(NetcdfDataset dataset) {
+    public NetCDFGeoreferenceManager(NetcdfDataset dataset) {
         this.dataset = dataset;
         extractCoordinatesVariable();
         try {
@@ -294,7 +294,7 @@ class NetCDFGeoreferencing {
                 }
             }
             ReferencedEnvelope boundingBox = new ReferencedEnvelope(lon[0], lon[1], lat[0], lat[1], crs);
-            addBoundingBox(NetCDFGeoreferencing.DEFAULT, boundingBox);
+            addBoundingBox(NetCDFGeoreferenceManager.DEFAULT, boundingBox);
             
         } else {
             //TODO: Support multiple Grids definition within the same file
@@ -316,29 +316,44 @@ class NetCDFGeoreferencing {
             final CoordinateVariable<?> cv = getCoordinateVariable(axis.getFullName());
             if (cv != null) {
                 final String name = cv.getName();
-                switch(cv.getAxisType()){
-                    case GeoX: case GeoY: case Lat: case Lon:
-                        // TODO: Add support for multiple different lon/lat,x/y coordinates within the same file
-                        coordinates2D++;
-                        continue;
-                    case Height: case Pressure: case RadialElevation: case RadialDistance: case GeoZ:
-                        if (NetCDFCRSUtilities.VERTICAL_AXIS_NAMES.contains(name) && !dimensionsMap.containsKey(NetCDFUtilities.ELEVATION_DIM)) {
-                            // Main elevation dimension
-                            dimensionsMap.put(NetCDFUtilities.ELEVATION_DIM, name);
-                        } else {
-                            // additional elevation dimension
-                            dimensionsMap.put(name.toUpperCase(), name);
-                        }
-                        break;
-                    case Time:
-                        if (!dimensionsMap.containsKey(NetCDFUtilities.TIME_DIM)) {
-                            // Main time dimension
-                            dimensionsMap.put(NetCDFUtilities.TIME_DIM, name);
-                        } else {
-                            // additional time dimension
-                            dimensionsMap.put(name.toUpperCase(), name);
-                        }
-                        break;
+                AxisType axisType = cv.getAxisType();
+                switch (axisType) {
+                case GeoX:
+                case GeoY:
+                case Lat:
+                case Lon:
+                    // TODO: Add support for multiple different lon/lat,x/y coordinates within the same file
+                    coordinates2D++;
+                    continue;
+                case Height:
+                case Pressure:
+                case RadialElevation:
+                case RadialDistance:
+                case GeoZ:
+                    if (NetCDFCRSUtilities.VERTICAL_AXIS_NAMES.contains(name)
+                            && !dimensionsMap.containsKey(NetCDFUtilities.ELEVATION_DIM)) {
+                        // Main elevation dimension
+                        dimensionsMap.put(NetCDFUtilities.ELEVATION_DIM, name);
+                    } else {
+                        // additional elevation dimension
+                        dimensionsMap.put(name.toUpperCase(), name);
+                    }
+                    break;
+                case Time:
+                    if (!dimensionsMap.containsKey(NetCDFUtilities.TIME_DIM)) {
+                        // Main time dimension
+                        dimensionsMap.put(NetCDFUtilities.TIME_DIM, name);
+                    } else {
+                        // additional time dimension
+                        dimensionsMap.put(name.toUpperCase(), name);
+                    }
+                    break;
+                default:
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.fine("The specified axis type isn't currently supported: " 
+                    + axisType + "\nskipping it");
+                    }
+                    break;
                 }
             }else {
                 if (LOGGER.isLoggable(Level.SEVERE)) {

@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.imageio.netcdf.cv;
+package org.geotools.coverage.io.netcdf.crs;
 
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -52,6 +52,8 @@ public enum NetCDFCoordinateReferenceSystemType {
 
         @Override
         public NetCDFProjection getNetCDFProjection() {
+            // No projection/gridMapping is available for WGS84.
+            // Coordinates can be used as is
             return null;
         };
 
@@ -64,10 +66,12 @@ public enum NetCDFCoordinateReferenceSystemType {
 
         @Override
         public NetCDFProjection getNetCDFProjection() {
+            // No Specific Projection is available for this type
+            // We need to parse the SPATIAL_REF attribute
+            // to setup a proper one
             return null;
         };
     },
-
     LAMBERT_AZIMUTHAL_EQUAL_AREA {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -79,7 +83,6 @@ public enum NetCDFCoordinateReferenceSystemType {
             return NetCDFProjection.LAMBERT_AZIMUTHAL_EQUAL_AREA;
         }
     },
-
     LAMBERT_CONFORMAL_CONIC_1SP {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -152,11 +155,18 @@ public enum NetCDFCoordinateReferenceSystemType {
     }
 
 
-    /*
+    /* TODO: THESE CRSs still need to be added
      * , ALBERS_EQUAL_AREA, AZIMUTHAL_EQUIDISTANT,  LAMBERT_CONFORMAL, LAMBERT_CYLINDRICAL_EQUAL_AREA, MERCATOR,
      * , ROTATED_POLE, ,
      */;
 
+     /**
+      * Return a proper {@link NetCDFCoordinateReferenceSystemType} 
+      * depending on the input OGC {@link CoordinateReferenceSystem} instance.
+      * 
+      * @param crs
+      * @return
+      */
     public static NetCDFCoordinateReferenceSystemType parseCRS(CoordinateReferenceSystem crs) {
         if (crs instanceof DefaultGeographicCRS) {
             return WGS84;
@@ -179,12 +189,20 @@ public enum NetCDFCoordinateReferenceSystemType {
             } else if (transform instanceof Stereographic) {
                 return STEREOGRAPHIC;
             }
+            //TODO ADD MORE
         }
+        // Fallback on SPATIAL_REF to deal with projection which
+        // doesn't have a CF Mapping. 
         return SPATIAL_REF;
     }
 
     public abstract NetCDFCoordinate[] getCoordinates();
 
+    /** 
+     * Return a {@link NetCDFProjection} instance for this 
+     * specific CRS type. Note that WGS84 CRS and SPATIAL_REF 
+     * won't return a projection. 
+     */
     public abstract NetCDFProjection getNetCDFProjection();
 
     /** 
