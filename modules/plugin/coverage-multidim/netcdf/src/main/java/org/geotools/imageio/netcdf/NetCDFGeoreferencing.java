@@ -18,7 +18,6 @@ package org.geotools.imageio.netcdf;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,13 +25,19 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.geotools.coverage.io.netcdf.NetCDFCRSAuthorityFactory;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.netcdf.cv.CoordinateVariable;
 import org.geotools.imageio.netcdf.cv.NetCDFProjection;
 import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.ReferencingFactoryFinder;
+import org.geotools.referencing.factory.AbstractAuthorityFactory;
+import org.geotools.referencing.factory.IdentifiedObjectFinder;
 import org.geotools.util.logging.Logging;
 import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import ucar.nc2.Attribute;
@@ -47,6 +52,20 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 class NetCDFGeoreferencing {
 
+    private static AbstractAuthorityFactory crsFactory;
+    
+    static {
+        for (final CRSAuthorityFactory factory : ReferencingFactoryFinder
+                .getCRSAuthorityFactories(null/*FORCE_LONGITUDE_FIRST_AXIS_ORDER*/))
+    {
+        final AbstractAuthorityFactory f = (AbstractAuthorityFactory) factory;
+        if (f instanceof NetCDFCRSAuthorityFactory) {
+            crsFactory = f;
+            break;
+        }
+    }
+    }
+    
     private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferencing.class.toString());
     
     /**
@@ -261,10 +280,19 @@ class NetCDFGeoreferencing {
             if (!projectionSet) {
                 CoordinateReferenceSystem projection = NetCDFProjection.parseProjection(dataset);
                 if (projection != null) {
+                    projectionSet = true;
                     crs = projection;
                 }
             }
-
+            if (projectionSet) {
+                // Force EPSG crs
+                IdentifiedObjectFinder finder = crsFactory.getIdentifiedObjectFinder(crs.getClass());
+                finder.setFullScanAllowed(true);
+                final String code = finder.findIdentifier(crs);
+                if (code != null) {
+                    crs = CRS.decode(code); 
+                }
+            }
             ReferencedEnvelope boundingBox = new ReferencedEnvelope(lon[0], lon[1], lat[0], lat[1], crs);
             addBoundingBox(NetCDFGeoreferencing.DEFAULT, boundingBox);
             
