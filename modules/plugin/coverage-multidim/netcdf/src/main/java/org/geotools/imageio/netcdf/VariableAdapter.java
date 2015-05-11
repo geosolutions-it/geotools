@@ -111,6 +111,41 @@ import ucar.nc2.dataset.VariableDS;
  */
 public class VariableAdapter extends CoverageSourceDescriptor {
 
+    /** 
+     * Simple chars replacing classes to deal with "custom" 
+     * chars. 
+     * As an instance, to be compliant with the
+     * javax.measure.unit.Unit parser,
+     * we should replace kg.m-2 to kg*m^-2
+     * which means replacing the "." sign with the "*"
+     * and the "-" sign with "^_". 
+     */
+    static class UnitCharReplacement {
+        String from;
+        String to;
+
+        public UnitCharReplacement(String from, String to) {
+            this.from = from;
+            this.to = to; 
+        }
+
+        String replace(String input) {
+            if (input != null && input.contains(from)) {
+                return input.replace(from, to);
+            }
+            return input;
+        }
+    }
+
+    //TODO: support for more remappings through external configs
+    final static  Set<UnitCharReplacement> UNIT_CHARS_REPLACEMENTS;
+
+    static {
+        UNIT_CHARS_REPLACEMENTS = new HashSet<UnitCharReplacement>();
+        UNIT_CHARS_REPLACEMENTS.add(new UnitCharReplacement("-", "^-"));
+        UNIT_CHARS_REPLACEMENTS.add(new UnitCharReplacement(".", "*"));
+        UNIT_CHARS_REPLACEMENTS.add(new UnitCharReplacement("1/s", "s^-1"));
+    }
     public class UnidataSpatialDomain extends SpatialDomain {
 
         /** The spatial coordinate reference system */
@@ -759,11 +794,8 @@ public class VariableAdapter extends CoverageSourceDescriptor {
         String unitString = variableDS.getUnitsString();
         if (unitString != null) {
             try {
-                if (unitString.contains("-") || unitString.contains(".")) {
-                    // Replace weird characters to transform as an instance:
-                    // kg.m-2 -------> kg*m^-2 which is properly recognized 
-                    // by the javax.measure.unit.Unit parser
-                    unitString = unitString.replace("-", "^-").replace(".", "*");
+                for (UnitCharReplacement replacement: UNIT_CHARS_REPLACEMENTS) {
+                    unitString = replacement.replace(unitString);
                 }
                 unit = Unit.valueOf(unitString);
             } catch (IllegalArgumentException iae) {
