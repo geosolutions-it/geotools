@@ -81,18 +81,18 @@ public class NetCDFProjectionBuilder {
     /**
      * Quick method to create a {@link CoordinateReferenceSystem} instance,
      * given the OGC ProjectionName, such as "lambert_conformal_conic_2sp"), 
-     * a custom code number for it, the earthRadius (assuming the reference 
-     * ellipsoid is a spheroid), and the Projection Params through a 
-     * <key,value> map (as an instance: <"central_meridian",-95>)  
+     * a custom code number for it, the semiMajor, the inverseFlattening (when infinity,
+     * assuming the reference ellipsoid is a spheroid), and the Projection Params 
+     * through a <key,value> map (as an instance: <"central_meridian",-95>)  
      * 
      * @throws FactoryException
      * */
     public static CoordinateReferenceSystem createProjection(String projectionName, String code,
-            Double earthRadius, Map<String, Double> params) throws FactoryException {
+            Double semiMajor, Double inverseFlattening, Map<String, Double> params) throws FactoryException {
 
         ParameterValueGroup parameters = mtFactory.getDefaultParameters(projectionName);
 
-        Ellipsoid ellipsoid = buildEllipsoid(earthRadius);
+        Ellipsoid ellipsoid = buildEllipsoid(semiMajor, inverseFlattening);
 
         // Datum
         Set<String> keys = params.keySet();
@@ -134,13 +134,18 @@ public class NetCDFProjectionBuilder {
     }
 
     /**
-     * Build a Spheroid on provided its earthRadius.
-     * @param earthRadius the earth radius 
+     * Build an ellipsoid provided semiMajor and inverseFlattening.
+     * @param semiMajor the semiMajor axis length in meters
+     * @param inverseFlattening the inverseFlattening (when infinity, the ellipsoid
+     * will be a spheroid) 
      * @return
      */
-    private static Ellipsoid buildEllipsoid(Double earthRadius) {
+    private static Ellipsoid buildEllipsoid(Double semiMajor, Double inverseFlattening) {
         Map<String, Number> ellipsoidParams = new HashMap<String, Number>();
-        ellipsoidParams.put(NetCDFUtilities.SEMI_MAJOR, earthRadius);
+        ellipsoidParams.put(NetCDFUtilities.SEMI_MAJOR, semiMajor);
+        if (!Double.isInfinite(inverseFlattening)) {
+            ellipsoidParams.put(NetCDFUtilities.INVERSE_FLATTENING, inverseFlattening);
+        }
         return buildEllipsoid(NetCDFUtilities.UNKNOWN, ellipsoidParams);
     }
 

@@ -103,6 +103,7 @@ public class NetCDFCRSAuthorityFactory extends DirectAuthorityFactory implements
     }
 
     static final int GRIB_CIP_CRS_CODE = 971801;
+    static final int GRIB_INCA_CRS_CODE = 971802;
 
     static Map<String, CoordinateReferenceSystemInfo> CUSTOM_CRSS = new HashMap<String, CoordinateReferenceSystemInfo>();
 
@@ -112,21 +113,39 @@ public class NetCDFCRSAuthorityFactory extends DirectAuthorityFactory implements
     static {
         try {
             // TODO: Parse them from a dictionary
-            Map<String, Double> parameters = new HashMap<String, Double>();
-            parameters.put(NetCDFUtilities.LATITUDE_OF_ORIGIN, 25d);
-            parameters.put(NetCDFUtilities.CENTRAL_MERIDIAN, -95d);
-            parameters.put(NetCDFUtilities.FALSE_EASTING, 0d);
-            parameters.put(NetCDFUtilities.FALSE_NORTHING, 0d);
-            CoordinateReferenceSystemInfo gribCipCrsInfo = new CoordinateReferenceSystemInfo(
+            Map<String, Double> cipParameters = new HashMap<String, Double>();
+            cipParameters.put(NetCDFUtilities.LATITUDE_OF_ORIGIN, 25d);
+            cipParameters.put(NetCDFUtilities.CENTRAL_MERIDIAN, -95d);
+            cipParameters.put(NetCDFUtilities.FALSE_EASTING, 0d);
+            cipParameters.put(NetCDFUtilities.FALSE_NORTHING, 0d);
+            CoordinateReferenceSystemInfo cipCrsInfo = new CoordinateReferenceSystemInfo(
                     GRIB_CIP_CRS_CODE, "A LambertConformalConic Projection for GRIB CIP models");
-            String gribNumberCode = gribCipCrsInfo.getNumberCode();
-            String epsgCode = gribCipCrsInfo.getEpsgCode();
+            String cipNumberCode = cipCrsInfo.getNumberCode();
+            String cipEpsgCode = cipCrsInfo.getEpsgCode();
             CoordinateReferenceSystem gribCipCRS = NetCDFProjectionBuilder.createProjection(
-                    CF.LAMBERT_CONFORMAL_CONIC + "_1SP", gribNumberCode, 6371229.0, parameters);
-            gribCipCrsInfo.setCrs(gribCipCRS);
-            CUSTOM_CRSS.put(gribNumberCode, gribCipCrsInfo);
-            CODES.add(gribNumberCode);
-            EPSG_CODES.add(epsgCode);
+                    CF.LAMBERT_CONFORMAL_CONIC + "_1SP", cipNumberCode, 6371229.0, Double.POSITIVE_INFINITY, cipParameters);
+            cipCrsInfo.setCrs(gribCipCRS);
+            CUSTOM_CRSS.put(cipNumberCode, cipCrsInfo);
+            CODES.add(cipNumberCode);
+            EPSG_CODES.add(cipEpsgCode);
+            
+            Map<String, Double> incaParameters = new HashMap<String, Double>();
+            incaParameters.put(NetCDFUtilities.LATITUDE_OF_ORIGIN, 46d);
+            incaParameters.put(NetCDFUtilities.CENTRAL_MERIDIAN, 13.333333d);
+            incaParameters.put(NetCDFUtilities.STANDARD_PARALLEL_1, 46d);
+            incaParameters.put(NetCDFUtilities.STANDARD_PARALLEL_2, 49d);
+            incaParameters.put(NetCDFUtilities.FALSE_NORTHING, 0d);
+            incaParameters.put(NetCDFUtilities.FALSE_EASTING, 0d);
+            CoordinateReferenceSystemInfo incaCrsInfo = new CoordinateReferenceSystemInfo(
+                    GRIB_INCA_CRS_CODE, "A LambertConformalConic Projection for GRIB INCA models");
+            String incaNumberCode = incaCrsInfo.getNumberCode();
+            String incaEpsgCode = incaCrsInfo.getEpsgCode();
+            CoordinateReferenceSystem incaCRS = NetCDFProjectionBuilder.createProjection(
+                    CF.LAMBERT_CONFORMAL_CONIC + "_2SP", incaNumberCode, 6377397.0, 299.15550239234693, incaParameters);
+            incaCrsInfo.setCrs(incaCRS);
+            CUSTOM_CRSS.put(incaNumberCode, incaCrsInfo);
+            CODES.add(incaNumberCode);
+            EPSG_CODES.add(incaEpsgCode);
 
         } catch (FactoryException e) {
 

@@ -95,6 +95,8 @@ class NetCDFGeoreferenceManager {
     /** The underlying NetCDF dataset */
     private NetcdfDataset dataset;
 
+    private boolean isLonLat;
+
     public boolean isNeedsFlipping() {
         return needsFlipping;
     }
@@ -207,27 +209,19 @@ class NetCDFGeoreferenceManager {
      * @throws FactoryException 
      */
     private void extractBBOX() throws IOException, FactoryException {
-        double [] lon= new double[2];
-        double [] lat= new double[2];
-        byte set=0;
+        double [] xLon = new double[2];
+        double [] yLat = new double[2];
+        byte set = 0;
+        isLonLat = false;
         for (CoordinateVariable<?> cv : getCoordinatesVariables()) {
             if (cv.isNumeric()) {
 
-                // is it lat or lon?
+                // is it lat or lon (or geoY or geoX)?
                 AxisType type = cv.getAxisType();
                 switch (type) {
                 case GeoY: case Lat:
-                    if (cv.isRegular()) {
-                        lat[0] = cv.getStart() - (cv.getIncrement() / 2d);
-                        lat[1] = lat[0] + cv.getIncrement() * (cv.getSize());
-                    } else {
-                        double min = ((Number) cv.getMinimum()).doubleValue();
-                        double max = ((Number) cv.getMaximum()).doubleValue();
-                        double incr = (max - min) / (cv.getSize() - 1);
-                        lat[0] = min - (incr / 2d);
-                        lat[1] = max + (incr / 2d);
-                    }
-                    if (lat[1] > lat[0]) {
+                    getCoordinate(cv, yLat);
+                    if (yLat[1] > yLat[0]) {
                         setNeedsFlipping(true);
                     } else {
                         setNeedsFlipping(false);
@@ -236,18 +230,16 @@ class NetCDFGeoreferenceManager {
                     break;
                 case GeoX:
                 case Lon:
-                    if (cv.isRegular()) {
-                        lon[0] = cv.getStart() - (cv.getIncrement() / 2d);
-                        lon[1] = lon[0] + cv.getIncrement() * (cv.getSize());
-                    } else {
-                        double min = ((Number) cv.getMinimum()).doubleValue();
-                        double max = ((Number) cv.getMaximum()).doubleValue();
-                        double incr = (max - min) / (cv.getSize() - 1);
-                        lon[0] = min - (incr / 2d);
-                        lon[1] = max + (incr / 2d);
-                    }
+                    getCoordinate(cv, xLon);
                     set++;
                     break;
+                default:
+                    break;
+                }
+                switch (type) {
+                case Lat:
+                case Lon:
+                    isLonLat = true;
                 default:
                     break;
                 }
@@ -264,40 +256,55 @@ class NetCDFGeoreferenceManager {
         if (!isHasMultiple2Dcoords()) {
 
             // Looks for gridMapping
-            List<Variable> variables = dataset.getVariables();
-            boolean projectionSet = false; 
-            for (Variable variable: variables) {
-
-                // TODO: Support for multiple coordinates 2D definitions within the same dataset
-                Attribute attrib = variable.findAttribute(NetCDFUtilities.GRID_MAPPING_NAME);
-                if (attrib != null) {
-                    // Grid Mapping found
-                    crs = NetCDFProjection.parseProjection(variable);
-                    projectionSet = true;
-                    break;
+            if (!isLonLat) {
+                List<Variable> variables = dataset.getVariables();
+                boolean projectionSet = false; 
+                for (Variable variable: variables) {
+    
+                    // TODO: Support for multiple coordinates 2D definitions within the same dataset
+                    Attribute attrib = variable.findAttribute(NetCDFUtilities.GRID_MAPPING_NAME);
+                    if (attrib != null) {
+                        // Grid Mapping found
+                        crs = NetCDFProjection.parseProjection(variable);
+                        projectionSet = true;
+                        break;
+                    }
+                }
+                if (!projectionSet) {
+                    CoordinateReferenceSystem projection = NetCDFProjection.parseProjection(dataset);
+                    if (projection != null) {
+                        projectionSet = true;
+                        crs = projection;
+                    }
+                }
+                if (projectionSet) {
+                    // Force EPSG crs
+                    IdentifiedObjectFinder finder = crsFactory.getIdentifiedObjectFinder(crs.getClass());
+                    finder.setFullScanAllowed(true);
+                    final String code = finder.findIdentifier(crs);
+                    if (code != null) {
+                        crs = CRS.decode(code); 
+                    }
                 }
             }
-            if (!projectionSet) {
-                CoordinateReferenceSystem projection = NetCDFProjection.parseProjection(dataset);
-                if (projection != null) {
-                    projectionSet = true;
-                    crs = projection;
-                }
-            }
-            if (projectionSet) {
-                // Force EPSG crs
-                IdentifiedObjectFinder finder = crsFactory.getIdentifiedObjectFinder(crs.getClass());
-                finder.setFullScanAllowed(true);
-                final String code = finder.findIdentifier(crs);
-                if (code != null) {
-                    crs = CRS.decode(code); 
-                }
-            }
-            ReferencedEnvelope boundingBox = new ReferencedEnvelope(lon[0], lon[1], lat[0], lat[1], crs);
+            ReferencedEnvelope boundingBox = new ReferencedEnvelope(xLon[0], xLon[1], yLat[0], yLat[1], crs);
             addBoundingBox(NetCDFGeoreferenceManager.DEFAULT, boundingBox);
             
         } else {
             //TODO: Support multiple Grids definition within the same file
+        }
+    }
+
+    private void getCoordinate(CoordinateVariable<?> cv, double[] coordinate) throws IOException {
+        if (cv.isRegular()) {
+            coordinate[0] = cv.getStart() - (cv.getIncrement() / 2d);
+            coordinate[1] = coordinate[0] + cv.getIncrement() * (cv.getSize());
+        } else {
+            double min = ((Number) cv.getMinimum()).doubleValue();
+            double max = ((Number) cv.getMaximum()).doubleValue();
+            double incr = (max - min) / (cv.getSize() - 1);
+            coordinate[0] = min - (incr / 2d);
+            coordinate[1] = max + (incr / 2d);
         }
     }
 
