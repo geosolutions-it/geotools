@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 
 import org.geotools.coverage.io.netcdf.crs.NetCDFCRSAuthorityFactory;
 import org.geotools.coverage.io.netcdf.crs.NetCDFProjection;
+import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.netcdf.cv.CoordinateVariable;
 import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
@@ -55,9 +56,8 @@ class NetCDFGeoreferenceManager {
     private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class.toString());
 
     static {
-//        crsFactory = new NetCDFCRSAuthorityFactory();
         for (final CRSAuthorityFactory factory : ReferencingFactoryFinder
-                .getCRSAuthorityFactories(NetCDFCRSAuthorityFactory.hints))
+                .getCRSAuthorityFactories(null))
     {
         final CRSAuthorityFactory f = (CRSAuthorityFactory) factory;
         if (f instanceof NetCDFCRSAuthorityFactory) {

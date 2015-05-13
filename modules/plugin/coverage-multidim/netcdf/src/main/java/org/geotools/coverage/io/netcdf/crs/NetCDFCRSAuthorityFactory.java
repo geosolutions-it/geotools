@@ -37,12 +37,34 @@ public class NetCDFCRSAuthorityFactory extends FactoryUsingWKT implements CRSAut
     public static final String SYSTEM_DEFAULT_USER_PROJ_FILE = "netcdf.projections";
     public static Hints hints;
 
+    private static URL DEFINITION_URL;
+    
     static {
         Hints.putSystemDefault(Hints.COMPARISON_TOLERANCE, 1e-8);
         hints = GeoTools.getDefaultHints();
+        String cust_proj_file = System.getProperty(SYSTEM_DEFAULT_USER_PROJ_FILE);
+
+        // Attempt to load user-defined projections
+        if (cust_proj_file != null) {
+            File proj_file = new File(cust_proj_file);
+
+            if (proj_file.exists()) {
+                URL url = DataUtilities.fileToURL(proj_file);
+                if (url != null) {
+                    DEFINITION_URL = url;
+                } else {
+                    LOGGER.log(Level.SEVERE, "Had troubles converting " + cust_proj_file
+                            + " to URL");
+                }
+            }
+        } else {
+            // Use the built-in property definitions
+            cust_proj_file = "netcdf.projections.properties";
+            DEFINITION_URL = NetCDFCRSAuthorityFactory.class.getResource(cust_proj_file);
+        }
+
     }
-    
-    
+
     public NetCDFCRSAuthorityFactory() {
         super(hints, MAXIMUM_PRIORITY);
     }
@@ -57,25 +79,11 @@ public class NetCDFCRSAuthorityFactory extends FactoryUsingWKT implements CRSAut
      * @return The URL, or {@code null} if none.
      */
     protected URL getDefinitionsURL() {
-        String cust_proj_file = System.getProperty(SYSTEM_DEFAULT_USER_PROJ_FILE);
+        return DEFINITION_URL;
+    }
 
-        // Attempt to load user-defined projections
-        if (cust_proj_file != null) {
-            File proj_file = new File(cust_proj_file);
-
-            if (proj_file.exists()) {
-                URL url = DataUtilities.fileToURL(proj_file);
-                if (url != null) {
-                    return url;
-                } else {
-                    LOGGER.log(Level.SEVERE, "Had troubles converting " + cust_proj_file
-                            + " to URL");
-                }
-            }
-        }
-        // Use the built-in property definitions
-        cust_proj_file = "netcdf.projections.properties";
-        return NetCDFCRSAuthorityFactory.class.getResource(cust_proj_file);
-
+    @Override
+    public String toString() {
+        return super.toString() + "\nDefinition URL = " + DEFINITION_URL;
     }
 }
