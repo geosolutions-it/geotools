@@ -847,32 +847,6 @@ public class NetCDFReaderTest extends Assert {
         assertEquals(d, 0d, DELTA);
     }
 
-    @Test
-    public void testUTMProjection() throws Exception {
-        final File file = TestData.file(this, "utm.nc");
-        NetCDFReader reader = null;
-        try {
-            reader = new NetCDFReader(file, null);
-            String[] coverages = reader.getGridCoverageNames();
-            CoordinateReferenceSystem crs = reader.getCoordinateReferenceSystem(coverages[0]);
-            assertTrue(crs instanceof ProjectedCRS);
-            ProjectedCRS projectedCRS = ((ProjectedCRS) crs);
-            GeographicCRS baseCRS = projectedCRS.getBaseCRS();
-            assertTrue(CRS.equalsIgnoreMetadata(baseCRS, DefaultGeographicCRS.WGS84));
-            Projection projection = projectedCRS.getConversionFromBase();
-            MathTransform transform = projection.getMathTransform();
-            assertTrue(transform instanceof TransverseMercator);
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.dispose();
-                } catch (Throwable t) {
-                    // Does nothing
-                }
-            }
-        }
-    }
-    
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     @Ignore

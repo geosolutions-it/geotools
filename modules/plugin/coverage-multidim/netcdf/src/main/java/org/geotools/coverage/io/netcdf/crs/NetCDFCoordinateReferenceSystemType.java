@@ -18,9 +18,12 @@ package org.geotools.coverage.io.netcdf.crs;
 
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.referencing.operation.projection.AlbersEqualArea;
 import org.geotools.referencing.operation.projection.LambertAzimuthalEqualArea;
 import org.geotools.referencing.operation.projection.LambertConformal1SP;
 import org.geotools.referencing.operation.projection.LambertConformal2SP;
+import org.geotools.referencing.operation.projection.Mercator1SP;
+import org.geotools.referencing.operation.projection.Mercator2SP;
 import org.geotools.referencing.operation.projection.Orthographic;
 import org.geotools.referencing.operation.projection.PolarStereographic;
 import org.geotools.referencing.operation.projection.Stereographic;
@@ -58,6 +61,7 @@ public enum NetCDFCoordinateReferenceSystemType {
         };
 
     },
+
     SPATIAL_REF {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -72,6 +76,19 @@ public enum NetCDFCoordinateReferenceSystemType {
             return null;
         };
     },
+
+    ALBERS_EQUAL_AREA {
+        @Override
+        public NetCDFCoordinate[] getCoordinates() {
+            return NetCDFCoordinate.YX_COORDS;
+        }
+
+        @Override
+        public NetCDFProjection getNetCDFProjection() {
+            return NetCDFProjection.ALBERS_EQUAL_AREA;
+        }
+    }, 
+
     LAMBERT_AZIMUTHAL_EQUAL_AREA {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -83,6 +100,7 @@ public enum NetCDFCoordinateReferenceSystemType {
             return NetCDFProjection.LAMBERT_AZIMUTHAL_EQUAL_AREA;
         }
     },
+
     LAMBERT_CONFORMAL_CONIC_1SP {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -104,6 +122,30 @@ public enum NetCDFCoordinateReferenceSystemType {
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.LAMBERT_CONFORMAL_CONIC_2SP;
         };
+    },
+
+    MERCATOR_1SP {
+        @Override
+        public NetCDFCoordinate[] getCoordinates() {
+            return NetCDFCoordinate.YX_COORDS;
+        }
+
+        @Override
+        public NetCDFProjection getNetCDFProjection() {
+            return NetCDFProjection.MERCATOR_1SP;
+        }
+    },
+
+    MERCATOR_2SP {
+        @Override
+        public NetCDFCoordinate[] getCoordinates() {
+            return NetCDFCoordinate.YX_COORDS;
+        }
+
+        @Override
+        public NetCDFProjection getNetCDFProjection() {
+            return NetCDFProjection.MERCATOR_2SP;
+        }
     },
 
     TRANSVERSE_MERCATOR {
@@ -152,11 +194,10 @@ public enum NetCDFCoordinateReferenceSystemType {
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.STEREOGRAPHIC;
         }
-    }
-
+    }, 
 
     /* TODO: THESE CRSs still need to be added
-     * , ALBERS_EQUAL_AREA, AZIMUTHAL_EQUIDISTANT,  LAMBERT_CONFORMAL, LAMBERT_CYLINDRICAL_EQUAL_AREA, MERCATOR,
+     * AZIMUTHAL_EQUIDISTANT, LAMBERT_CYLINDRICAL_EQUAL_AREA, 
      * , ROTATED_POLE, ,
      */;
 
@@ -188,7 +229,14 @@ public enum NetCDFCoordinateReferenceSystemType {
                 return POLAR_STEREOGRAPHIC;
             } else if (transform instanceof Stereographic) {
                 return STEREOGRAPHIC;
+            } else if (transform instanceof Mercator1SP) {
+                return MERCATOR_1SP;
+            } else if (transform instanceof Mercator2SP) {
+                return MERCATOR_2SP;
+            } else if (transform instanceof AlbersEqualArea) {
+                return ALBERS_EQUAL_AREA;
             }
+
             //TODO ADD MORE
         }
         // Fallback on SPATIAL_REF to deal with projection which

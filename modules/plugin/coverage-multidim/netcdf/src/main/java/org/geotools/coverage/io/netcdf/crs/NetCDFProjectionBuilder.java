@@ -95,7 +95,7 @@ public class NetCDFProjectionBuilder {
     public static CoordinateReferenceSystem createProjection(String projectionName, String code,
             Double semiMajor, Double inverseFlattening, Map<String, Double> params) throws FactoryException {
 
-        ParameterValueGroup parameters = mtFactory.getDefaultParameters(projectionName);
+        ParameterValueGroup parameters = buildProjectionParams(projectionName);
 
         Ellipsoid ellipsoid = buildEllipsoid(semiMajor, inverseFlattening);
 
@@ -108,13 +108,17 @@ public class NetCDFProjectionBuilder {
                 ellipsoid);
     }
 
+    public static ParameterValueGroup buildProjectionParams(String projectionName) throws NoSuchIdentifierException {
+        return mtFactory.getDefaultParameters(projectionName);
+    }
+
     /**
      * Make sure to set missing parameters
      * 
      * @param parameters
      * @param ellipsoid
      */
-    private static void refineParameters(ParameterValueGroup parameters, Ellipsoid ellipsoid) {
+    public static void updateEllipsoidParams(ParameterValueGroup parameters, Ellipsoid ellipsoid) {
 
         double semiMajor = ellipsoid.getSemiMajorAxis();
         double inverseFlattening = ellipsoid.getInverseFlattening();
@@ -257,7 +261,7 @@ public class NetCDFProjectionBuilder {
             ParameterValueGroup parameters, Ellipsoid ellipsoid) throws NoSuchIdentifierException,
             FactoryException {
         // Refine the parameters by adding the required ellipsoid's related params
-        refineParameters(parameters, ellipsoid);
+        updateEllipsoidParams(parameters, ellipsoid);
 
         // Datum
         final GeodeticDatum datum = NetCDFProjectionBuilder.buildGeodeticDatum(
@@ -268,7 +272,7 @@ public class NetCDFProjectionBuilder {
                 datum);
 
         // create math transform
-        MathTransform transform = mtFactory.createParameterizedTransform(parameters);
+        MathTransform transform = NetCDFProjectionBuilder.buildTransform(parameters);
 
         // create the projection transform
         String name = NetCDFUtilities.UNKNOWN;
@@ -290,6 +294,10 @@ public class NetCDFProjectionBuilder {
         
         return NetCDFProjectionBuilder.buildProjectedCRS(props, baseCRS, conversionFromBase,
                 transform);
+    }
+
+    public static MathTransform buildTransform(ParameterValueGroup parameters) throws NoSuchIdentifierException, FactoryException {
+        return mtFactory.createParameterizedTransform(parameters);
     }
 
     /**
