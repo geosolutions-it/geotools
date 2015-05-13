@@ -233,7 +233,7 @@ public class NetCDFProjection {
 
         // Ellipsoid
         Ellipsoid ellipsoid = buildEllipsoid(var, SI.METER);
-        return NetCDFProjectionBuilder.buildProjectedCRS(java.util.Collections.singletonMap("name", projectionName), parameters, ellipsoid);
+        return NetCDFProjectionBuilder.buildProjectedCRS(java.util.Collections.singletonMap(NetCDFUtilities.NAME, projectionName), parameters, ellipsoid);
     }
 
     private static void handleParam(Map<String, String> projectionParams, ParameterValueGroup parameters, String parameterKey,

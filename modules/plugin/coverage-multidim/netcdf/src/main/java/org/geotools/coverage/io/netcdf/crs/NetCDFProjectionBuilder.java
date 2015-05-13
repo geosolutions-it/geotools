@@ -37,8 +37,10 @@ import org.geotools.referencing.cs.DefaultEllipsoidalCS;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.geotools.referencing.datum.DefaultGeodeticDatum;
 import org.geotools.referencing.datum.DefaultPrimeMeridian;
+import org.geotools.referencing.operation.DefaultConversion;
 import org.geotools.referencing.operation.DefaultOperationMethod;
 import org.geotools.referencing.operation.DefiningConversion;
+import org.geotools.referencing.operation.MathTransformProvider;
 import org.geotools.util.Utilities;
 import org.opengis.metadata.citation.Citation;
 import org.opengis.parameter.ParameterValueGroup;
@@ -53,6 +55,7 @@ import org.opengis.referencing.datum.Ellipsoid;
 import org.opengis.referencing.datum.GeodeticDatum;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransformFactory;
+import org.opengis.referencing.operation.OperationMethod;
 
 /**
  * Class used to create an OGC {@link ProjectedCRS} instance on top 
@@ -62,6 +65,8 @@ import org.opengis.referencing.operation.MathTransformFactory;
 public class NetCDFProjectionBuilder {
 
     private static final String NAME = "name";
+
+    private static final String DEFAULT_DATUM_NAME = NetCDFUtilities.UNKNOWN;
 
     /**
      * Cached {@link MathTransformFactory} for building {@link MathTransform} objects.
@@ -122,11 +127,10 @@ public class NetCDFProjectionBuilder {
 
     public static DefiningConversion buildConversionFromBase(String name, MathTransform transform) {
         // create the projection transform
-        return new DefiningConversion(Collections.singletonMap(NAME, name),
-                new DefaultOperationMethod(transform), transform);
+        return new DefiningConversion(Collections.singletonMap(NAME, name), new DefaultOperationMethod(transform), transform);
     }
 
-    static Map<String, ?> buildProperties(String name, Citation authority, String code) {
+    static Map<String, Object> buildProperties(String name, Citation authority, String code) {
         Map<String, Object> props = new HashMap<String, Object>();
         props.put(IdentifiedObject.NAME_KEY, name);
         props.put(IdentifiedObject.IDENTIFIERS_KEY, new NamedIdentifier(authority, code));
@@ -257,7 +261,7 @@ public class NetCDFProjectionBuilder {
 
         // Datum
         final GeodeticDatum datum = NetCDFProjectionBuilder.buildGeodeticDatum(
-                NetCDFUtilities.UNKNOWN, ellipsoid);
+                DEFAULT_DATUM_NAME, ellipsoid);
 
         // Base Geographic CRS
         GeographicCRS baseCRS = NetCDFProjectionBuilder.buildGeographicCRS(NetCDFUtilities.UNKNOWN,
@@ -267,9 +271,23 @@ public class NetCDFProjectionBuilder {
         MathTransform transform = mtFactory.createParameterizedTransform(parameters);
 
         // create the projection transform
+        String name = NetCDFUtilities.UNKNOWN;
+        if (props != null && !props.isEmpty() && props.containsKey(NetCDFUtilities.NAME)) {
+            name = (String) props.get(NetCDFUtilities.NAME);
+        }
         DefiningConversion conversionFromBase = NetCDFProjectionBuilder.buildConversionFromBase(
-                NetCDFUtilities.UNKNOWN, transform);
-
+                name , transform);
+        OperationMethod method = conversionFromBase.getMethod();
+        if (!(method instanceof MathTransformProvider)) {
+                OperationMethod opMethod = mtFactory.getLastMethodUsed();
+                if (opMethod instanceof MathTransformProvider) {
+                    final Map<String,Object> copy = new HashMap<String,Object>(props);
+                    copy.put(DefaultProjectedCRS.CONVERSION_TYPE_KEY,
+                            ((MathTransformProvider) opMethod).getOperationType());
+                    props = copy;
+                }
+            }
+        
         return NetCDFProjectionBuilder.buildProjectedCRS(props, baseCRS, conversionFromBase,
                 transform);
     }

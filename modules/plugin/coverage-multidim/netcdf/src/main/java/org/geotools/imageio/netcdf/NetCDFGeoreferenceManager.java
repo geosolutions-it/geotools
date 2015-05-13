@@ -278,13 +278,22 @@ class NetCDFGeoreferenceManager {
                     }
                 }
                 if (projectionSet) {
-                    // Force EPSG crs
-                    IdentifiedObjectFinder finder = crsFactory.getIdentifiedObjectFinder(crs.getClass());
-                    finder.setFullScanAllowed(true);
-                    final String code = finder.findIdentifier(crs);
-                    if (code != null) {
-                        crs = CRS.decode(code); 
+                    // CRS retrieval
+                    Set<String> codes = crsFactory.getAuthorityCodes(CoordinateReferenceSystem.class);
+                    for (String code: codes) {
+                        CoordinateReferenceSystem myCrs = CRS.decode("EPSG:" + code);
+                        if (CRS.equalsIgnoreMetadata(myCrs, crs)) {
+                            crs = myCrs;
+                            break;
+                        }
                     }
+                    // Alternative method for CRS retrieval. Check which one is faster
+                    // I think the first one since it avoids ID matching checks.
+//                    finder.setFullScanAllowed(true);
+//                    final String code = finder.findIdentifier(crs);
+//                    if (code != null) {
+//                        crs = CRS.decode(code); 
+//                    }
                 }
             }
             ReferencedEnvelope boundingBox = new ReferencedEnvelope(xLon[0], xLon[1], yLat[0], yLat[1], crs);
