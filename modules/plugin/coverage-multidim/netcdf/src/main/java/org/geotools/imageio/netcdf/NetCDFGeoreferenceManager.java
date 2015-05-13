@@ -33,8 +33,6 @@ import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
-import org.geotools.referencing.factory.AbstractAuthorityFactory;
-import org.geotools.referencing.factory.IdentifiedObjectFinder;
 import org.geotools.util.logging.Logging;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
@@ -52,22 +50,25 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 class NetCDFGeoreferenceManager {
 
-    private static AbstractAuthorityFactory crsFactory;
-    
+    private static CRSAuthorityFactory crsFactory;
+
+    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class.toString());
+
     static {
+//        crsFactory = new NetCDFCRSAuthorityFactory();
         for (final CRSAuthorityFactory factory : ReferencingFactoryFinder
-                .getCRSAuthorityFactories(null/*FORCE_LONGITUDE_FIRST_AXIS_ORDER*/))
+                .getCRSAuthorityFactories(NetCDFCRSAuthorityFactory.hints))
     {
-        final AbstractAuthorityFactory f = (AbstractAuthorityFactory) factory;
+        final CRSAuthorityFactory f = (CRSAuthorityFactory) factory;
         if (f instanceof NetCDFCRSAuthorityFactory) {
             crsFactory = f;
+            if (LOGGER.isLoggable(Level.INFO)) {
+                LOGGER.info("NetCDF CRS Factory found: " + f);
+            }
             break;
         }
     }
     }
-    
-    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class.toString());
-    
     /**
      * Set it to {@code true} in case the dataset contains multiple 2D coordinates definitions. Used to quickly access the bbox in case there is only
      * a single one.
@@ -277,7 +278,7 @@ class NetCDFGeoreferenceManager {
                         crs = projection;
                     }
                 }
-                if (projectionSet) {
+                if (projectionSet && crsFactory != null) {
                     // CRS retrieval
                     Set<String> codes = crsFactory.getAuthorityCodes(CoordinateReferenceSystem.class);
                     for (String code: codes) {
