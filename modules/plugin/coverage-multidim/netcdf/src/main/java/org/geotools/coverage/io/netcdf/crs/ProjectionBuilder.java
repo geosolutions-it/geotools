@@ -37,7 +37,6 @@ import org.geotools.referencing.cs.DefaultEllipsoidalCS;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.geotools.referencing.datum.DefaultGeodeticDatum;
 import org.geotools.referencing.datum.DefaultPrimeMeridian;
-import org.geotools.referencing.operation.DefaultConversion;
 import org.geotools.referencing.operation.DefaultOperationMethod;
 import org.geotools.referencing.operation.DefiningConversion;
 import org.geotools.referencing.operation.MathTransformProvider;
@@ -58,11 +57,10 @@ import org.opengis.referencing.operation.MathTransformFactory;
 import org.opengis.referencing.operation.OperationMethod;
 
 /**
- * Class used to create an OGC {@link ProjectedCRS} instance on top 
- * of Projection name, parameters and Ellipsoid.
- * A default datum will be created on top of that ellipsoid.
+ * Class used to create an OGC {@link ProjectedCRS} instance on top of Projection name, parameters and Ellipsoid. A default datum will be created on
+ * top of that ellipsoid.
  */
-public class NetCDFProjectionBuilder {
+public class ProjectionBuilder {
 
     private static final String NAME = "name";
 
@@ -84,36 +82,43 @@ public class NetCDFProjectionBuilder {
     }
 
     /**
-     * Quick method to create a {@link CoordinateReferenceSystem} instance,
-     * given the OGC ProjectionName, such as "lambert_conformal_conic_2sp"), 
-     * a custom code number for it, the semiMajor, the inverseFlattening (when infinity,
-     * assuming the reference ellipsoid is a spheroid), and the Projection Params 
-     * through a <key,value> map (as an instance: <"central_meridian",-95>)  
+     * Quick method to create a {@link CoordinateReferenceSystem} instance, given the OGC ProjectionName, such as "lambert_conformal_conic_2sp"), a
+     * custom code number for it, the semiMajor, the inverseFlattening (when infinity, assuming the reference ellipsoid is a spheroid), and the
+     * Projection Params through a <key,value> map (as an instance: <"central_meridian",-95>)
      * 
      * @throws FactoryException
      * */
     public static CoordinateReferenceSystem createProjection(String projectionName, String code,
-            Double semiMajor, Double inverseFlattening, Map<String, Double> params) throws FactoryException {
+            Double semiMajor, Double inverseFlattening, Map<String, Double> params)
+            throws FactoryException {
 
-        ParameterValueGroup parameters = buildProjectionParams(projectionName);
+        ParameterValueGroup parameters = getProjectionParameters(projectionName);
 
-        Ellipsoid ellipsoid = buildEllipsoid(semiMajor, inverseFlattening);
+        Ellipsoid ellipsoid = createEllipsoid(semiMajor, inverseFlattening);
 
         // Datum
         Set<String> keys = params.keySet();
         for (String key : keys) {
             parameters.parameter(key).setValue(params.get(key));
         }
-        return buildProjectedCRS(buildProperties(projectionName, Citations.EPSG, code), parameters,
+        return buildCRS(buildProperties(projectionName, Citations.EPSG, code), parameters,
                 ellipsoid);
     }
 
-    public static ParameterValueGroup buildProjectionParams(String projectionName) throws NoSuchIdentifierException {
+    /**
+     * Get Projection parameters from the specified projection name.
+     * 
+     * @param projectionName
+     * @return
+     * @throws NoSuchIdentifierException
+     */
+    public static ParameterValueGroup getProjectionParameters(String projectionName)
+            throws NoSuchIdentifierException {
         return mtFactory.getDefaultParameters(projectionName);
     }
 
     /**
-     * Make sure to set missing parameters
+     * Make sure to set SEMI_MINOR and SEMI_MAJOR projection's parameters from the ellipsoid definition
      * 
      * @param parameters
      * @param ellipsoid
@@ -129,9 +134,16 @@ public class NetCDFProjectionBuilder {
         parameters.parameter(NetCDFUtilities.SEMI_MAJOR).setValue(semiMajor);
     }
 
-    public static DefiningConversion buildConversionFromBase(String name, MathTransform transform) {
-        // create the projection transform
-        return new DefiningConversion(Collections.singletonMap(NAME, name), new DefaultOperationMethod(transform), transform);
+    /**
+     * Create a {@link DefiningConversion} object from the input {@link MathTransform}
+     * 
+     * @param name
+     * @param transform
+     * @return
+     */
+    public static DefiningConversion createConversionFromBase(String name, MathTransform transform) {
+        return new DefiningConversion(Collections.singletonMap(NAME, name),
+                new DefaultOperationMethod(transform), transform);
     }
 
     static Map<String, Object> buildProperties(String name, Citation authority, String code) {
@@ -143,44 +155,43 @@ public class NetCDFProjectionBuilder {
 
     /**
      * Build an ellipsoid provided semiMajor and inverseFlattening.
+     * 
      * @param semiMajor the semiMajor axis length in meters
-     * @param inverseFlattening the inverseFlattening (when infinity, the ellipsoid
-     * will be a spheroid) 
+     * @param inverseFlattening the inverseFlattening (when infinity, the ellipsoid will be a spheroid)
      * @return
      */
-    private static Ellipsoid buildEllipsoid(Double semiMajor, Double inverseFlattening) {
+    private static Ellipsoid createEllipsoid(Double semiMajor, Double inverseFlattening) {
         Map<String, Number> ellipsoidParams = new HashMap<String, Number>();
         ellipsoidParams.put(NetCDFUtilities.SEMI_MAJOR, semiMajor);
         if (!Double.isInfinite(inverseFlattening)) {
             ellipsoidParams.put(NetCDFUtilities.INVERSE_FLATTENING, inverseFlattening);
         }
-        return buildEllipsoid(NetCDFUtilities.UNKNOWN, ellipsoidParams);
+        return createEllipsoid(NetCDFUtilities.UNKNOWN, ellipsoidParams);
     }
 
     /**
-     * Build a Default {@link GeodeticDatum} on top of a specific {@link Ellipsoid}
-     * instance, using {@link DefaultPrimeMeridian#GREENWICH} as primeMeridian.
+     * Build a Default {@link GeodeticDatum} on top of a specific {@link Ellipsoid} instance, using {@link DefaultPrimeMeridian#GREENWICH} as
+     * primeMeridian.
+     * 
      * @param name
      * @param ellipsoid
      * @return
      */
-    public static GeodeticDatum buildGeodeticDatum(String name, Ellipsoid ellipsoid) {
+    public static GeodeticDatum createGeodeticDatum(String name, Ellipsoid ellipsoid) {
         return new DefaultGeodeticDatum(name, ellipsoid, DefaultPrimeMeridian.GREENWICH);
     }
 
     /**
-     * Build a {@link GeographicCRS} given the name to be assigned and 
-     * the {@link GeodeticDatum} to be used.
-     * {@link EllipsoidalCS} is {@value #DEFAULT_ELLIPSOIDAL_CS}
+     * Build a {@link GeographicCRS} given the name to be assigned and the {@link GeodeticDatum} to be used. {@link EllipsoidalCS} is
+     * {@value #DEFAULT_ELLIPSOIDAL_CS}
      * 
      * @param name
      * @param datum
      * @param ellipsoidalCS
      * @return
      */
-
-    public static GeographicCRS buildGeographicCRS(String name, GeodeticDatum datum) {
-        return buildGeographicCRS(name, datum, DEFAULT_ELLIPSOIDAL_CS);
+    public static GeographicCRS createGeographicCRS(String name, GeodeticDatum datum) {
+        return createGeographicCRS(name, datum, DEFAULT_ELLIPSOIDAL_CS);
     }
 
     /**
@@ -191,7 +202,7 @@ public class NetCDFProjectionBuilder {
      * @param ellipsoidalCS
      * @return
      */
-    public static GeographicCRS buildGeographicCRS(String name, GeodeticDatum datum,
+    public static GeographicCRS createGeographicCRS(String name, GeodeticDatum datum,
             EllipsoidalCS ellipsoidalCS) {
         final Map<String, String> props = new HashMap<String, String>();
         props.put(NAME, name);
@@ -199,18 +210,17 @@ public class NetCDFProjectionBuilder {
     }
 
     /**
-     * Build a {@link ProjectedCRS} given the base {@link GeographicCRS}, 
-     * the {@link DefiningConversion} instance from Base as well as the
-     * {@link MathTransform} from the base CRS to returned CRS.
-     * The derivedCS is {@link DefaultCartesianCS#PROJECTED} by default.
+     * Build a {@link ProjectedCRS} given the base {@link GeographicCRS}, the {@link DefiningConversion} instance from Base as well as the
+     * {@link MathTransform} from the base CRS to returned CRS. The derivedCS is {@link DefaultCartesianCS#PROJECTED} by default.
+     * 
      * @param props
      * @param baseCRS
      * @param conversionFromBase
      * @param transform
      * @return
      */
-    public static CoordinateReferenceSystem buildProjectedCRS(Map<String, ?> props,
-            GeographicCRS baseCRS, DefiningConversion conversionFromBase, MathTransform transform) {
+    public static ProjectedCRS createProjectedCRS(Map<String, ?> props, GeographicCRS baseCRS,
+            DefiningConversion conversionFromBase, MathTransform transform) {
         // Create the projected CRS
         return new DefaultProjectedCRS(props, conversionFromBase, baseCRS, transform,
                 DefaultCartesianCS.PROJECTED);
@@ -225,7 +235,7 @@ public class NetCDFProjectionBuilder {
      * @param ellipsoidParams
      * @return
      */
-    public static Ellipsoid buildEllipsoid(String name, Map<String, Number> ellipsoidParams) {
+    public static Ellipsoid createEllipsoid(String name, Map<String, Number> ellipsoidParams) {
         Number semiMajor = null;
         Number semiMinor = null;
         Number inverseFlattening = Double.NEGATIVE_INFINITY;
@@ -248,7 +258,7 @@ public class NetCDFProjectionBuilder {
     }
 
     /**
-     * Create a {@link ProjectedCRS} parsing Conversion parameters and Ellipsoid
+     * Build a Projected {@link CoordinateReferenceSystem} parsing Conversion parameters and Ellipsoid
      * 
      * @param props
      * @param parameters
@@ -257,46 +267,46 @@ public class NetCDFProjectionBuilder {
      * @throws NoSuchIdentifierException
      * @throws FactoryException
      */
-    public static CoordinateReferenceSystem buildProjectedCRS(Map<String, ?> props,
+    public static CoordinateReferenceSystem buildCRS(Map<String, ?> props,
             ParameterValueGroup parameters, Ellipsoid ellipsoid) throws NoSuchIdentifierException,
             FactoryException {
         // Refine the parameters by adding the required ellipsoid's related params
         updateEllipsoidParams(parameters, ellipsoid);
 
         // Datum
-        final GeodeticDatum datum = NetCDFProjectionBuilder.buildGeodeticDatum(
-                DEFAULT_DATUM_NAME, ellipsoid);
+        final GeodeticDatum datum = ProjectionBuilder.createGeodeticDatum(DEFAULT_DATUM_NAME,
+                ellipsoid);
 
         // Base Geographic CRS
-        GeographicCRS baseCRS = NetCDFProjectionBuilder.buildGeographicCRS(NetCDFUtilities.UNKNOWN,
+        GeographicCRS baseCRS = ProjectionBuilder.createGeographicCRS(NetCDFUtilities.UNKNOWN,
                 datum);
 
         // create math transform
-        MathTransform transform = NetCDFProjectionBuilder.buildTransform(parameters);
+        MathTransform transform = ProjectionBuilder.createTransform(parameters);
 
         // create the projection transform
         String name = NetCDFUtilities.UNKNOWN;
         if (props != null && !props.isEmpty() && props.containsKey(NetCDFUtilities.NAME)) {
             name = (String) props.get(NetCDFUtilities.NAME);
         }
-        DefiningConversion conversionFromBase = NetCDFProjectionBuilder.buildConversionFromBase(
-                name , transform);
+        DefiningConversion conversionFromBase = ProjectionBuilder.createConversionFromBase(name,
+                transform);
         OperationMethod method = conversionFromBase.getMethod();
         if (!(method instanceof MathTransformProvider)) {
-                OperationMethod opMethod = mtFactory.getLastMethodUsed();
-                if (opMethod instanceof MathTransformProvider) {
-                    final Map<String,Object> copy = new HashMap<String,Object>(props);
-                    copy.put(DefaultProjectedCRS.CONVERSION_TYPE_KEY,
-                            ((MathTransformProvider) opMethod).getOperationType());
-                    props = copy;
-                }
+            OperationMethod opMethod = mtFactory.getLastMethodUsed();
+            if (opMethod instanceof MathTransformProvider) {
+                final Map<String, Object> copy = new HashMap<String, Object>(props);
+                copy.put(DefaultProjectedCRS.CONVERSION_TYPE_KEY,
+                        ((MathTransformProvider) opMethod).getOperationType());
+                props = copy;
             }
-        
-        return NetCDFProjectionBuilder.buildProjectedCRS(props, baseCRS, conversionFromBase,
-                transform);
+        }
+
+        return ProjectionBuilder.createProjectedCRS(props, baseCRS, conversionFromBase, transform);
     }
 
-    public static MathTransform buildTransform(ParameterValueGroup parameters) throws NoSuchIdentifierException, FactoryException {
+    public static MathTransform createTransform(ParameterValueGroup parameters)
+            throws NoSuchIdentifierException, FactoryException {
         return mtFactory.createParameterizedTransform(parameters);
     }
 

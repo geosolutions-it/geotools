@@ -16,6 +16,9 @@
  */
 package org.geotools.coverage.io.netcdf.crs;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.projection.AlbersEqualArea;
@@ -28,6 +31,7 @@ import org.geotools.referencing.operation.projection.Orthographic;
 import org.geotools.referencing.operation.projection.PolarStereographic;
 import org.geotools.referencing.operation.projection.Stereographic;
 import org.geotools.referencing.operation.projection.TransverseMercator;
+import org.geotools.util.logging.Logging;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.ProjectedCRS;
 import org.opengis.referencing.operation.MathTransform;
@@ -46,7 +50,7 @@ import org.opengis.referencing.operation.Projection;
  * @author Daniele Romagnoli, GeoSolutions SAS
  */
 public enum NetCDFCoordinateReferenceSystemType {
-
+    
     WGS84 {
         @Override
         public NetCDFCoordinate[] getCoordinates() {
@@ -58,55 +62,30 @@ public enum NetCDFCoordinateReferenceSystemType {
             // No projection/gridMapping is available for WGS84.
             // Coordinates can be used as is
             return null;
-        };
-
+        }
     },
-
     SPATIAL_REF {
         @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
-        @Override
         public NetCDFProjection getNetCDFProjection() {
-            // No Specific Projection is available for this type
+            // No Specific NetCDF CF Projection is available for this type
             // We need to parse the SPATIAL_REF attribute
             // to setup a proper one
             return null;
-        };
-    },
-
-    ALBERS_EQUAL_AREA {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
         }
-
+    },
+    ALBERS_EQUAL_AREA {
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.ALBERS_EQUAL_AREA;
         }
     }, 
-
     LAMBERT_AZIMUTHAL_EQUAL_AREA {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.LAMBERT_AZIMUTHAL_EQUAL_AREA;
         }
     },
-
     LAMBERT_CONFORMAL_CONIC_1SP {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.LAMBERT_CONFORMAL_CONIC_1SP;
@@ -114,144 +93,119 @@ public enum NetCDFCoordinateReferenceSystemType {
     },
     LAMBERT_CONFORMAL_CONIC_2SP {
         @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
-        @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.LAMBERT_CONFORMAL_CONIC_2SP;
-        };
-    },
-
-    MERCATOR_1SP {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
         }
-
+    },
+    MERCATOR_1SP {
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.MERCATOR_1SP;
         }
     },
-
     MERCATOR_2SP {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.MERCATOR_2SP;
         }
     },
-
     TRANSVERSE_MERCATOR {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.TRANSVERSE_MERCATOR;
         }
     },
-
     ORTHOGRAPHIC {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.ORTHOGRAPHIC;
         }
     },
-
     POLAR_STEREOGRAPHIC {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.POLAR_STEREOGRAPHIC;
         }
     },
-
     STEREOGRAPHIC {
-        @Override
-        public NetCDFCoordinate[] getCoordinates() {
-            return NetCDFCoordinate.YX_COORDS;
-        }
-
         @Override
         public NetCDFProjection getNetCDFProjection() {
             return NetCDFProjection.STEREOGRAPHIC;
         }
-    }, 
+    }; 
 
     /* TODO: THESE CRSs still need to be added
-     * AZIMUTHAL_EQUIDISTANT, LAMBERT_CYLINDRICAL_EQUAL_AREA, 
-     * , ROTATED_POLE, ,
-     */;
+     * AZIMUTHAL_EQUIDISTANT, LAMBERT_CYLINDRICAL_EQUAL_AREA, ROTATED_POLE
+     */
 
-     /**
-      * Return a proper {@link NetCDFCoordinateReferenceSystemType} 
-      * depending on the input OGC {@link CoordinateReferenceSystem} instance.
-      * 
-      * @param crs
-      * @return
-      */
+    /**
+     * Return a proper {@link NetCDFCoordinateReferenceSystemType} depending 
+     * on the input OGC {@link CoordinateReferenceSystem} instance.
+     * 
+     * @param crs
+     * @return
+     */
     public static NetCDFCoordinateReferenceSystemType parseCRS(CoordinateReferenceSystem crs) {
+        NetCDFCoordinateReferenceSystemType crsType = null;
         if (crs instanceof DefaultGeographicCRS) {
-            return WGS84;
+            crsType = WGS84;
         } else if (crs instanceof ProjectedCRS) {
             ProjectedCRS projectedCRS = (ProjectedCRS) crs;
             Projection projection = projectedCRS.getConversionFromBase();
             MathTransform transform = projection.getMathTransform();
             if (transform instanceof TransverseMercator) {
-                return TRANSVERSE_MERCATOR;
+                crsType = TRANSVERSE_MERCATOR;
             } else if (transform instanceof LambertConformal1SP) {
-                return LAMBERT_CONFORMAL_CONIC_1SP;
+                crsType = LAMBERT_CONFORMAL_CONIC_1SP;
             } else if (transform instanceof LambertConformal2SP) {
-                return LAMBERT_CONFORMAL_CONIC_2SP;
+                crsType = LAMBERT_CONFORMAL_CONIC_2SP;
             } else if (transform instanceof LambertAzimuthalEqualArea) {
-                return LAMBERT_AZIMUTHAL_EQUAL_AREA;
+                crsType = LAMBERT_AZIMUTHAL_EQUAL_AREA;
             } else if (transform instanceof Orthographic) {
-                return ORTHOGRAPHIC;
+                crsType = ORTHOGRAPHIC;
             } else if (transform instanceof PolarStereographic) {
-                return POLAR_STEREOGRAPHIC;
+                crsType = POLAR_STEREOGRAPHIC;
             } else if (transform instanceof Stereographic) {
-                return STEREOGRAPHIC;
+                crsType = STEREOGRAPHIC;
             } else if (transform instanceof Mercator1SP) {
-                return MERCATOR_1SP;
+                crsType = MERCATOR_1SP;
             } else if (transform instanceof Mercator2SP) {
                 return MERCATOR_2SP;
             } else if (transform instanceof AlbersEqualArea) {
-                return ALBERS_EQUAL_AREA;
+                crsType = ALBERS_EQUAL_AREA;
             }
-
-            //TODO ADD MORE
+            // TODO ADD MORE
         }
         // Fallback on SPATIAL_REF to deal with projection which
-        // doesn't have a CF Mapping. 
-        return SPATIAL_REF;
+        // doesn't have a CF Mapping.
+        crsType = SPATIAL_REF;
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Using a NetCDF CRS based on " + crsType);
+        }
+        return crsType;
+
     }
 
-    public abstract NetCDFCoordinate[] getCoordinates();
+    /**
+     * Return the set of {@link NetCDFCoordinate}s for this NetCDF CRS type.
+     * As an instance, WGS84 type use Latitude,Longitude while 
+     * Mercator uses GeoY,GeoX.
+     * Default implementation returns {@link NetCDFCoordinate#YX_COORDS}
+     * since most part of the CRS Type are projected. 
+     * @return
+     */
+    public NetCDFCoordinate[] getCoordinates() {
+        return NetCDFCoordinate.YX_COORDS;
+    }
 
     /** 
      * Return a {@link NetCDFProjection} instance for this 
      * specific CRS type. Note that WGS84 CRS and SPATIAL_REF 
-     * won't return a projection. 
+     * won't return a NetCDF CF projection. 
      */
     public abstract NetCDFProjection getNetCDFProjection();
+
+    private final static Logger LOGGER = Logging.getLogger(NetCDFCoordinateReferenceSystemType.class.toString());
 
     /** 
      * Contains basic information related to a NetCDF Coordinate such as:
@@ -285,14 +239,19 @@ public enum NetCDFCoordinateReferenceSystemType {
         private final static NetCDFCoordinate[] YX_COORDS = new NetCDFCoordinate[] { Y_COORDINATE,
                 X_COORDINATE };
 
+        /** short name. (as an instance: x) */
         private String shortName;
 
+        /** the name of the associated dimension. (as an instance: x) */
         private String dimensionName;
 
+        /** long name. (as an instance: x coordinate of projection) */
         private String longName;
 
+        /** unit of measure of that coordinate (as an instance: m) */
         private String units;
 
+        /** standard name (as an instance: projection_x_coordinate) */
         private String standardName;
 
         public String getShortName() {
@@ -342,6 +301,9 @@ public enum NetCDFCoordinateReferenceSystemType {
                     + "]";
         }
 
+        /**
+         * Create a {@link NetCDFCoordinate} instance with all the required information 
+         */
         public NetCDFCoordinate(String shortName, String longName, String standardName,
                 String dimensionName, String units) {
             this.shortName = shortName;
@@ -350,7 +312,5 @@ public enum NetCDFCoordinateReferenceSystemType {
             this.dimensionName = dimensionName;
             this.units = units;
         }
-
     }
-
-};
+}

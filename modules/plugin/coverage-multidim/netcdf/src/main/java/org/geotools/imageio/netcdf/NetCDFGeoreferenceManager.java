@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 
 import org.geotools.coverage.io.netcdf.crs.NetCDFCRSAuthorityFactory;
 import org.geotools.coverage.io.netcdf.crs.NetCDFProjection;
-import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.imageio.netcdf.cv.CoordinateVariable;
 import org.geotools.imageio.netcdf.utilities.NetCDFCRSUtilities;
@@ -51,27 +50,30 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 class NetCDFGeoreferenceManager {
 
+    /** A Custom {@link CRSAuthorityFactory} used to parse custom NetCDF/GRIB CRSs */
     private static CRSAuthorityFactory crsFactory;
 
-    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class.toString());
+    private final static Logger LOGGER = Logging.getLogger(NetCDFGeoreferenceManager.class
+            .toString());
 
     static {
         for (final CRSAuthorityFactory factory : ReferencingFactoryFinder
-                .getCRSAuthorityFactories(null))
-    {
-        final CRSAuthorityFactory f = (CRSAuthorityFactory) factory;
-        if (f instanceof NetCDFCRSAuthorityFactory) {
-            crsFactory = f;
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.info("NetCDF CRS Factory found: " + f);
+                .getCRSAuthorityFactories(null)) {
+            // Retrieve the registered custom factory
+            final CRSAuthorityFactory f = (CRSAuthorityFactory) factory;
+            if (f instanceof NetCDFCRSAuthorityFactory) {
+                crsFactory = f;
+                if (LOGGER.isLoggable(Level.INFO)) {
+                    LOGGER.info("NetCDF CRS Factory found: " + f);
+                }
+                break;
             }
-            break;
         }
     }
-    }
+
     /**
-     * Set it to {@code true} in case the dataset contains multiple 2D coordinates definitions. Used to quickly access the bbox in case there is only
-     * a single one.
+     * Set it to {@code true} in case the dataset contains multiple 2D coordinates definitions. 
+     * Used to quickly access the bbox in case there is only a single one.
      */
     private boolean hasMultiple2Dcoords;
 
@@ -82,9 +84,11 @@ class NetCDFGeoreferenceManager {
     private Map<String, CoordinateVariable<?>> coordinatesVariables;
 
     /**
-     * BoundingBoxes available for the underlying dataset. Most common case is that all the dataset has a single boundingbox/grid/mapping. This will
-     * be signaled by the {@link #hasMultiple2Dcoords} flag equal to {@code false}. In that case, the map will only contain a single bbox which mapped
-     * to the "DEFAULT" name
+     * BoundingBoxes available for the underlying dataset. 
+     * Most common case is that all the dataset has a single boundingbox/grid/mapping. 
+     * This will be signaled by the {@link #hasMultiple2Dcoords} flag equal to {@code false}. 
+     * In that case, the map will only contain a single bbox which mapped to the "DEFAULT" name.
+     * Other cases still need to be implemented.
      */
     private Map<String, ReferencedEnvelope> boundingBoxes = new HashMap<String, ReferencedEnvelope>();
 
@@ -96,6 +100,7 @@ class NetCDFGeoreferenceManager {
     /** The underlying NetCDF dataset */
     private NetcdfDataset dataset;
 
+    /** Flags telling whether the dataset is lonLat to avoid projections checks */
     private boolean isLonLat;
 
     public boolean isNeedsFlipping() {
@@ -139,18 +144,16 @@ class NetCDFGeoreferenceManager {
         if (!hasMultiple2Dcoords) {
             return boundingBoxes.get(DEFAULT);
         }
-
         // TODO: ADD support for multiple 2D coordinates definitions within the same dataset
-        return null;
+        throw new UnsupportedOperationException("Multiple georeferencing within same datasets still need to be supported");
     }
 
     public Collection<CoordinateVariable<?>> getCoordinatesVariables(String shortName) {
         if (!hasMultiple2Dcoords) {
             return coordinatesVariables.values();
         }
-
         // TODO: ADD support for multiple 2D coordinates definitions within the same dataset
-        return null;
+        throw new UnsupportedOperationException("Multiple georeferencing within same datasets still need to be supported");
     }
 
     /** 
@@ -319,8 +322,8 @@ class NetCDFGeoreferenceManager {
     }
 
     /**
-     * Parse the coordinateAxes and retrieve the associated coordinateVariable to be used for the
-     * dimension mapping.
+     * Parse the coordinateAxes and retrieve the associated coordinateVariable
+     * to be used for the dimension mapping.
      *  
      * @param coordinateAxes
      */
@@ -398,5 +401,4 @@ class NetCDFGeoreferenceManager {
     public String getDimension(String coordinateVariableName) {
         return dimensionsMapping.get(coordinateVariableName);
     }
-
 }

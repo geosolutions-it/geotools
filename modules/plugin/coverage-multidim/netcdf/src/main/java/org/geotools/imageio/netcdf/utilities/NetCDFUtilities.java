@@ -42,7 +42,6 @@ import java.util.logging.Logger;
 import org.geotools.data.DataUtilities;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.referencing.operation.projection.MapProjection;
-import org.geotools.referencing.operation.projection.MapProjection.AbstractProvider;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -496,9 +495,8 @@ public class NetCDFUtilities {
         }
     }
 
-
     /**
-     * NetCDF files may contains a wide set of coverageDescriptorsCache. Some of them are
+     * NetCDF files may contain a wide set of coverageDescriptorsCache. Some of them are
      * unuseful for our purposes. The method returns {@code true} if the
      * specified variable is accepted.
      */
@@ -718,7 +716,7 @@ public class NetCDFUtilities {
         }
         //TODO: Improve me:
         //Handle timeZone
-        pattern += appendZ?"'Z'":"";
+        pattern += appendZ ? "'Z'" : "";
         final DateFormat format = new SimpleDateFormat(pattern, Locale.CANADA);
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format;

@@ -17,13 +17,12 @@
 package org.geotools.coverage.io.netcdf;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.geotools.coverage.io.netcdf.crs.NetCDFProjection;
-import org.geotools.coverage.io.netcdf.crs.NetCDFProjectionBuilder;
+import org.geotools.coverage.io.netcdf.crs.ProjectionBuilder;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -43,6 +42,11 @@ import org.opengis.referencing.datum.GeodeticDatum;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.Projection;
 
+/**
+ * Testing NetCDF Projection management machinery
+ * 
+ * @author Daniele Romagnoli, GeoSolutions SAS
+ */
 public class NetCDFCRSTest extends Assert {
 
     @Test
@@ -96,10 +100,10 @@ public class NetCDFCRSTest extends Assert {
             }
         }
     }
-    
+
     @Test
     public void testProjectionSetup() throws Exception {
-       ParameterValueGroup params = NetCDFProjectionBuilder.buildProjectionParams(NetCDFProjection.LAMBERT_CONFORMAL_CONIC_1SP.getOGCName());
+       ParameterValueGroup params = ProjectionBuilder.getProjectionParameters(NetCDFProjection.LAMBERT_CONFORMAL_CONIC_1SP.getOGCName());
        params.parameter("central_meridian").setValue(-95.0);
        params.parameter("latitude_of_origin").setValue(25.0); 
        params.parameter("scale_factor").setValue(1.0); 
@@ -110,14 +114,14 @@ public class NetCDFCRSTest extends Assert {
        ellipsoidParams.put(NetCDFUtilities.SEMI_MAJOR, 6378137);
        ellipsoidParams.put(NetCDFUtilities.INVERSE_FLATTENING, 298.257223563);
 
-       Ellipsoid ellipsoid = NetCDFProjectionBuilder.buildEllipsoid("WGS 84", ellipsoidParams);
-       NetCDFProjectionBuilder.updateEllipsoidParams(params, ellipsoid);
-       GeodeticDatum datum = NetCDFProjectionBuilder.buildGeodeticDatum("WGS_1984", ellipsoid);
-       GeographicCRS geoCRS = NetCDFProjectionBuilder.buildGeographicCRS("WGS 84", datum);
-       MathTransform transform = NetCDFProjectionBuilder.buildTransform(params);
-       DefiningConversion conversionFromBase = NetCDFProjectionBuilder.buildConversionFromBase("lambert_conformal_mercator_1sp", transform);
+       Ellipsoid ellipsoid = ProjectionBuilder.createEllipsoid("WGS 84", ellipsoidParams);
+       ProjectionBuilder.updateEllipsoidParams(params, ellipsoid);
+       GeodeticDatum datum = ProjectionBuilder.createGeodeticDatum("WGS_1984", ellipsoid);
+       GeographicCRS geoCRS = ProjectionBuilder.createGeographicCRS("WGS 84", datum);
+       MathTransform transform = ProjectionBuilder.createTransform(params);
+       DefiningConversion conversionFromBase = ProjectionBuilder.createConversionFromBase("lambert_conformal_mercator_1sp", transform);
 
-       CoordinateReferenceSystem crs = NetCDFProjectionBuilder.buildProjectedCRS(Collections.singletonMap("name", "custom_lambert_conformal_conic_1sp"), geoCRS, conversionFromBase, transform);
+       CoordinateReferenceSystem crs = ProjectionBuilder.createProjectedCRS(Collections.singletonMap("name", "custom_lambert_conformal_conic_1sp"), geoCRS, conversionFromBase, transform);
 
        assertTrue(crs instanceof ProjectedCRS);
        ProjectedCRS projectedCRS = ((ProjectedCRS) crs);

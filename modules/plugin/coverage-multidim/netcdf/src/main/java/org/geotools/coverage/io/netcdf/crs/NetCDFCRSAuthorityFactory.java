@@ -21,27 +21,24 @@ import java.net.URL;
 import java.util.logging.Level;
 
 import org.geotools.data.DataUtilities;
-import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
 import org.geotools.referencing.factory.epsg.FactoryUsingWKT;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
- * A factory providing NetCDF/GRIB custom {@link CoordinateReferenceSystem} instances with the related custom EPSG.
+ * A factory providing NetCDF/GRIB custom {@link CoordinateReferenceSystem} 
+ * instances with the related custom EPSG.
  * 
  * @author Daniele Romagnoli - GeoSolutions
  *
  */
 public class NetCDFCRSAuthorityFactory extends FactoryUsingWKT implements CRSAuthorityFactory {
     public static final String SYSTEM_DEFAULT_USER_PROJ_FILE = "netcdf.projections";
-    public static Hints hints;
 
     private static URL DEFINITION_URL;
-    
+
     static {
-        Hints.putSystemDefault(Hints.COMPARISON_TOLERANCE, 1e-8);
-        hints = GeoTools.getDefaultHints();
         String cust_proj_file = System.getProperty(SYSTEM_DEFAULT_USER_PROJ_FILE);
 
         // Attempt to load user-defined projections
@@ -66,7 +63,7 @@ public class NetCDFCRSAuthorityFactory extends FactoryUsingWKT implements CRSAut
     }
 
     public NetCDFCRSAuthorityFactory() {
-        super(hints, MAXIMUM_PRIORITY);
+        super(null, MAXIMUM_PRIORITY);
     }
 
     public NetCDFCRSAuthorityFactory(Hints userHints) {

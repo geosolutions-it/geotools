@@ -71,11 +71,11 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 public class NetCDFCRSUtilities {
 
     private final static java.util.logging.Logger LOGGER = Logger.getLogger(NetCDFCRSUtilities.class.toString());
-    
+
     public static final ReferencingFactoryContainer FACTORY_CONTAINER = ReferencingFactoryContainer.instance(GeoTools.getDefaultHints());
-    
+
     final static PrecisionModel PRECISION_MODEL = new PrecisionModel(PrecisionModel.FLOATING);
-   
+
     public final static GeometryFactory GEOM_FACTORY = new GeometryFactory(PRECISION_MODEL);
 
     /**
@@ -125,7 +125,7 @@ public class NetCDFCRSUtilities {
      *       completed.
      */
     private static final String[] SECONDS = {"second", "sec", "seconds since"};
-    
+
     public final static Set<String> VERTICAL_AXIS_NAMES = new HashSet<String>();
     /**
      * The mapping between UCAR axis type and ISO axis directions.
@@ -147,14 +147,13 @@ public class NetCDFCRSUtilities {
         VERTICAL_AXIS_NAMES.add("z");
         VERTICAL_AXIS_NAMES.add("depth");
         VERTICAL_AXIS_NAMES.add("pressure");
-        
     }
 
     /**
      * The object to use for parsing and formatting units.
      */
     private final static UnitFormat UNIT_FORMAT = UnitFormat.getInstance();
-    
+
     /**
      * Adds a mapping between UCAR type and ISO direction.
      */
@@ -200,7 +199,6 @@ public class NetCDFCRSUtilities {
         return new String[]{units, direction};
     }
 
-    
     /**
      * Get the {@link AxisDirection} object related to the specified direction
      * 
