@@ -160,22 +160,15 @@
       </properties>
     </profile>
     <profile>
-      <id>deploy.boundless</id>
-      <distributionManagement>
+      <id>deploygeosolutions</id>
+       <distributionManagement>
         <repository>
-          <id>boundless</id>
-          <uniqueVersion>false</uniqueVersion>
-          <name>Boundless Maven Repository</name>
-          <url>http://repo.boundlessgeo.com/main</url>
+         <uniqueVersion>false</uniqueVersion>
+         <id>geosolutions</id>
+         <url>ftp://demo.geo-solutions.it</url>
         </repository>
-        <snapshotRepository>
-          <id>boundless</id>
-          <uniqueVersion>false</uniqueVersion>
-          <name>Boundless Maven Repository</name>
-          <url>http://repo.boundlessgeo.com/main</url>
-        </snapshotRepository>
       </distributionManagement>
-    </profile>
+   </profile>
     <profile>
       <id>site.local</id>
       <distributionManagement>
@@ -1124,6 +1117,15 @@
     </pluginManagement>
 
     <extensions>
+	<!--.............................................-->
+    <!--       GeoSolutions (using wagon ftp)       -->
+    <!--.............................................-->
+      <extension>
+       <groupId>org.apache.maven.wagon</groupId>
+       <artifactId>wagon-ftp</artifactId>
+       <version>1.0-beta-2</version>
+      </extension>
+	
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-webdav</artifactId>
@@ -1687,21 +1689,6 @@
       </plugin>
     </plugins>
   </reporting>
-
-  <distributionManagement>
-    <repository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>osgeo</id>
-      <name>Open Source Geospatial Foundation - Maven 2 repo</name>
-      <url>dav:http://download.osgeo.org/webdav/geotools/</url>
-    </repository>
-    <snapshotRepository>
-        <id>boundless</id>
-        <uniqueVersion>false</uniqueVersion>
-        <name>Boundless Maven Repository</name>
-        <url>http://repo.boundlessgeo.com/main</url>
-    </snapshotRepository>
-  </distributionManagement>
 
   <!-- ================================================================== -->
   <!--     Repositories. This is where Maven looks for dependencies. The  -->
