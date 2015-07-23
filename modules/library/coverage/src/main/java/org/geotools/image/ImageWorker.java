@@ -20,6 +20,7 @@ import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.affine.AffineDescriptor;
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+import it.geosolutions.jaiext.border.BorderDescriptor;
 import it.geosolutions.jaiext.classifier.ColorMapTransform;
 import it.geosolutions.jaiext.colorconvert.IHSColorSpaceJAIExt;
 import it.geosolutions.jaiext.colorindexer.ColorIndexer;

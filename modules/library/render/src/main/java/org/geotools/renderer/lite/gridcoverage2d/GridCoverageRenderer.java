@@ -16,6 +16,9 @@
  */
 package org.geotools.renderer.lite.gridcoverage2d;
 
+import it.geosolutions.imageio.utilities.ImageIOUtilities;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -25,8 +28,12 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.ImagingOpException;
+import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,6 +71,8 @@ import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
+import org.geotools.renderer.composite.BlendComposite;
+import org.geotools.renderer.composite.BlendComposite.BlendingMode;
 import org.geotools.renderer.crs.ProjectionHandler;
 import org.geotools.renderer.crs.ProjectionHandlerFinder;
 import org.geotools.renderer.crs.WrappingProjectionHandler;
@@ -91,9 +100,6 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
-// J2SE dependencies
-import it.geosolutions.jaiext.range.Range;
-
 /**
  * A helper class for rendering  {@link GridCoverage}  objects. 
  * @author  Simone Giannecchini, GeoSolutions SAS
@@ -115,6 +121,8 @@ public final class GridCoverageRenderer {
     
     /** IDENTITY */
     private static final AffineTransform IDENTITY = AffineTransform2D.getTranslateInstance(0, 0);
+
+    public static final String KEY_COMPOSITING = "Compositing";
 
     /**
      * This variable is use for testing purposes in order to force this
@@ -459,7 +467,7 @@ public final class GridCoverageRenderer {
         // RASTERSYMBOLIZER
         //
         // ///////////////////////////////////////////////////////////////////
-        final GridCoverage2D symbolizerGC;
+        GridCoverage2D symbolizerGC;
         if(symbolizer!=null){
                 if (LOGGER.isLoggable(Level.FINE)){
                     LOGGER.fine("Applying Raster Symbolizer ");
@@ -467,6 +475,7 @@ public final class GridCoverageRenderer {
         	final RasterSymbolizerHelper rsp = new RasterSymbolizerHelper (preSymbolizer,this.hints);
         	rsp.visit(symbolizer);
         	symbolizerGC = (GridCoverage2D) rsp.getOutput();
+        	symbolizerGC = lookForCompositing(symbolizerGC);
     	} else {
             symbolizerGC = preSymbolizer;
         }
@@ -475,6 +484,18 @@ public final class GridCoverageRenderer {
         }
         return symbolizerGC;
     }            	
+
+    /** 
+     * Check whether this source GridCoverage comes with a {@link Compositing} object 
+     * which need to be applied.
+     * */
+    private GridCoverage2D lookForCompositing(GridCoverage2D source) {
+        Object compositing = source.getProperty(KEY_COMPOSITING);
+        if (compositing != null && compositing instanceof Compositing) {
+            return ((Compositing) compositing).composeGridCoverage(source, gridCoverageFactory);
+        }
+        return source;
+    }
 
     /**
      * @param preResample
@@ -1213,9 +1234,10 @@ public final class GridCoverageRenderer {
         // Build the final image and the transformation
         RenderedImage finalImage = renderImage(gridCoverageReader, readParams, symbolizer,
                 interpolation, background);
+        boolean multiply = symbolizer.getShadedRelief() != null && symbolizer.getShadedRelief().isBrightnessOnly();
         if (finalImage != null) {
             try {
-                paintImage(graphics, finalImage);
+                paintImage(graphics, finalImage, multiply);
             } finally {
                 if (finalImage instanceof PlanarImage) {
                     ImageUtilities.disposePlanarImageChain((PlanarImage) finalImage);
@@ -1225,6 +1247,10 @@ public final class GridCoverageRenderer {
     }
 
     private void paintImage(final Graphics2D graphics, RenderedImage finalImage) {
+        paintImage(graphics, finalImage, false);
+    }
+
+    private void paintImage(final Graphics2D graphics, RenderedImage finalImage, boolean multiply) {
         final RenderingHints oldHints = graphics.getRenderingHints();
         graphics.setRenderingHints(this.hints);
 
@@ -1234,10 +1260,15 @@ public final class GridCoverageRenderer {
                 writeRenderedImage(finalImage, "final");
             }
 
-            // force solid alpha, the transparency has already been
-            // dealt with in the image preparation, and we have to make
-            // sure previous vector rendering code did not leave a non solid alpha
-            graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
+            if (multiply) {
+                graphics.setComposite(BlendComposite.getInstance(BlendingMode.MULTIPLY, 1f));
+                finalImage = Compositing.forceToRGB(finalImage, true);
+            } else {
+                // force solid alpha, the transparency has already been
+                // dealt with in the image preparation, and we have to make
+                // sure previous vector rendering code did not leave a non solid alpha
+                graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
+            }
 
             // //
             // Drawing the Image
@@ -1326,5 +1357,4 @@ public final class GridCoverageRenderer {
             }
         }
     }
-
 }

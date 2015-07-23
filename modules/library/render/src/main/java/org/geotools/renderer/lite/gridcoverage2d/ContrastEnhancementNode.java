@@ -114,7 +114,11 @@ class ContrastEnhancementNode extends StyleVisitorCoverageProcessingNodeAdapter
 	/** Enhancement type to use. */
 	private String type = null;
 
-	/**
+    public String getType() {
+        return type;
+    }
+
+    /**
 	 * Value we'll use for the gamma correction operation.
 	 */
 	private double gammaValue = Double.NaN;

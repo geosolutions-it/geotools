@@ -87,4 +87,9 @@ public final class VocabularyKeys {
      * Untitled
      */
     public static final int UNTITLED = 0;
+
+    /**
+     * Shaded Relief
+     */
+    public static final int SHADED_RELIEF = 10;
 }
