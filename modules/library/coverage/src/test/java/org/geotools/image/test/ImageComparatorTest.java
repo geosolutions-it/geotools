@@ -76,7 +76,6 @@ public class ImageComparatorTest {
     public void testAntialiasDifferences() throws Exception {
         compareAntialiasedImage(BufferedImage.TYPE_4BYTE_ABGR);
         compareAntialiasedImage(BufferedImage.TYPE_3BYTE_BGR);
-        compareAntialiasedImage(BufferedImage.TYPE_BYTE_GRAY);
         compareAntialiasedImage(BufferedImage.TYPE_BYTE_INDEXED);
     }
 

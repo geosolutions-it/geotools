@@ -833,7 +833,7 @@ public class GridCoverageRendererTest  {
         GridCoverageRenderer renderer = new GridCoverageRenderer(
                 reader.getCoordinateReferenceSystem(), mapExtent, screenSize, w2s);
         RenderedImage image = renderer.renderImage(reader, null, rasterSymbolizer,
-                Interpolation.getInstance(Interpolation.INTERP_NEAREST), Color.RED, 256, 256);
+                Interpolation.getInstance(Interpolation.INTERP_NEAREST), null, 256, 256);
         assertNotNull(image);
         // Check the image
         File reference = new File(

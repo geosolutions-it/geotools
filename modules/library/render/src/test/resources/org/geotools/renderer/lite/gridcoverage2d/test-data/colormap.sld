@@ -20,7 +20,6 @@ http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd" version="1.0.0">
 							<OverlapBehavior>
 								AVERAGE
 							</OverlapBehavior>
-							<ShadedRelief/>
 						</RasterSymbolizer>
 					</Rule>
 			</FeatureTypeStyle>

@@ -22,9 +22,6 @@ http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd" version="1.0.0">
 								</ContrastEnhancement>
 						</GrayChannel>
 					</ChannelSelection>
-					<ShadedRelief>
-						<ReliefFactor>0.3</ReliefFactor>
-					</ShadedRelief>
 					<ImageOutline>
 						<Stroke>
 							<CssParameter name="stroke">

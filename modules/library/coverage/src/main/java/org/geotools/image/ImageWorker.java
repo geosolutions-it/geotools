@@ -16,26 +16,6 @@
  */
 package org.geotools.image;
 
-import it.geosolutions.jaiext.JAIExt;
-import it.geosolutions.jaiext.affine.AffineDescriptor;
-import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
-import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
-import it.geosolutions.jaiext.border.BorderDescriptor;
-import it.geosolutions.jaiext.classifier.ColorMapTransform;
-import it.geosolutions.jaiext.colorconvert.IHSColorSpaceJAIExt;
-import it.geosolutions.jaiext.colorindexer.ColorIndexer;
-import it.geosolutions.jaiext.lookup.LookupTable;
-import it.geosolutions.jaiext.lookup.LookupTableFactory;
-import it.geosolutions.jaiext.piecewise.PiecewiseTransform1D;
-import it.geosolutions.jaiext.range.NoDataContainer;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.scale.ScaleDescriptor;
-import it.geosolutions.jaiext.stats.HistogramWrapper;
-import it.geosolutions.jaiext.stats.Statistics;
-import it.geosolutions.jaiext.stats.Statistics.StatsType;
-import it.geosolutions.jaiext.warp.WarpDescriptor;
-
 import java.awt.Color;
 import java.awt.HeadlessException;
 import java.awt.Image;
@@ -133,6 +113,25 @@ import com.sun.media.imageioimpl.common.BogusColorSpace;
 import com.sun.media.imageioimpl.common.PackageUtil;
 import com.sun.media.imageioimpl.plugins.gif.GIFImageWriter;
 import com.sun.media.jai.util.ImageUtil;
+
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.affine.AffineDescriptor;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+import it.geosolutions.jaiext.classifier.ColorMapTransform;
+import it.geosolutions.jaiext.colorconvert.IHSColorSpaceJAIExt;
+import it.geosolutions.jaiext.colorindexer.ColorIndexer;
+import it.geosolutions.jaiext.lookup.LookupTable;
+import it.geosolutions.jaiext.lookup.LookupTableFactory;
+import it.geosolutions.jaiext.piecewise.PiecewiseTransform1D;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.scale.ScaleDescriptor;
+import it.geosolutions.jaiext.stats.HistogramWrapper;
+import it.geosolutions.jaiext.stats.Statistics;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
+import it.geosolutions.jaiext.warp.WarpDescriptor;
 
 /**
  * Helper methods for applying JAI operations on an image. The image is specified at {@linkplain #ImageWorker(RenderedImage) creation time}. Sucessive
@@ -1828,9 +1827,23 @@ public class ImageWorker {
             final ColorModel cm = new ComponentColorModel(
                     ColorSpace.getInstance(ColorSpace.CS_sRGB), false, false, Transparency.OPAQUE,
                     image.getSampleModel().getDataType());
+            if (isColorSpaceGRAYScale()) {
+                RenderingHints hints = (RenderingHints) getRenderingHints().clone();
+                try {
+                    ImageLayout2 il = new ImageLayout2(image);
+                    il.setColorModel(cm);
+                    il.setSampleModel(
+                            cm.createCompatibleSampleModel(image.getWidth(), image.getHeight()));
+                    setRenderingHint(JAI.KEY_IMAGE_LAYOUT, il);
+                    bandMerge(3);
+                } finally {
+                    setRenderingHints(hints);
+                }
+            } else {
 
-            // force computation of the new colormodel
-            forceColorModel(cm);
+                // force computation of the new colormodel
+                forceColorModel(cm);
+            }
         }
         // All post conditions for this method contract.
         assert isColorSpaceRGB();
@@ -1953,7 +1966,13 @@ public class ImageWorker {
         int numBands = sourceImage.getSampleModel().getNumBands();
 
         // getting first band
-        final RenderedImage firstBand = JAI.create("bandSelect", sourceImage, new int[] { 0 });
+        final RenderedImage firstBand;
+
+        if (numBands > 1) {
+            firstBand = JAI.create("bandSelect", sourceImage, new int[] { 0 });
+        } else {
+            firstBand = sourceImage;
+        }
 
         // adding to the image
         final int length = writeband - numBands;
