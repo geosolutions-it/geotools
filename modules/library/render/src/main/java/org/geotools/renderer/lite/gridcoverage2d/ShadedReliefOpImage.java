@@ -26,25 +26,31 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.FileImageOutputStream;
 import javax.media.jai.AreaOpImage;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.IntegerSequence;
+import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.operator.BorderDescriptor;
 
 import org.geotools.image.ImageWorker;
 import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.DataProcessor;
 import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.DataProcessorInt;
 import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.DataProcessorShort;
-import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.ShadedReliefParameters;
 import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.ProcessingCase;
+import org.geotools.renderer.lite.gridcoverage2d.ShadedReliefAlgorithm.ShadedReliefParameters;
 
 import com.sun.media.jai.util.ImageUtil;
 
@@ -56,7 +62,7 @@ class ShadedReliefOpImage extends AreaOpImage {
 
    
     private static final BorderExtender EXTENDER = BorderExtender
-            .createInstance(BorderExtender.BORDER_REFLECT);
+            .createInstance(BorderExtender.BORDER_COPY);
 
     /** Constant indicating that the inner random iterators must pre-calculate an array of the image positions */
     public static final boolean ARRAY_CALC = true;
@@ -131,7 +137,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         super(source, l, hints, true, EXTENDER, FIXED_PADDING, FIXED_PADDING, FIXED_PADDING, FIXED_PADDING);
 
         maxX = minX + width - 1;
-        maxY = maxY + height - 1;
+        maxY = minY + height - 1;
 
         // Check if ROI control must be done
         if (roi != null) {
@@ -198,7 +204,21 @@ class ShadedReliefOpImage extends AreaOpImage {
                 azimuth, algorithm);
 
         if (this.extender != null) {
-            ImageWorker worker = new ImageWorker(source).setRenderingHints(hints)
+            RenderingHints borderHints = (RenderingHints) hints.clone();
+            Object layout = borderHints.get(JAI.KEY_IMAGE_LAYOUT);
+            ImageLayout il = null;
+            if (layout != null && layout instanceof ImageLayout) {
+                il = (ImageLayout) layout;
+            } else {
+                il = new ImageLayout(source.getMinX() - leftPadding, source.getMinY() - topPadding, 
+                        source.getWidth() + leftPadding + rightPadding, source.getHeight() + topPadding + bottomPadding);
+                borderHints.put(JAI.KEY_IMAGE_LAYOUT, il);
+            }
+            il.setTileGridXOffset(source.getTileGridXOffset());
+            il.setTileGridYOffset(source.getTileGridYOffset());
+
+//            extendedIMG = BorderDescriptor.create(source, leftPadding, rightPadding, topPadding, bottomPadding, extender, borderHints);
+            ImageWorker worker = new ImageWorker(source).setRenderingHints(borderHints)
                     .setNoData(this.noData)
                     .border(leftPadding, rightPadding, topPadding, bottomPadding, extender);
             extendedIMG = worker.getRenderedImage();
@@ -477,62 +497,6 @@ class ShadedReliefOpImage extends AreaOpImage {
 
     
 
-    protected void shortLoop(RasterAccessor src, RasterAccessor dst, RandomIter roiIter,
-            boolean roiContainsTile) {
-        int dwidth = dst.getWidth();
-        int dheight = dst.getHeight();
-
-        short dstDataArrays[][] = dst.getShortDataArrays();
-        int dstBandOffsets[] = dst.getBandOffsets();
-        int dstPixelStride = dst.getPixelStride();
-        int dstScanlineStride = dst.getScanlineStride();
-
-        short srcDataArrays[][] = src.getShortDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
-
-        // precalcaculate offsets
-        int centerScanlineOffset = srcScanlineStride;
-        int dstX = dst.getX();
-        int dstY = dst.getY();
-
-        // X,Y positions
-        int x0 = 0;
-        int y0 = 0;
-        int srcX = src.getX();
-        int srcY = src.getY();
-
-        double[] window = new double[9];
-
-        short dstData[] = dstDataArrays[0];
-        short srcData[] = srcDataArrays[0];
-        int srcScanlineOffset = srcBandOffsets[0];
-        int dstScanlineOffset = dstBandOffsets[0];
-        int srcPixelOffset = srcScanlineOffset;
-        int dstPixelOffset = dstScanlineOffset;
-        double destValue = Double.NaN;
-        DataProcessor data = new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
-        
-//        if (caseA || (caseB && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
-                srcPixelOffset = srcScanlineOffset;
-                dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
-                    ProcessingCase currentCase = getCase(sX, sY);
-                    destValue = data.processWindow(window, i, srcPixelOffset, centerScanlineOffset, currentCase);
-                    dstData[dstPixelOffset] = ImageUtil.clampRoundShort(destValue);
-                    srcPixelOffset += srcPixelStride;
-                    dstPixelOffset += dstPixelStride;
-                }
-                srcScanlineOffset += srcScanlineStride;
-                dstScanlineOffset += dstScanlineStride;
-            }
-    }
-    
-    
     protected void intLoop(RasterAccessor src, RasterAccessor dst, RandomIter roiIter,
             boolean roiContainsTile) {
         int dwidth = dst.getWidth();
@@ -586,24 +550,81 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-//            // ROI Check
+    }
+
+    protected void shortLoop(RasterAccessor src, RasterAccessor dst, RandomIter roiIter,
+            boolean roiContainsTile) {
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+
+        short dstDataArrays[][] = dst.getShortDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        short srcDataArrays[][] = src.getShortDataArrays();
+        int srcBandOffsets[] = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // precalcaculate offsets
+        int centerScanlineOffset = srcScanlineStride;
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        // X,Y positions
+        int x0 = 0;
+        int y0 = 0;
+        int srcX = src.getX();
+        int srcY = src.getY();
+
+        double[] window = new double[9];
+        boolean[] roiMask = new boolean[9];
+
+        short dstData[] = dstDataArrays[0];
+        short srcData[] = srcDataArrays[0];
+        int srcScanlineOffset = srcBandOffsets[0];
+        int dstScanlineOffset = dstBandOffsets[0];
+        int srcPixelOffset = srcScanlineOffset;
+        int dstPixelOffset = dstScanlineOffset;
+        double destValue = Double.NaN;
+        DataProcessor data = new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
+        
+//        if (caseA || (caseB && roiContainsTile)) {
+            for (int j = 0; j < dheight; j++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+                for (int i = 0; i < dwidth; i++) {
+                    int sX = i + dstX;
+                    int sY = j + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue = data.processWindow(window, i, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = ImageUtil.clampRoundShort(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+////             ROI Check
 //        } else if (caseB) {
-//
 //            for (int j = 0; j < dheight; j++) {
 //                y0 = srcY + j;
 //
 //                for (int i = 0; i < dwidth; i++) {
-//
 //                    x0 = srcX + i;
 //
 //                    boolean inROI = false;
 //                    // ROI Check
-//                    for (int y = 0; y < 3 && !inROI; y++) {
+//                    for (int y = 0; y < 3 ; y++) {
 //                        int yI = y0 + y;
-//                        for (int x = 0; x < 3 && !inROI; x++) {
+//                        for (int x = 0; x < 3 ; x++) {
 //                            int xI = x0 + x;
 //                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
 //                                inROI = true;
+//                                roiMask[x+(3*y)] = true;
+//                            } else {
+//                                roiMask[x+(3*y)] = false; 
 //                            }
 //                        }
 //                    }
@@ -612,12 +633,11 @@ class ShadedReliefOpImage extends AreaOpImage {
 //                        int sX = i + dstX;
 //                        int sY = j + dstY;
 //                        ProcessingCase currentCase = getCase(sX, sY);
-//                        destValue = data.processWindow(window, i, j, srcPixelOffset,
-//                                centerScanlineOffset, currentCase);
-//                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(algorithm.getValue(
-//                                window, params));
+//                        destValue = data.processWindowRoi(window, i, srcPixelOffset,
+//                                centerScanlineOffset, currentCase, roiMask);
+//                        dstData[dstPixelOffset] = ImageUtil.clampRoundShort(destValue);
 //                    } else {
-//                        dstData[dstPixelOffset] = destNoDataInt;
+//                        dstData[dstPixelOffset] = destNoDataShort;
 //                    }
 //
 //                    srcPixelOffset += srcPixelStride;
@@ -636,8 +656,8 @@ class ShadedReliefOpImage extends AreaOpImage {
 //                int sX = i + dstX;
 //                int sY = j + dstY;
 //                ProcessingCase currentCase = getCase(sX, sY);
-//                destValue = data.processWindowNoData(window, i, j, srcPixelOffset, centerScanlineOffset, currentCase);
-//                dstData[dstPixelOffset] = Double.isNaN(destValue) ? destNoDataInt : ImageUtil.clampRoundInt(destValue);
+//                destValue = data.processWindowNoData(window, i, srcPixelOffset, centerScanlineOffset, currentCase);
+//                dstData[dstPixelOffset] = Double.isNaN(destValue) ? destNoDataShort : ImageUtil.clampRoundShort(destValue);
 //                srcPixelOffset += srcPixelStride;
 //                dstPixelOffset += dstPixelStride;
 //            }
@@ -650,17 +670,18 @@ class ShadedReliefOpImage extends AreaOpImage {
 //            y0 = srcY + j;
 //
 //            for (int i = 0; i < dwidth; i++) {
-//
 //                x0 = srcX + i;
-//
 //                boolean inROI = false;
 //                // ROI Check
-//                for (int y = 0; y < 3 && !inROI; y++) {
+//                for (int y = 0; y < 3 ; y++) {
 //                    int yI = y0 + y;
-//                    for (int x = 0; x < 3 && !inROI; x++) {
+//                    for (int x = 0; x < 3 ; x++) {
 //                        int xI = x0 + x;
 //                        if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
 //                            inROI = true;
+//                            roiMask[x+(3*y)] = true;
+//                        } else {
+//                            roiMask[x+(3*y)] = false; 
 //                        }
 //                    }
 //                }
@@ -669,11 +690,11 @@ class ShadedReliefOpImage extends AreaOpImage {
 //                    int sX = i + dstX;
 //                    int sY = j + dstY;
 //                    ProcessingCase currentCase = getCase(sX, sY);
-//                    destValue = data.processWindowNoData(window, i, j, srcPixelOffset,
-//                            centerScanlineOffset, currentCase);
-//                    dstData[dstPixelOffset] = Double.isNaN(destValue) ? destNoDataInt : ImageUtil.clampRoundInt(destValue);
+//                    destValue = data.processWindowRoiNoData(window, i, srcPixelOffset,
+//                            centerScanlineOffset, currentCase, roiMask);
+//                    dstData[dstPixelOffset] = Double.isNaN(destValue) ? destNoDataShort : ImageUtil.clampRoundShort(destValue);
 //                } else {
-//                    dstData[dstPixelOffset] = destNoDataInt;
+//                    dstData[dstPixelOffset] = destNoDataShort;
 //                }
 //
 //                srcPixelOffset += srcPixelStride;
@@ -687,25 +708,25 @@ class ShadedReliefOpImage extends AreaOpImage {
     }
     
     private ProcessingCase getCase(int i, int j) {
-        if (i == minX && j == minY) {
-            return ProcessingCase.TOP_LEFT;
-        } else if (i == maxX && j == minY) {
-            return ProcessingCase.TOP_RIGHT;
-        } else if (j == minY) {
-            return ProcessingCase.TOP;
-        } else if (i == minX && j == maxY) {
-            return ProcessingCase.BOTTOM_LEFT;
-        } else if (i == maxX && j == maxY) {
-            return ProcessingCase.BOTTOM_RIGHT;
-        } else if (i == minX) {
-            return ProcessingCase.LEFT;
-        } else if (i == maxX) {
-            return ProcessingCase.RIGHT;
-        } else if (j == maxY) {
-            return ProcessingCase.BOTTOM;
-        } else {
+//        if (i == minX && j == minY) {
+//            return ProcessingCase.TOP_LEFT;
+//        } else if (i == maxX && j == minY) {
+//            return ProcessingCase.TOP_RIGHT;
+//        } else if (j == minY) {
+//            return ProcessingCase.TOP;
+//        } else if (i == minX && j == maxY) {
+//            return ProcessingCase.BOTTOM_LEFT;
+//        } else if (i == maxX && j == maxY) {
+//            return ProcessingCase.BOTTOM_RIGHT;
+//        } else if (i == minX) {
+//            return ProcessingCase.LEFT;
+//        } else if (i == maxX) {
+//            return ProcessingCase.RIGHT;
+//        } else if (j == maxY) {
+//            return ProcessingCase.BOTTOM;
+//        } else {
             return ProcessingCase.STANDARD;
-        }
+//        }
 
     }
 

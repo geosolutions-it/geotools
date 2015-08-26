@@ -190,7 +190,7 @@ enum ShadedReliefAlgorithm {
         /** 
          * Setup proper window values and return the computed value, taking noData into account 
          */
-        public double processWindowNoData(double[] window, int i, int j, int srcPixelOffset,
+        public double processWindowNoData(double[] window, int i, int srcPixelOffset,
                 int centerScanlineOffset, ProcessingCase processingCase) {
             processingCase.setWindowNoData(window, i, srcPixelOffset, centerScanlineOffset, this);
             if (isNoData(window[4])) {
@@ -214,6 +214,36 @@ enum ShadedReliefAlgorithm {
                 int centerScanlineOffset, ProcessingCase processingCase) {
             processingCase.setWindow(window, i, srcPixelOffset, centerScanlineOffset, this);
             return algorithm.getValue(window, params);
+        }
+
+        /** 
+         * Setup proper window values and return the computed value. 
+         * Optimized version without noData management 
+         */
+        public double processWindowRoi(double[] window, int i, int srcPixelOffset,
+                int centerScanlineOffset, ProcessingCase processingCase, boolean[] roiMask) {
+            processingCase.setWindowRoi(window, i, srcPixelOffset, centerScanlineOffset, this, roiMask);
+            return algorithm.getValue(window, params);
+        }
+
+        /** 
+         * Setup proper window values and return the computed value. 
+         * Optimized version without noData management 
+         */
+        public double processWindowRoiNoData(double[] window, int i, int srcPixelOffset,
+                int centerScanlineOffset, ProcessingCase processingCase, boolean[] roiMask) {
+            processingCase.setWindowRoiNoData(window, i, srcPixelOffset, centerScanlineOffset, this, roiMask);
+            if (isNoData(window[4])) {
+                // Return NaN in case of noData. The caller will properly remap it to the proper noDataType
+                return Double.NaN;
+            } else {
+                for (int index = 0; index < 9; index++) {
+                    if (isNoData(window[index])) {
+                        window[index] = window[4];
+                    }
+                }
+                return algorithm.getValue(window, params);
+            }
         }
 
         private boolean isNoData(double value) {
@@ -441,7 +471,7 @@ enum ShadedReliefAlgorithm {
                 window[7] = data.interpolate(window[4], window[1]);
                 window[8] = data.interpolate(window[5], window[2]);
             }
-            
+
             @Override
             public void setWindowNoData(double[] window, int i, int srcPixelOffset,
                     int centerScanlineOffset, DataProcessor data) {
@@ -524,6 +554,22 @@ enum ShadedReliefAlgorithm {
 
         abstract void setWindowNoData(double[] window, int i, int srcPixelOffset,
                 int centerScanlineOffset, DataProcessor data);
+
+        void setWindowRoi(double[] window, int i, int srcPixelOffset,
+                int centerScanlineOffset, DataProcessor data, boolean[] roi) {
+            setWindow(window, i, srcPixelOffset, centerScanlineOffset, data);
+            for (int k = 0; k < 9; k++) {
+                window[k] = (k == 4 || !roi[k]) ? window[4] : window[k];
+            }
+        };
+
+        void setWindowRoiNoData(double[] window, int i, int srcPixelOffset,
+                int centerScanlineOffset, DataProcessor data, boolean[] roi) {
+            setWindowNoData(window, i, srcPixelOffset, centerScanlineOffset, data);
+            for (int k = 0; k < 9; k++) {
+                window[k] = (k == 4 || !roi[k]) ? window[4] : window[k];
+            }
+        };
 
     }
 
