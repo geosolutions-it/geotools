@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>library</artifactId>
-    <version>14-SNAPSHOT</version>
+    <version>14-SNAPSHOT-LD</version>
   </parent>
 
 
@@ -292,8 +292,10 @@
       <!-- The version number is specified in the parent POM. -->
       <scope>test</scope>
     </dependency>
-    
-    
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
   </dependencies>
 
 </project>
