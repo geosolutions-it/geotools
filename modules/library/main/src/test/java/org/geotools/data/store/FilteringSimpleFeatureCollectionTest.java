@@ -48,11 +48,6 @@ public class FilteringSimpleFeatureCollectionTest extends FeatureCollectionWrapp
         };
     }
     
-    public void testNext() {
-        Filter filter = ff.equal(ff.property("someAtt"), ff.literal("1"), false);
-        SimpleFeatureCollection collection = new FilteringSimpleFeatureCollection(delegate, filter);
-        assertNotNull(collection.features().next());
-    }
 
     public void testCount() {
         Filter filter = ff.equal(ff.property("someAtt"), ff.literal("1"), false);
