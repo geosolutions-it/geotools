@@ -119,6 +119,11 @@ class RasterLayerRequest {
     /** Sort clause on shapefile attributes. */
     private String sortClause;
 
+    /*
+     * Enables/disables excess granule removal
+     */
+    private ExcessGranulePolicy excessGranuleRemovalPolicy;
+
     public List<?> getElevation() {
         return elevation;
     }
@@ -149,6 +154,14 @@ class RasterLayerRequest {
 
     public boolean isHeterogeneousGranules() {
         return heterogeneousGranules;
+    }
+
+    public ExcessGranulePolicy getExcessGranuleRemovalPolicy() {
+        return excessGranuleRemovalPolicy;
+    }
+
+    public void setExcessGranuleRemovalPolicy(ExcessGranulePolicy policy) {
+        this.excessGranuleRemovalPolicy = policy;
     }
 
     public void setHeterogeneousGranules(final boolean heterogeneousGranules) {
@@ -416,6 +429,13 @@ class RasterLayerRequest {
                 if (value == null)
                     continue;
                 accurateResolution = ((Boolean) value).booleanValue();
+                return;
+            }
+            
+            if (name.equals(ImageMosaicFormat.EXCESS_GRANULE_REMOVAL.getName())) {
+                if (value == null)
+                    continue;
+                excessGranuleRemovalPolicy = (ExcessGranulePolicy) value;
                 return;
             }
         }
@@ -719,6 +739,16 @@ class RasterLayerRequest {
                 requestedAdditionalDomains.put(paramName, values);
 
             }
+            return;
+        }
+
+        // see if we have to perform excess granule removal
+        if (name.equals(ImageMosaicFormat.EXCESS_GRANULE_REMOVAL.getName())) {
+            final Object value = param.getValue();
+            if (value == null) {
+                return;
+            }
+            excessGranuleRemovalPolicy = (ExcessGranulePolicy) value;
             return;
         }
     }

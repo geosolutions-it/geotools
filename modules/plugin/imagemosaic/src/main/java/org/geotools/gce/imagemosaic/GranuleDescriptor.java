@@ -58,8 +58,8 @@ import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.coverage.grid.io.footprint.FootprintBehavior;
 import org.geotools.coverage.grid.io.footprint.MultiLevelROI;
 import org.geotools.coverage.grid.io.imageio.MaskOverviewProvider;
-import org.geotools.coverage.grid.io.imageio.ReadType;
 import org.geotools.coverage.grid.io.imageio.MaskOverviewProvider.SpiHelper;
+import org.geotools.coverage.grid.io.imageio.ReadType;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.Hints;
 import org.geotools.factory.Hints.Key;
@@ -228,7 +228,7 @@ public class GranuleDescriptor {
      * @author Daniele Romagnoli, GeoSolutions S.A.S.
      * 
      */
-    static class GranuleLoadingResult {
+    public static class GranuleLoadingResult {
 
         RenderedImage loadedImage;
 
@@ -239,6 +239,8 @@ public class GranuleDescriptor {
         boolean doFiltering;
 
         PAMDataset pamDataset;
+        
+        GranuleDescriptor granuleDescriptor;
 
         public ROI getFootprint() {
             return footprint;
@@ -263,9 +265,13 @@ public class GranuleDescriptor {
         public boolean isDoFiltering() {
             return doFiltering;
         }
+        
+        public GranuleDescriptor getGranuleDescriptor() {
+            return granuleDescriptor;
+        }
 
         GranuleLoadingResult(RenderedImage loadedImage, ROI footprint, URL granuleUrl,
-                final boolean doFiltering, final PAMDataset pamDataset) {
+                final boolean doFiltering, final PAMDataset pamDataset, GranuleDescriptor granuleDescriptor) {
             this.loadedImage = loadedImage;
             Object roi = loadedImage.getProperty("ROI");
             if (roi instanceof ROI) {
@@ -274,7 +280,9 @@ public class GranuleDescriptor {
             this.granuleUrl = granuleUrl;
             this.doFiltering = doFiltering;
             this.pamDataset = pamDataset;
+            this.granuleDescriptor = granuleDescriptor;
         }
+
     }
 
     private static PAMParser pamParser = PAMParser.getInstance();
@@ -997,7 +1005,7 @@ public class GranuleDescriptor {
             if (XAffineTransform.isIdentity(finalRaster2Model,
                     CoverageUtilities.AFFINE_IDENTITY_EPS)) {
                 return new GranuleLoadingResult(raster, null, granuleURLUpdated, doFiltering,
-                        pamDataset);
+                        pamDataset, this);
             } else {
                 //
                 // In case we are asked to use certain tile dimensions we tile
@@ -1062,7 +1070,7 @@ public class GranuleDescriptor {
                     renderedImage = t;
                 }
                 return new GranuleLoadingResult(renderedImage, null, granuleURLUpdated, doFiltering,
-                        pamDataset);
+                        pamDataset, this);
             }
 
         } catch (IllegalStateException e) {

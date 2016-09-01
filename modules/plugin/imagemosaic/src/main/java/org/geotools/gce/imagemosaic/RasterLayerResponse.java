@@ -16,11 +16,6 @@
  */
 package org.geotools.gce.imagemosaic;
 
-import it.geosolutions.imageio.pam.PAMDataset;
-import it.geosolutions.jaiext.range.NoDataContainer;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Rectangle;
@@ -42,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.logging.Level;
@@ -82,6 +79,7 @@ import org.geotools.gce.imagemosaic.GranuleDescriptor.GranuleLoadingResult;
 import org.geotools.gce.imagemosaic.OverviewsController.OverviewLevel;
 import org.geotools.gce.imagemosaic.RasterManager.DomainDescriptor;
 import org.geotools.gce.imagemosaic.catalog.GranuleCatalogVisitor;
+import org.geotools.gce.imagemosaic.egr.ROIExcessGranuleRemover;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.JTS;
@@ -118,6 +116,11 @@ import org.opengis.util.InternationalString;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.util.Assert;
+
+import it.geosolutions.imageio.pam.PAMDataset;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * A RasterLayerResponse. An instance of this class is produced everytime a requestCoverage is called to a reader.
@@ -391,8 +394,8 @@ class RasterLayerResponse {
                 final GranuleLoader loader = new GranuleLoader(baseReadParameters, imageChoice,
                         mosaicBBox, finalWorldToGridCorner, granuleDescriptor, request, hints);
                 if (!dryRun) {
-                    if (multithreadingAllowed
-                            && rasterManager.parentReader.multiThreadedLoader != null) {
+                    final boolean multiThreadedLoading = isMultithreadedLoadingEnabled();
+                    if (multiThreadedLoading) {
                         // MULTITHREADED EXECUTION submitting the task
                         granulesFutures
                                 .add(rasterManager.parentReader.multiThreadedLoader.submit(loader));
@@ -400,8 +403,24 @@ class RasterLayerResponse {
                         // SINGLE THREADED Execution, we defer the execution to when we have done the loading
                         final FutureTask<GranuleLoadingResult> task = new FutureTask<GranuleLoadingResult>(
                                 loader);
-                        granulesFutures.add(task);
                         task.run(); // run in current thread
+                        
+                        // perform excess granule removal, as it makes sense in single threaded mode to
+                        // do it while loading, to allow for an early bail out reading granules
+                        ROIExcessGranuleRemover remover = RasterLayerResponse.this.excessGranuleRemover;
+                        GranuleLoadingResult result;
+                        if(remover != null) {
+                            try {
+                                result = task.get();
+                                if(!remover.addGranule(result)) {
+                                    return false;
+                                }
+                            } catch (InterruptedException | ExecutionException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        granulesFutures.add(task);
+                        
                     }
                 }
                 if (LOGGER.isLoggable(Level.FINE)) {
@@ -460,6 +479,20 @@ class RasterLayerResponse {
                         }
                         continue;
                     }
+                    
+                    // perform excess granule removal in case multithreaded loading is enabled
+                    if(isMultithreadedLoadingEnabled()) {
+                        ROIExcessGranuleRemover remover = RasterLayerResponse.this.excessGranuleRemover;
+                        if(remover != null) {
+                            if(remover.isRenderingAreaComplete()) {
+                                break;
+                            }
+                            if(!remover.addGranule(result)) {
+                                // skip this granule
+                                continue;
+                            }
+                        }
+                    }
 
                     // now process it
                     if (sourceThreshold == null) {
@@ -515,16 +548,21 @@ class RasterLayerResponse {
                     }
                     throw new IOException(e);
                 }
-
-                // collect paths
-                granulesPaths = paths.length() > 1 ? paths.substring(0, paths.length() - 1) : "";
             }
+            // collect paths
+            granulesPaths = paths.length() > 1 ? paths.substring(0, paths.length() - 1) : "";
             if (returnValues == null || returnValues.isEmpty()) {
                 if (LOGGER.isLoggable(Level.INFO)) {
                     LOGGER.info("The MosaicElement list is null or empty");
                 }
             }
             return new MosaicInputs(doInputTransparency, hasAlpha, returnValues, sourceThreshold);
+        }
+        
+        private boolean isMultithreadedLoadingEnabled() {
+            final ExecutorService mtLoader = RasterLayerResponse.this.rasterManager.parentReader.multiThreadedLoader;
+            final boolean multiThreadedLoading = RasterLayerResponse.this.multithreadingAllowed && mtLoader != null;
+            return multiThreadedLoading;
         }
 
         private MosaicElement preProcessGranuleRaster(RenderedImage granule,
@@ -1025,8 +1063,8 @@ class RasterLayerResponse {
                     }
                 }
 
-                // did we find a place for it?
-                if (!found) {
+                // did we find a place for it? If we are doing EGR then it's ok, otherwise not so much
+                if (!found && getExcessGranuleRemover() == null) {
                     throw new IllegalStateException("Unable to locate a filter for this granule:\n"
                             + granuleDescriptor.toString());
                 }
@@ -1037,6 +1075,12 @@ class RasterLayerResponse {
                             + granuleDescriptor.toString());
                 }
             }
+        }
+        
+        @Override
+        public boolean isVisitComplete() {
+            ROIExcessGranuleRemover remover = getExcessGranuleRemover();
+            return remover != null && remover.isRenderingAreaComplete();
         }
 
         /**
@@ -1153,6 +1197,8 @@ class RasterLayerResponse {
     private Hints hints;
 
     private String granulesPaths;
+    
+    private ROIExcessGranuleRemover excessGranuleRemover;
 
     /**
      * Construct a {@code RasterLayerResponse} given a specific {@link RasterLayerRequest}, a {@code GridCoverageFactory} to produce
@@ -1278,6 +1324,9 @@ class RasterLayerResponse {
 
             // === init raster bounds
             initRasterBounds();
+            
+            // === init excess granule removal if needed
+            initExcessGranuleRemover();
 
             // === create query and basic BBOX filtering
             final Query query = initQuery();
@@ -1346,6 +1395,20 @@ class RasterLayerResponse {
 
         } catch (Exception e) {
             throw new DataSourceException("Unable to create this mosaic", e);
+        }
+    }
+
+    private void initExcessGranuleRemover() {
+        if(request.getExcessGranuleRemovalPolicy() == ExcessGranulePolicy.ROI) {
+            Dimension tileDimensions = request.getTileDimensions();
+            int tileWidth, tileHeight;
+            if(tileDimensions != null) {
+                tileWidth = (int) tileDimensions.getWidth();
+                tileHeight = (int) tileDimensions.getHeight();
+            } else {
+                tileWidth = tileHeight = ROIExcessGranuleRemover.DEFAULT_TILE_SIZE;
+            }
+            excessGranuleRemover = new ROIExcessGranuleRemover(rasterBounds, tileWidth, tileHeight, rasterManager.getConfiguration().getCrs());
         }
     }
 
@@ -1857,5 +1920,10 @@ class RasterLayerResponse {
             }
         }
         return null;
+    }
+
+
+    public ROIExcessGranuleRemover getExcessGranuleRemover() {
+        return excessGranuleRemover;
     }
 }
