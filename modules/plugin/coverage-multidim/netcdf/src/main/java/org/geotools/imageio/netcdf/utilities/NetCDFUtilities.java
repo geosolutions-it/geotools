@@ -313,7 +313,6 @@ public class NetCDFUtilities {
         EXCLUDED_ATTRIBUTES.add(DESCRIPTION);
         EXCLUDED_ATTRIBUTES.add(STANDARD_NAME);
 
-        NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
         HashSet<String> unsupportedSet = new HashSet<String>();
         unsupportedSet.add("OSEQD");
         UNSUPPORTED_DIMENSIONS = Collections.unmodifiableSet(unsupportedSet);
@@ -433,7 +432,7 @@ public class NetCDFUtilities {
      */
     public static int getRawDataType(final VariableIF variable) {
         VariableDS ds = (VariableDS) variable;
-        final DataType type = ds.getOriginalDataType();
+        final DataType type = ds.getDataType();
         return transcodeNetCDFDataType(type,variable.isUnsigned());
     }
 

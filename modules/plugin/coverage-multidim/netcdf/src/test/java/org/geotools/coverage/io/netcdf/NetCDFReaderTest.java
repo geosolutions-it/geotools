@@ -196,6 +196,21 @@ public class NetCDFReaderTest extends Assert {
     }
 
     @Test
+    public void testScaleAndOffset() throws IOException, FactoryException, ParseException {
+        File file = TestData.file(this, "o3_no2_so.nc");
+        final NetCDFReader reader = new NetCDFReader(file, null);
+        String coverageName = "NO2";
+        GeneralParameterValue[] values = new GeneralParameterValue[] {};
+        GridCoverage2D coverage = reader.read(coverageName, values);
+
+        float[] result = coverage
+            .evaluate((DirectPosition) new DirectPosition2D(DefaultGeographicCRS.WGS84, 5.0, 45.0),
+                new float[1]);
+
+        assertEquals(1.615991, result[0], 1e-6f);
+    }
+
+    @Test
     public void NetCDFTestOn4Dcoverages() throws NoSuchAuthorityCodeException, FactoryException, IOException, ParseException {
         File mosaic = new File(TestData.file(this,"."),"NetCDFTestOn4Dcoverages");
         if (mosaic.exists()) {

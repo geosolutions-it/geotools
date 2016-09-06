@@ -115,8 +115,6 @@ public class NetCDFImageReaderSpi extends ImageReaderSpi {
     private static boolean forceOpenCheck;
 
     static {
-        NetcdfDataset.setDefaultEnhanceMode(EnumSet.of(Enhance.CoordSystems));
-
         // If Grib Library is available, then the GRIB extension must be added to support.
         // If NC4 C Library is available, then the proper MIME Types must be added to support.
         List<String> suffixesList = new ArrayList<String>();
