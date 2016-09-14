@@ -17,6 +17,7 @@
 package org.geotools.coverage.io.netcdf;
 
 import it.geosolutions.imageio.utilities.ImageIOUtilities;
+import ucar.nc2.dataset.NetcdfDataset;
 
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
@@ -30,6 +31,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -141,6 +143,32 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
     private URL sourceURL;
 
     String defaultName = null;
+
+    static {
+        //TODO remove this block when enhance mode can be set some other way, possibly via read params
+
+        //Default used to be to just enhance coord systems
+        EnumSet<NetcdfDataset.Enhance> defaultEnhanceMode = EnumSet.of(NetcdfDataset.Enhance.CoordSystems);
+
+        if (System.getProperty("org.geotools.coverage.io.netcdf.enhance.CoordSystems") != null
+                && !Boolean.getBoolean("org.geotools.coverage.io.netcdf.enhance.CoordSystems")) {
+            defaultEnhanceMode.remove(NetcdfDataset.Enhance.CoordSystems);
+        }
+
+        if (Boolean.getBoolean("org.geotools.coverage.io.netcdf.enhance.ScaleMissing")) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ScaleMissing);
+        }
+
+        if (Boolean.getBoolean("org.geotools.coverage.io.netcdf.enhance.ConvertEnums")) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ConvertEnums);
+        }
+
+        if (Boolean.getBoolean("org.geotools.coverage.io.netcdf.enhance.ScaleMissingDefer")) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ScaleMissingDefer);
+        }
+
+        NetcdfDataset.setDefaultEnhanceMode(defaultEnhanceMode);
+    }
 
     private SoftValueHashMap<String, CoverageSource> coverages = new SoftValueHashMap<String, CoverageSource>();
 
@@ -577,7 +605,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             if (value == null)
                 return;
             List<?> values = (List<?>) value;
-            if (values != null && !values.isEmpty()) {
+            if (!values.isEmpty()) {
                 Set<NumberRange<Double>> verticalSubset = new DoubleRangeTreeSet();
                 for (Object val : values) {
                     if (val instanceof Number) {
@@ -626,8 +654,7 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
                 domainsSubset = new HashMap<String, Set<?>>();
                 request.setAdditionalDomainsSubset(domainsSubset);
             }
-            domainsSubset.put(paramName, values);            
-            return;
+            domainsSubset.put(paramName, values);
         }
     }
 
@@ -648,6 +675,11 @@ public class NetCDFReader extends AbstractGridCoverage2DReader implements Struct
             // create, cache and return
             CoverageSource source = access.access(new NameImpl(coverageName), null,
                     AccessType.READ_ONLY, null, null);
+
+            if (source instanceof NetCDFSource) {
+
+            }
+
             coverages.put(coverageName, source);
             return source;
         }

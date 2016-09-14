@@ -18,6 +18,7 @@ package org.geotools.coverage.io.netcdf;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.NoDataContainer;
+import ucar.nc2.dataset.NetcdfDataset;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;
@@ -195,7 +196,15 @@ public class NetCDFReaderTest extends Assert {
         }
     }
 
+    /**
+     * This test is currently set to ignore because its behavior is controlled by a system property
+     * which makes it difficult to test in isolation.
+     * @throws IOException
+     * @throws FactoryException
+     * @throws ParseException
+     */
     @Test
+    @Ignore
     public void testScaleAndOffset() throws IOException, FactoryException, ParseException {
         File file = TestData.file(this, "o3_no2_so.nc");
         final NetCDFReader reader = new NetCDFReader(file, null);
