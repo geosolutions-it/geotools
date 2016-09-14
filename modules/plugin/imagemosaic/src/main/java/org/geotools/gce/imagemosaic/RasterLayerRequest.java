@@ -494,7 +494,7 @@ class RasterLayerRequest {
                 return;
             overviewPolicy = (OverviewPolicy) value;
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Requested OverviewPolicy: " + overviewPolicy + "\n");
+                LOGGER.fine("Requested OverviewPolicy: " + overviewPolicy);
             }
             return;
         }
@@ -510,7 +510,7 @@ class RasterLayerRequest {
                 return;
             decimationPolicy = (DecimationPolicy) value;
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Requested DecimationPolicy: " + decimationPolicy + "\n");
+                LOGGER.fine("Requested DecimationPolicy: " + decimationPolicy);
             }
             return;
         }
@@ -526,7 +526,7 @@ class RasterLayerRequest {
                 return;
             interpolation = (Interpolation) value;
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Requested interpolation: " + interpolation + "\n");
+                LOGGER.fine("Requested interpolation: " + interpolation);
             }
             return;
         }
