@@ -243,6 +243,43 @@ public class NetCDFUtilities {
 
     final static Set<String> EXCLUDED_ATTRIBUTES = new HashSet<String>();
 
+    private static final String ENHANCE_COORD_SYSTEMS = "org.geotools.coverage.io.netcdf.enhance.CoordSystems";
+
+    private static final String ENHANCE_SCALE_MISSING = "org.geotools.coverage.io.netcdf.enhance.ScaleMissing";
+
+    private static final String ENHANCE_CONVERT_ENUMS = "org.geotools.coverage.io.netcdf.enhance.ConvertEnums";
+
+    private static final String ENHANCE_SCALE_MISSING_DEFER = "org.geotools.coverage.io.netcdf.enhance.ScaleMissingDefer";
+
+    private static boolean ENHANCE_SCALE_OFFSET = false;
+
+    static {
+        //TODO remove this block when enhance mode can be set some other way, possibly via read params
+
+        //Default used to be to just enhance coord systems
+        EnumSet<NetcdfDataset.Enhance> defaultEnhanceMode = EnumSet.of(NetcdfDataset.Enhance.CoordSystems);
+
+        if (System.getProperty(ENHANCE_COORD_SYSTEMS) != null
+            && !Boolean.getBoolean(ENHANCE_COORD_SYSTEMS)) {
+            defaultEnhanceMode.remove(NetcdfDataset.Enhance.CoordSystems);
+        }
+
+        if (Boolean.getBoolean(ENHANCE_SCALE_MISSING)) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ScaleMissing);
+            ENHANCE_SCALE_OFFSET = true;
+        }
+
+        if (Boolean.getBoolean(ENHANCE_CONVERT_ENUMS)) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ConvertEnums);
+        }
+
+        if (Boolean.getBoolean(ENHANCE_SCALE_MISSING_DEFER)) {
+            defaultEnhanceMode.add(NetcdfDataset.Enhance.ScaleMissingDefer);
+        }
+
+        NetcdfDataset.setDefaultEnhanceMode(defaultEnhanceMode);
+    }
+
     /**
      * Global attribute for coordinate coverageDescriptorsCache.
      * 
@@ -432,7 +469,12 @@ public class NetCDFUtilities {
      */
     public static int getRawDataType(final VariableIF variable) {
         VariableDS ds = (VariableDS) variable;
-        final DataType type = ds.getDataType();
+        final DataType type;
+        if (ENHANCE_SCALE_OFFSET) {
+            type = ds.getDataType();
+        } else {
+            type = ds.getOriginalDataType();
+        }
         return transcodeNetCDFDataType(type,variable.isUnsigned());
     }
 
