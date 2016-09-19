@@ -178,6 +178,7 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
 
         // reading parameters
         readParameters = new ParameterGroup(new DefaultParameterDescriptorGroup(mInfo,
+
                 new GeneralParameterDescriptor[]{
         		READ_GRIDGEOMETRY2D,
         		INPUT_TRANSPARENT_COLOR,
@@ -193,6 +194,7 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
                 ACCURATE_RESOLUTION,
                 SORT_BY,
                 MERGE_BEHAVIOR,
+                BANDS,
                 AbstractGridFormat.FOOTPRINT_BEHAVIOR
         }));
 

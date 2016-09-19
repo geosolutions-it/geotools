@@ -717,7 +717,6 @@ public class GranuleDescriptor {
                     doFiltering = Utils.areaIsDifferent(inclusionGeometry, baseGridToWorld, granuleBBOX);
                 }
 		
-		
                 // intersection of this tile bound with the current crop bbox
                 final ReferencedEnvelope intersection = new ReferencedEnvelope(bbox.intersection(cropBBox), cropBBox.getCoordinateReferenceSystem());
                 if (intersection.isEmpty()) {
@@ -771,8 +770,17 @@ public class GranuleDescriptor {
 			// set input
 			customizeReaderInitialization(reader, hints);
 			reader.setInput(inStream);
-			
-                        // Checking for heterogeneous granules and if the mosaic is not multidimensional
+
+			// check if the reader wants to be aware of the current request
+			if (MethodUtils.getAccessibleMethod(reader.getClass(), "setRasterLayerRequest", RasterLayerRequest.class) != null) {
+				try {
+					MethodUtils.invokeMethod(reader, "setRasterLayerRequest", request);
+				} catch(Exception exception) {
+					throw new RuntimeException("Error setting raster layer request on reader.", exception);
+				}
+			}
+
+			// Checking for heterogeneous granules and if the mosaic is not multidimensional
                         if (request.isHeterogeneousGranules() && singleDimensionalGranule) {
 			    // create read parameters
 			    readParameters = new ImageReadParam();

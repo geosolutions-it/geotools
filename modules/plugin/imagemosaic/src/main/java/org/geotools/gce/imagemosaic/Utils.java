@@ -91,6 +91,7 @@ import org.geotools.filter.visitor.DefaultFilterVisitor;
 import org.geotools.gce.imagemosaic.catalog.CatalogConfigurationBean;
 import org.geotools.gce.imagemosaic.catalog.index.Indexer;
 import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils;
+import org.geotools.gce.imagemosaic.catalog.index.IndexerUtils2;
 import org.geotools.gce.imagemosaic.catalog.index.ObjectFactory;
 import org.geotools.gce.imagemosaic.catalog.index.ParametersType.Parameter;
 import org.geotools.gce.imagemosaic.catalogbuilder.CatalogBuilderConfiguration;
@@ -656,9 +657,20 @@ public class Utils {
 		    catalogConfigurationBean.setLocationAttribute(properties.getProperty(
 					Prop.LOCATION_ATTRIBUTE, Utils.DEFAULT_LOCATION_ATTRIBUTE).trim());
 		}
-		
+
+		// Also initialize the indexer here, since it will be needed later on.
+		File mosaicParentFolder = DataUtilities.urlToFile(sourceURL).getParentFile();
+		Indexer indexer = loadIndexer(mosaicParentFolder);
+		retValue.setIndexer(indexer);
+
 		// return value
 		return retValue;
+	}
+
+	private static Indexer loadIndexer(File parentFolder) {
+		Indexer defaultIndexer = IndexerUtils2.createDefaultIndexer();
+		Indexer configuredIndexer = IndexerUtils2.initializeIndexer(defaultIndexer.getParameters(), parentFolder);
+		return configuredIndexer;
 	}
 
 	/**

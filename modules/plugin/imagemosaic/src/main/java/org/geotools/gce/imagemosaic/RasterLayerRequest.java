@@ -16,16 +16,6 @@
  */
 package org.geotools.gce.imagemosaic;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.media.jai.Interpolation;
-
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.DecimationPolicy;
@@ -37,12 +27,16 @@ import org.geotools.factory.Hints;
 import org.geotools.gce.imagemosaic.SpatialRequestHelper.CoverageProperties;
 import org.opengis.filter.Filter;
 import org.opengis.metadata.Identifier;
-import org.opengis.parameter.GeneralParameterDescriptor;
-import org.opengis.parameter.GeneralParameterValue;
-import org.opengis.parameter.ParameterDescriptor;
-import org.opengis.parameter.ParameterValue;
-import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.parameter.*;
 import org.opengis.referencing.ReferenceIdentifier;
+
+import javax.media.jai.Interpolation;
+import java.awt.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A class to handle coverage requests to a reader for a single 2D layer..
@@ -51,7 +45,7 @@ import org.opengis.referencing.ReferenceIdentifier;
  * @author Simone Giannecchini, GeoSolutions
  */
 @SuppressWarnings("rawtypes")
-class RasterLayerRequest {
+public class RasterLayerRequest {
 	/** Logger. */
     private final static Logger LOGGER = org.geotools.util.logging.Logging.getLogger(RasterLayerRequest.class);
 
@@ -150,6 +144,9 @@ class RasterLayerRequest {
     public void setHeterogeneousGranules(final boolean heterogeneousGranules) {
         this.heterogeneousGranules = heterogeneousGranules;
     }
+
+    // the bands parameter define the order and which bands should be returned
+    private int[] bands;
 
     RasterManager getRasterManager() {
         return rasterManager;
@@ -722,6 +719,12 @@ class RasterLayerRequest {
             }
             return;
         }
+
+        // setup the the bands parameter which defines the order and the bands that should be returned
+        if (name.equals(ImageMosaicFormat.BANDS.getName())) {
+            // if the parameter is NULL no problem
+            bands = (int[]) param.getValue();
+        }
     }
 
     /**
@@ -845,5 +848,8 @@ class RasterLayerRequest {
     public boolean isEmpty() {
         return spatialRequestHelper.isEmpty();
     }
-   
+
+    public int[] getBands() {
+        return bands;
+    }
 }
