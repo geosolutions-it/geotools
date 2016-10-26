@@ -188,6 +188,7 @@ public class FilterFactoryImpl implements Factory, org.opengis.filter.FilterFact
     }
 
     public FeatureId featureId(String id) {
+        id = id == null ? "TEST_ID" : id;
         return new FeatureIdImpl( id );
     } 
     

@@ -1,0 +1,35 @@
+{
+  "customID": "NPRA_VL_118150",
+  "datex": {
+    "headerInformation": {
+      "areaOfInterest": null,
+      "confidentiality": "NO_RESTRICTION",
+      "headerInformationExtension": null,
+      "informationStatus": "TEST",
+      "urgency": "NORMAL_URGENCY"
+    },
+    "id": "NPRA_VL_118150",
+    "overallSeverity": "HIGH",
+    "relatedSituation": [],
+    "situationExtension": null,
+    "situationRecord": [
+      {
+        "actionOrigin": "unknown",
+        "actionPlanIdentifier": "PID.100",
+        "applicableForTrafficDirection": []
+      },
+      {
+        "actionOrigin": "unknown",
+        "actionPlanIdentifier": "PID.200",
+        "applicableForTrafficDirection": []
+      }
+    ]
+  },
+  "geometry": {
+    "coordinates": [
+      10.475206,
+      59.917694
+    ],
+    "type": "Point"
+  }
+}

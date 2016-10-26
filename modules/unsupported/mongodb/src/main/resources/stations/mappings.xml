@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<as:AppSchemaDataAccess xmlns:as="http://www.geotools.org/app-schema"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:schemaLocation="http://www.geotools.org/app-schema AppSchemaDataAccess.xsd">
+    <namespaces>
+        <Namespace>
+            <prefix>st</prefix>
+            <uri>http://www.stations.org/1.0</uri>
+        </Namespace>
+    </namespaces>
+
+    <sourceDataStores>
+        <DataStore>
+            <id>data_source</id>
+            <parameters>
+                <Parameter>
+                    <name>data_store</name>
+                    <value>mongodb://localhost/stations</value>
+                </Parameter>
+                <Parameter>
+                    <name>namespace</name>
+                    <value>http://www.stations.org/1.0</value>
+                </Parameter>
+                <Parameter>
+                    <name>schema_store</name>
+                    <value>file:///tmp</value>
+                </Parameter>
+                <Parameter>
+                    <name>data_store_type</name>
+                    <value>complex</value>
+                </Parameter>
+            </parameters>
+        </DataStore>
+    </sourceDataStores>
+
+    <targetTypes>
+        <FeatureType>
+            <schemaUri>http://localhost/data/schemas/stations.xsd</schemaUri>
+        </FeatureType>
+    </targetTypes>
+
+    <typeMappings>
+        <FeatureTypeMapping>
+            <sourceDataStore>data_source</sourceDataStore>
+            <sourceType>st</sourceType>
+            <targetElement>st:StationFeature</targetElement>
+            <attributeMappings>
+                <AttributeMapping>
+                    <targetAttribute>
+                        st:StationFeature
+                    </targetAttribute>
+                    <idExpression>
+                        <OCQL>jsonSelect("stations.id")</OCQL>
+                    </idExpression>
+                </AttributeMapping>
+                <AttributeMapping>
+                    <targetAttribute>st:name</targetAttribute>
+                    <sourceExpression>
+                        <OCQL>jsonSelect("stations.name")</OCQL>
+                    </sourceExpression>
+                </AttributeMapping>
+                <AttributeMapping>
+                    <targetAttribute>st:contact/st:mail</targetAttribute>
+                    <sourceExpression>
+                        <OCQL>jsonSelect("stations.contact.mail")</OCQL>
+                    </sourceExpression>
+                    <isMultiple>true</isMultiple>
+                </AttributeMapping>
+            </attributeMappings>
+        </FeatureTypeMapping>
+    </typeMappings>
+
+</as:AppSchemaDataAccess>

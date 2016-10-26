@@ -1,0 +1,34 @@
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns:gml="http://www.opengis.net/gml/3.2"
+        xmlns:npra="http://www.vegvesen.no/datex/1.0"
+        xmlns:datex="http://datex2.eu/schema/2/2_0"
+        targetNamespace="http://www.vegvesen.no/datex/1.0"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+    <xs:import namespace="http://www.opengis.net/gml/3.2"
+            schemaLocation="http://schemas.opengis.net/gml/3.2.1/gml.xsd" />
+    <xs:import namespace="http://datex2.eu/schema/2/2_0"
+            schemaLocation="http://www.datex2.eu/schema/2/2_3/DATEXIISchema_2_2_3.xsd" />
+
+    <xs:complexType name="DatexSituationFeatureType">
+        <xs:complexContent>
+            <xs:extension base="gml:AbstractFeatureType">
+                <xs:sequence>
+                    <xs:element name="customID" minOccurs="1" maxOccurs="1" type="xs:string" />
+                    <xs:element name="situation" minOccurs="1" maxOccurs="1" type="datex:Situation" />
+                    <xs:element name="geometry" type="gml:GeometryPropertyType" minOccurs="0" />
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="DatexSituationRecordFeatureType">
+        <xs:complexContent>
+            <xs:extension base="datex:SituationRecord"/>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:element name="DatexSituationFeature" type="npra:DatexSituationFeatureType" substitutionGroup="gml:AbstractFeature"/>
+    <xs:element name="DatexSituationRecord" type="datex:SituationRecord"/>
+
+</xs:schema>

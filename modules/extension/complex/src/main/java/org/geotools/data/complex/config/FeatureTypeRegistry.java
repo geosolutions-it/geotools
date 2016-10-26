@@ -166,7 +166,7 @@ public class FeatureTypeRegistry {
         if (elemDecl == null) {
             String msg = "No top level element found in schemas: " + qname;
             LOGGER.log(Level.WARNING, msg);
-            throw new NoSuchElementException(msg);
+                throw new NoSuchElementException(msg);
         }
         return elemDecl;
     }

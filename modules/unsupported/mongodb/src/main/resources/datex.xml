@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wfs:FeatureCollection xmlns:wfs="http://www.opengis.net/wfs" xmlns:gml="http://www.opengis.net/gml"
+                       xmlns:gsml="urn:cgi:xmlns:CGI:GeoSciML:2.0" xmlns:xlink="http://www.w3.org/1999/xlink"
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" numberOfFeatures="3" timeStamp="2016-10-21T13:53:09.864Z"
+                       xsi:schemaLocation="urn:cgi:xmlns:CGI:GeoSciML:2.0 http://www.geosciml.org/geosciml/2.0/xsd/geosciml.xsd http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.1.0/wfs.xsd">
+    <gml:featureMember>
+        <gsml:MappedFeature gml:id="mf.25699">
+            <gml:name>Some basalt</gml:name>
+            <gml:name>urn:x-test:GeologicUnit:16777549126931093</gml:name>
+            <gsml:observationMethod>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:observationMethod>
+            <gsml:positionalAccuracy>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:positionalAccuracy>
+            <gsml:specification xlink:href="urn:x-test:GeologicUnit:16777549126931093"/>
+            <gsml:shape>
+                <gml:Polygon srsDimension="2" srsName="http://www.opengis.net/def/crs/EPSG/0/4283">
+                    <gml:exterior>
+                        <gml:LinearRing srsDimension="2">
+                            <gml:posList>-38.532217 143.561948 -38.53336 143.561012 -38.52647 143.549986 -38.532217 143.561948</gml:posList>
+                        </gml:LinearRing>
+                    </gml:exterior>
+                </gml:Polygon>
+            </gsml:shape>
+        </gsml:MappedFeature>
+    </gml:featureMember>
+    <gml:featureMember>
+        <gsml:MappedFeature gml:id="mf.25764">
+            <gml:name>More basalt</gml:name>
+            <gml:name>urn:x-test:GeologicUnit:16777549126931093</gml:name>
+            <gsml:observationMethod>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:observationMethod>
+            <gsml:positionalAccuracy>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:positionalAccuracy>
+            <gsml:specification xlink:href="urn:x-test:GeologicUnit:16777549126931093"/>
+            <gsml:shape>
+                <gml:Polygon srsDimension="2" srsName="http://www.opengis.net/def/crs/EPSG/0/4283">
+                    <gml:exterior>
+                        <gml:LinearRing srsDimension="2">
+                            <gml:posList>-38.492157 143.566412 -38.488559 143.569803 -38.486718 143.571572 -38.492157 143.566412
+                            </gml:posList>
+                        </gml:LinearRing>
+                    </gml:exterior>
+                </gml:Polygon>
+            </gsml:shape>
+        </gsml:MappedFeature>
+    </gml:featureMember>
+    <gml:featureMember>
+        <gsml:MappedFeature gml:id="mf.26106">
+            <gml:name>Some mudstone</gml:name>
+            <gml:name>urn:x-test:GeologicUnit:16777549126931077</gml:name>
+            <gsml:observationMethod>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:observationMethod>
+            <gsml:positionalAccuracy>
+                <gsml:CGI_TermValue>
+                    <gsml:value codeSpace="urn:ietf:rfc:2141">urn:ogc:def:nil:OGC:missing</gsml:value>
+                </gsml:CGI_TermValue>
+            </gsml:positionalAccuracy>
+            <gsml:specification xlink:href="urn:x-test:GeologicUnit:16777549126931077"/>
+            <gsml:shape>
+                <gml:Polygon srsDimension="2" srsName="http://www.opengis.net/def/crs/EPSG/0/4283">
+                    <gml:exterior>
+                        <gml:LinearRing srsDimension="2">
+                            <gml:posList>-38.800309 143.496091 -38.799286 143.496241 -38.797775 143.496136 -38.800192 143.497646 -38.800309
+                                143.496091
+                            </gml:posList>
+                        </gml:LinearRing>
+                    </gml:exterior>
+                </gml:Polygon>
+            </gsml:shape>
+        </gsml:MappedFeature>
+    </gml:featureMember>
+</wfs:FeatureCollection>

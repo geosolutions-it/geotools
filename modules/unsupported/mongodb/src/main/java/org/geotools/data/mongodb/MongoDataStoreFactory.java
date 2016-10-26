@@ -28,6 +28,7 @@ public class MongoDataStoreFactory extends AbstractDataStoreFactory {
     public static final Param NAMESPACE = new Param("namespace", String.class, "Namespace prefix", false);
     public static final Param DATASTORE_URI = new Param("data_store", String.class, "MongoDB URI", true, "mongodb://localhost/<database name>");
     public static final Param SCHEMASTORE_URI = new Param("schema_store", String.class, "Schema Store URI", true, "file://<absolute path>");
+    public static final Param DATA_STORE_TYPE = new Param("data_store_type", String.class, "Data Store Type", false, "simple");
     
     @Override
     public String getDisplayName() {
@@ -60,4 +61,9 @@ public class MongoDataStoreFactory extends AbstractDataStoreFactory {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public boolean canProcess(Map params) {
+        String dataStoreType =  (String) params.get(DATA_STORE_TYPE.getName());
+        return super.canProcess(params) && (dataStoreType == null || dataStoreType.equalsIgnoreCase("simple"));
+    }
 }
