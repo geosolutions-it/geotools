@@ -38,9 +38,15 @@ package org.geotools.gce.geotiff;
 import java.awt.RenderingHints;
 import java.util.Collections;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GridFormatFactorySpi;
+import org.geotools.util.logging.Logging;
+
+import com.sun.media.imageioimpl.common.PackageUtil;
+
+import it.geosolutions.jaiext.JAIExt;
 
 /**
  * The <CODE>GeoTiffFormatFactorySpi</CODE> should never be instantiated
@@ -63,6 +69,21 @@ import org.geotools.coverage.grid.io.GridFormatFactorySpi;
  * @source $URL$
  */
 public class GeoTiffFormatFactorySpi implements GridFormatFactorySpi {
+		
+	public final static String GEOTIFF_WRITE_NODATA_PROPERTY = "geotiff.writenodata";
+
+    public final static boolean GEOTIFF_WRITE_NODATA;
+
+    public static boolean isGeoTiffWriteNodata() {
+        return GEOTIFF_WRITE_NODATA;
+    }
+
+    static {
+    	String geotiffWriteNodataProperty = System.getProperty(GEOTIFF_WRITE_NODATA_PROPERTY, "true");
+        GEOTIFF_WRITE_NODATA = Boolean.parseBoolean(geotiffWriteNodataProperty);
+    }
+
+	
 	/**
 	 * Creates a new instance of GeoTiffFormatFactorySpi
 	 */

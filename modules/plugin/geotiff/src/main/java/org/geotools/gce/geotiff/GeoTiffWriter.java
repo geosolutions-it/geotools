@@ -258,9 +258,12 @@ public class GeoTiffWriter extends AbstractGridCoverageWriter implements
                 setGeoReference(crs, metadata, tr, range,retainAxesOrder);
         
                 // handling noData
-                final double inNoData = CoverageUtilities.getBackgroundValues((GridCoverage2D) gc)[0];
-                if (!Double.isNaN(inNoData))
-                    metadata.setNoData(inNoData);
+                if (GeoTiffFormatFactorySpi.isGeoTiffWriteNodata()) {
+	                final double inNoData = CoverageUtilities.getBackgroundValues((GridCoverage2D) gc)[0];
+	                if (!Double.isNaN(inNoData)) {
+	                    metadata.setNoData(inNoData);
+	                }
+                }
                 if (metadataKeyValue != null && !metadataKeyValue.isEmpty()) {
                     metadata.setTiffTagsMetadata(metadataKeyValue);
                 }
