@@ -340,6 +340,7 @@ public final class GridCoverageRenderer {
         
         //SG add hints for the border extender
         this.hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY)));
+
     }
 
 
@@ -1031,8 +1032,11 @@ public final class GridCoverageRenderer {
         if (cropped == null) {
             return null;
         }
-        
-        return cropped.getRenderedImage();
+
+		RenderedImage ri = cropped.getRenderedImage();
+		PlanarImage pi = PlanarImage.wrapRenderedImage(ri);
+		pi.setProperty("ParentCoverage", cropped);
+		return pi;
 
     }
 

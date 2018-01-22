@@ -20,9 +20,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.color.ColorSpace;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
@@ -54,6 +56,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TileCache;
 import javax.media.jai.TileScheduler;
@@ -114,6 +117,7 @@ import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.InternationalString;
 
+import com.sun.imageio.plugins.common.BogusColorSpace;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.util.Assert;
@@ -1714,8 +1718,30 @@ class RasterLayerResponse {
         // bounds, envelope and grid to world.
         LOGGER.fine("Creating constant image for area with no data");
 
-        final ImageLayout2 il = new ImageLayout2();
-        il.setColorModel(rasterManager.defaultCM);
+		final ImageLayout2 il = new ImageLayout2();
+		ColorModel cm = rasterManager.defaultCM;
+		SampleModel sm = rasterManager.defaultSM;
+		int[] bands = baseReadParameters.getBands();
+
+		if (bands != null && cm != null && bands.length != cm.getNumComponents()) {
+			final int nBands = bands.length;
+			ColorSpace cs = null;
+			switch (nBands) {
+			case 1:
+				cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+				break;
+			case 3:
+				cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+				break;
+			default:
+				cs = BogusColorSpace.getInstance(10 + nBands);
+			}
+			cm = new ComponentColorModel(cs, cm.hasAlpha(), cm.isAlphaPremultiplied(), cm.getTransparency(),
+					cm.getTransferType());
+			sm = cm.createCompatibleSampleModel(sm.getWidth(), sm.getHeight());
+		}
+
+        il.setColorModel(cm);
         Dimension tileSize = request.getTileDimensions();
         if (tileSize == null) {
             tileSize = JAI.getDefaultTileSize();
@@ -1741,9 +1767,9 @@ class RasterLayerResponse {
 
             // impose the color model and samplemodel as the constant operation does not take them
             // into account!
-            if (rasterManager.defaultCM != null) {
-                il.setColorModel(rasterManager.defaultCM);
-                il.setSampleModel(rasterManager.defaultCM
+            if (cm != null) {
+                il.setColorModel(cm);
+                il.setSampleModel(cm
                         .createCompatibleSampleModel(tileSize.width, tileSize.height));
                 finalImage = new ImageWorker(finalImage).setRenderingHints(renderingHints)
                         .format(il.getSampleModel(null).getDataType()).getRenderedImage();
@@ -1755,10 +1781,7 @@ class RasterLayerResponse {
             }
             // impose the color model and samplemodel as the constant operation does not take them
             // into account!
-            ColorModel cm;
-            if (rasterManager.defaultCM != null) {
-                cm = rasterManager.defaultCM;
-            } else {
+            if (cm == null) {
                 byte[] arr = { (byte) 0, (byte) 0xff };
                 cm = new IndexColorModel(1, 2, arr, arr, arr);
             }
