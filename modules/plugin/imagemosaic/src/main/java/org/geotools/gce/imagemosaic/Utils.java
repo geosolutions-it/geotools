@@ -118,6 +118,7 @@ import it.geosolutions.imageio.pam.PAMDataset.PAMRasterBand.Metadata;
 import it.geosolutions.imageio.pam.PAMDataset.PAMRasterBand.Metadata.MDI;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
+import org.opengis.referencing.datum.Datum;
 
 /**
  * Sparse utilities for the various mosaic classes. I use them to extract
@@ -250,24 +251,84 @@ public class Utils {
      * @author Simone Giannecchini, GeoSolutions SAS.
      * @todo TODO use other spatial filters as well
      */
-    public static class BBOXFilterExtractor extends DefaultFilterVisitor{
-    
-    	public ReferencedEnvelope getBBox() {
-    		return bbox;
-    	}
-    	private ReferencedEnvelope bbox;
-    	@Override
-    	public Object visit(BBOX filter, Object data) {
-    		final ReferencedEnvelope bbox= ReferencedEnvelope.reference(filter.getBounds());
-    		if(this.bbox!=null){
-    		    this.bbox=(ReferencedEnvelope) this.bbox.intersection(bbox);
-    		}
-    		else{
-    		    this.bbox=bbox;
-    		}
-    		return super.visit(filter, data);
-    	}
-    	
+    public static class BBOXFilterExtractor extends DefaultFilterVisitor {
+
+        public ReferencedEnvelope getBBox() {
+            return bbox;
+        }
+
+        private ReferencedEnvelope bbox;
+
+        @Override
+        public Object visit(BBOX filter, Object data) {
+            final ReferencedEnvelope bbox = ReferencedEnvelope.reference(filter.getBounds());
+            if (this.bbox != null) {
+                this.bbox = (ReferencedEnvelope) this.bbox.intersection(bbox);
+            } else {
+                this.bbox = bbox;
+            }
+            return super.visit(filter, data);
+        }
+    }
+
+    /**
+     * Given a source object, allow to retrieve (when possible) the related url,
+     * the related file or the original input source object itself.
+     */
+    public static class SourceGetter {
+        private File file;
+        private URL url;
+        private Object source;
+
+        public SourceGetter(Object inputSource) {
+            source = inputSource;
+            // if it is a URL or a String let's try to see if we can get a file to
+            // check if we have to build the index
+            if (source instanceof File) {
+                file = (File) source;
+                url = DataUtilities.fileToURL(file);
+            } else if (source instanceof URL) {
+                url = (URL) source;
+                if (url.getProtocol().equals("file")) {
+                    file = DataUtilities.urlToFile(url);
+                }
+            } else if (source instanceof String) {
+                // is it a File?
+                final String tempSource = (String) source;
+                File tempFile = new File(tempSource);
+                if (!tempFile.exists()) {
+                    // is it a URL
+                    try {
+                        url = new URL(tempSource);
+                        file = DataUtilities.urlToFile(url);
+                        source = file;
+                    } catch (MalformedURLException e) {
+                        url = null;
+                        source = null;
+                    }
+                } else {
+                    url = DataUtilities.fileToURL(tempFile);
+
+                    // so that we can do our magic here below
+                    file = tempFile;
+                }
+            }
+        }
+
+        /** Return the File (if any) of the source object */
+        public File getFile() {
+            return file;
+        }
+
+        /** Return the URL (if any) of the source object */
+        public URL getUrl() {
+            return url;
+        }
+
+        /** Return the original source object */
+        public Object getSource() {
+            return source;
+        }
     }
 
 	/**
