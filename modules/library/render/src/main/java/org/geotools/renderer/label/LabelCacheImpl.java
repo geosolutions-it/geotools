@@ -438,7 +438,6 @@ public class LabelCacheImpl implements LabelCache {
         glyphs.reserveArea( reserved );
 
         //Used to check the paintLineLabel function
-        boolean painted;
         int paintedLineLabels = 0;
 
         // Hack: let's reduce the display area width and height by one pixel.
@@ -474,8 +473,8 @@ public class LabelCacheImpl implements LabelCache {
         LOGGER.log(Level.FINE, "REMAINING LINE LABELS : {0}", items.size() - paintedLineLabels);
     }
 
-    protected int paintLabel(Graphics2D graphics, Rectangle displayArea, LabelIndex glyphs, int paintedLineLabels,
-            LabelPainter painter, LabelCacheItem labelItem) {
+    int paintLabel(Graphics2D graphics, Rectangle displayArea, LabelIndex glyphs,
+            int paintedLineLabels, LabelPainter painter, LabelCacheItem labelItem) {
         boolean painted;
         try {
             painter.setLabel(labelItem);
