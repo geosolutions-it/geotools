@@ -17,6 +17,8 @@
 
 package org.geotools.data.complex.filter;
 
+import static org.geotools.data.complex.ComplexFeatureConstants.DEFAULT_GEOMETRY_LOCAL_NAME;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -29,6 +31,7 @@ import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 
 import org.geotools.data.complex.AttributeMapping;
+import org.geotools.data.complex.ComplexFeatureConstants;
 import org.geotools.data.complex.FeatureTypeMapping;
 import org.geotools.data.complex.NestedAttributeMapping;
 import org.geotools.data.complex.filter.XPathUtil.Step;
@@ -37,6 +40,7 @@ import org.geotools.data.complex.spi.CustomImplementationsFinder;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.NestedAttributeExpression;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.And;
 import org.opengis.filter.BinaryComparisonOperator;
@@ -522,7 +526,18 @@ public class UnmappingFilterVisitor implements org.opengis.filter.FilterVisitor,
     }
 
     public Object visit(BBOX filter, Object arg1) {
-        String propertyName = filter.getPropertyName();
+        String propertyName = "";
+        if (filter.getExpression1() instanceof PropertyName) {
+            PropertyName geomProperty = (PropertyName)filter.getExpression1();
+            propertyName = geomProperty.getPropertyName();
+        };
+        // replace the artificial DEFAULT_GEOMETRY property with the actual one
+        if (DEFAULT_GEOMETRY_LOCAL_NAME.equals(propertyName)) {
+            String defGeomPath = mappings.getDefaultGeometryXPath();
+            PropertyName defGeomPropertyName = ff.property(defGeomPath, mappings.getNamespaces());
+            BBOX newFilter = ff.bbox(defGeomPropertyName, filter.getBounds(), filter.getMatchAction()); 
+            return this.visit(newFilter, arg1);
+        }
         if (propertyName.length() < 1) {
             // see GetFeatureKvpRequestReader bboxFilter()
             // propertyName is meant to be empty, and it will get it from the feature

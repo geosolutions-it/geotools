@@ -18,6 +18,7 @@ package org.geotools.renderer.lite;
 
 import org.geotools.filter.IllegalFilterException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.BinaryComparisonOperator;
 import org.opengis.filter.FilterFactory;
@@ -136,7 +137,14 @@ class FastBBOX implements BBOX, BinarySpatialOperator, BinaryComparisonOperator 
         if(feature == null)
             return false;
         
-        Geometry other = (Geometry) property.evaluate(feature);
+        Geometry other = null;
+        Object propertyValue = property.evaluate(feature);
+        if (propertyValue instanceof GeometryAttribute) {
+            propertyValue = ((GeometryAttribute)propertyValue).getValue();
+        }
+        if (propertyValue instanceof Geometry) {
+            other = (Geometry)propertyValue;
+        }
         if(other == null)
             return false;
         
