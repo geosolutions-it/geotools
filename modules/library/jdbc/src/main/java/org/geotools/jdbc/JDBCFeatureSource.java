@@ -866,6 +866,7 @@ public class JDBCFeatureSource extends ContentFeatureSource {
             sb.append("select * from (");
             sb.append(vtable.expandParameters(null));
             sb.append(")");
+            JDBCDataStore.removeWhereClausePlaceHolder(sb);
             dialect.encodeTableAlias("vtable", sb);
             // state we don't want rows, we just want to gather the results metadata
             sb.append(" where 1 = 0");

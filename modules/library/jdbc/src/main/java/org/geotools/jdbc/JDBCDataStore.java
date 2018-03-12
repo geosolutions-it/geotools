@@ -3359,8 +3359,10 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
         if (filter != null && !Filter.INCLUDE.equals(filter)) {
             sql.append(" WHERE ");
 
-            // encode filter
+            //encode filter
             filter(featureType, filter, sql);
+        } else {
+            removeWhereClausePlaceHolder(sql);
         }
 
         // sorting
@@ -3485,7 +3487,14 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
                             ? createPreparedFilterToSQL(fullSchema)
                             : createFilterToSQL(fullSchema);
             toSQL.setInline(true);
-            sql.append(" ").append(toSQL.encodeToString(filter));
+            String filterSql = toSQL.encodeToString(filter);
+            int whereClauseIndex = sql.indexOf(":where_clause:");
+            if (whereClauseIndex != -1) {
+                sql.replace(whereClauseIndex, whereClauseIndex + 14, "AND " + filterSql);
+                sql.append("1 = 1");
+            } else {
+                sql.append(filterSql);
+            }
             return toSQL;
         } catch (FilterToSQLException e) {
             throw new RuntimeException(e);
@@ -3571,6 +3580,8 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
 
             // encode filter
             toSQL = (PreparedFilterToSQL) filter(featureType, filter, sql);
+        } else {
+            removeWhereClausePlaceHolder(sql);
         }
 
         // sorting
@@ -3727,6 +3738,8 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
             } catch (FilterToSQLException e) {
                 throw new RuntimeException(e);
             }
+        } else {
+            removeWhereClausePlaceHolder(sql);
         }
 
         // finally encode limit/offset, if necessary
@@ -3782,10 +3795,20 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
             // encode filter
             try {
                 toSQL = createPreparedFilterToSQL(featureType);
-                sql.append(" ").append(toSQL.encodeToString(filter));
+                int whereClauseIndex = sql.indexOf(":where_clause:");
+                if (whereClauseIndex != -1) {
+                    toSQL.setInline(true);
+                    sql.replace(whereClauseIndex, whereClauseIndex + 14, "AND " + toSQL.encodeToString(filter));
+                    //sql.append("1 = 1");
+                    toSQL.setInline(false);
+                } else {
+                    sql.append(toSQL.encodeToString(filter));
+                }
             } catch (FilterToSQLException e) {
                 throw new RuntimeException(e);
             }
+        } else {
+            removeWhereClausePlaceHolder(sql);
         }
 
         // finally encode limit/offset, if necessary
@@ -3813,6 +3836,14 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
         }
 
         return ps;
+    }
+
+    static void removeWhereClausePlaceHolder(StringBuffer sql) {
+        int whereClauseIndex = sql.indexOf(":where_clause:");
+        if (whereClauseIndex != -1) {
+            // remove the where clause
+            sql.delete(whereClauseIndex, whereClauseIndex + 14);
+        }
     }
 
     /**
@@ -4041,6 +4072,8 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
             if (filter != null && !Filter.INCLUDE.equals(filter)) {
                 sql.append(" WHERE ");
                 toSQL.add(filter(featureType, filter, sql));
+            }  else {
+                removeWhereClausePlaceHolder(sql);
             }
         }
         if (dialect.isAggregatedSortSupported(function)) {
@@ -4713,8 +4746,10 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
             sql.append(" WHERE ");
             whereEncoded = true;
 
-            // encode filter
+            //encode filter
             toSQL.add(filter(featureType, filter, sql));
+        }  else {
+            removeWhereClausePlaceHolder(sql);
         }
 
         // filters for joined feature types
