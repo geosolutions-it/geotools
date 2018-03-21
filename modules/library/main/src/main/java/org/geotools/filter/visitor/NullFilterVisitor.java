@@ -68,6 +68,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Abstract implementation of FilterVisitor simple returns the provided data.
@@ -342,6 +343,11 @@ public abstract class NullFilterVisitor implements FilterVisitor, ExpressionVisi
     }
 
     public Object visit(TOverlaps contains, Object data) {
+        return data;
+    }
+
+    @Override
+    public Object visit(NativeFilter nativeFilter, Object data) {
         return data;
     }
 }

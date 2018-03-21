@@ -300,39 +300,35 @@ public interface FilterFactory2 extends FilterFactory {
     Intersects intersects(Expression geometry1, Expression geometry2);
 
     /** Checks if the two geometric operands intersect. */
-    Intersects intersects(Expression geometry1, Expression geometry2, MatchAction matchAction);
+
+    Intersects  intersects(Expression geometry1, Expression geometry2, MatchAction matchAction);
+
+    /** Checks if the interior of the first geometry somewhere overlaps the interior of the second geometry. */
+    Overlaps    overlaps(Expression geometry1, Expression geometry2);
+    
+    /** Checks if the interior of the first geometry somewhere overlaps the interior of the second geometry. */
+    Overlaps    overlaps(Expression geometry1, Expression geometry2, MatchAction matchAction);
+
+    /** Checks if the feature's geometry touches, but does not overlap with the geometry held by this object. */
+    Touches     touches(Expression propertyName1, Expression geometry2);
+    
+    /** Checks if the feature's geometry touches, but does not overlap with the geometry held by this object. */
+    Touches     touches(Expression propertyName1, Expression geometry2, MatchAction matchAction);
+
+    /** Checks if the feature's geometry is completely contained by the specified constant geometry. */
+    Within      within(Expression geometry1, Expression geometry2);
+    
+    /** Checks if the feature's geometry is completely contained by the specified constant geometry. */
+    Within      within(Expression geometry1, Expression geometry2, MatchAction matchAction);
 
     /**
-     * Checks if the interior of the first geometry somewhere overlaps the interior of the second
-     * geometry.
+     * Builds a new native filter, which will should be delegated to the data store.
+     *
+     * @param nativeFilter the native filter
+     * @return the build native filter
      */
-    Overlaps overlaps(Expression geometry1, Expression geometry2);
-
-    /**
-     * Checks if the interior of the first geometry somewhere overlaps the interior of the second
-     * geometry.
-     */
-    Overlaps overlaps(Expression geometry1, Expression geometry2, MatchAction matchAction);
-
-    /**
-     * Checks if the feature's geometry touches, but does not overlap with the geometry held by this
-     * object.
-     */
-    Touches touches(Expression propertyName1, Expression geometry2);
-
-    /**
-     * Checks if the feature's geometry touches, but does not overlap with the geometry held by this
-     * object.
-     */
-    Touches touches(Expression propertyName1, Expression geometry2, MatchAction matchAction);
-
-    /**
-     * Checks if the feature's geometry is completely contained by the specified constant geometry.
-     */
-    Within within(Expression geometry1, Expression geometry2);
-
-    /**
-     * Checks if the feature's geometry is completely contained by the specified constant geometry.
-     */
-    Within within(Expression geometry1, Expression geometry2, MatchAction matchAction);
+    default NativeFilter nativeFilter(String nativeFilter) {
+        throw new UnsupportedOperationException(
+                "Native filter building is not supported by this filter factory.");
+    }
 }

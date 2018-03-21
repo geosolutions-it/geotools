@@ -20,8 +20,10 @@ import junit.framework.TestCase;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.GeoTools;
 import org.geotools.filter.IllegalFilterException;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.opengis.filter.And;
 import org.opengis.filter.Filter;
+import org.opengis.filter.NativeFilter;
 import org.opengis.filter.Not;
 import org.opengis.filter.PropertyIsGreaterThan;
 import org.opengis.filter.PropertyIsLessThan;
@@ -32,6 +34,13 @@ import org.opengis.filter.expression.Literal;
 import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.spatial.BBOX;
 import org.xml.sax.helpers.NamespaceSupport;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for DuplicatorFilterVisitor.
@@ -52,16 +61,16 @@ public class DuplicateFilterVisitorTest extends TestCase {
     }
 
     public void testLogicFilterDuplication() throws IllegalFilterException {
-        // create a filter
+        //create a filter
         PropertyIsGreaterThan greater = fac.greater(fac.literal(2), fac.literal(1));
         PropertyIsLessThan less = fac.less(fac.literal(3), fac.literal(4));
         And and = fac.and(greater, less);
 
-        // duplicate it
+        //duplicate it
         DuplicatingFilterVisitor visitor = new DuplicatingFilterVisitor();
         Filter newFilter = (Filter) and.accept(visitor, fac);
 
-        // compare it
+        //compare it
         assertNotNull(newFilter);
         assertEquals(and, newFilter);
     }
@@ -107,5 +116,24 @@ public class DuplicateFilterVisitorTest extends TestCase {
         assertEquals(bbox, clone);
         assertNotSame(bbox, clone);
         assertSame(nsContext, ((PropertyName) clone.getExpression1()).getNamespaceContext());
+    }
+
+    public void testNativeFilterIsDuplicated() {
+        // build a filter that uses a native filter
+        BBOX boundingBoxFilter = fac.bbox("geometry", -5, -5, 5, 5, DefaultGeographicCRS.WGS84.toString());
+        NativeFilter nativeFilter = fac.nativeFilter("SOME NATIVE FILTER");
+        Filter filter = fac.and(boundingBoxFilter, nativeFilter);
+        // duplicate the filter
+        DuplicatingFilterVisitor visitor = new DuplicatingFilterVisitor(fac);
+        Filter duplicated = (Filter) filter.accept(visitor, null);
+        // let's see if the native filter was correctly duplicated
+        assertThat(duplicated, instanceOf(And.class));
+        And andFilter = (And) duplicated;
+        assertThat(andFilter.getChildren().size(), is(2));
+        List<Filter> found = andFilter.getChildren().stream()
+                .filter(child -> child instanceof NativeFilter)
+                .collect(Collectors.toList());
+        assertThat(found.size(), is(1));
+        assertThat(((NativeFilter) found.get(0)).getNative(), is("SOME NATIVE FILTER"));
     }
 }

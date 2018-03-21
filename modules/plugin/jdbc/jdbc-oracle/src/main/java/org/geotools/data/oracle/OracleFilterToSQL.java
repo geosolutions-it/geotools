@@ -45,6 +45,7 @@ import org.geotools.jdbc.SQLDialect;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.NativeFilter;
 import org.opengis.filter.PropertyIsEqualTo;
 import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.Function;
@@ -169,6 +170,9 @@ public class OracleFilterToSQL extends PreparedFilterToSQL {
         caps.addType(EndedBy.class);
         caps.addType(TEquals.class);
 
+        // native filter support
+        caps.addType(NativeFilter.class);
+        
         return caps;
     }
 

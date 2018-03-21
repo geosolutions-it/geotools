@@ -86,6 +86,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Determines what queries can be processed server side and which can be processed client side.
@@ -1019,4 +1020,10 @@ public class PostPreProcessFilterSplittingVisitor implements FilterVisitor, Expr
         preStack.push(filter);
         return null;
     }
+
+	@Override
+	public Object visit(NativeFilter nativeFilter, Object extraData) {
+		preStack.push(nativeFilter);
+		return null;
+	}
 }

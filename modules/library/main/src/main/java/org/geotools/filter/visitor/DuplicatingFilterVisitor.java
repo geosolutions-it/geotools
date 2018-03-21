@@ -77,6 +77,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Used to duplication Filters and/or Expressions - returned object is a copy.
@@ -488,4 +489,10 @@ public class DuplicatingFilterVisitor implements FilterVisitor, ExpressionVisito
                         visit(contains.getExpression2(), extraData),
                         contains.getMatchAction());
     }
+
+
+	@Override
+	public Object visit(NativeFilter filter, Object extraData) {
+		return getFactory(extraData).nativeFilter(filter.getNative());
+	}
 }

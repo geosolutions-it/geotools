@@ -70,6 +70,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Abstract implementation of FilterVisitor that simply walks the data structure.
@@ -404,6 +405,11 @@ public abstract class DefaultFilterVisitor implements FilterVisitor, ExpressionV
     public Object visit(TOverlaps contains, Object data) {
         data = contains.getExpression1().accept(this, data);
         data = contains.getExpression2().accept(this, data);
+        return data;
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object data) {
         return data;
     }
 }

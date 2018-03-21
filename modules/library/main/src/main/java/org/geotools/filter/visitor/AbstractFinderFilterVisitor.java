@@ -70,6 +70,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 import org.xml.sax.helpers.NamespaceSupport;
 
 /**
@@ -420,6 +421,11 @@ public abstract class AbstractFinderFilterVisitor implements FilterVisitor, Expr
         filter.getExpression1().accept(this, data);
         if (found) return found;
         filter.getExpression2().accept(this, data);
+        return found;
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object data) {
         return found;
     }
 }

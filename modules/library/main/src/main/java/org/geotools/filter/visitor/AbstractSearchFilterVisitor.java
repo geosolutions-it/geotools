@@ -54,6 +54,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * SearchFilterVisitor is a base class used to optimize finding specific information in the filter
@@ -402,6 +403,11 @@ public abstract class AbstractSearchFilterVisitor implements FilterVisitor, Expr
         data = filter.getExpression1().accept(this, data);
         if (found(data)) return data;
         data = filter.getExpression2().accept(this, data);
+        return data;
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object data) {
         return data;
     }
 }

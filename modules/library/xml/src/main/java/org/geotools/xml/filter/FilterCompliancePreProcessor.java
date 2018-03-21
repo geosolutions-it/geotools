@@ -76,6 +76,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Prepares a filter for xml encoded for interoperability with another system. It will behave
@@ -854,5 +855,10 @@ public class FilterCompliancePreProcessor implements FilterVisitor {
      */
     public boolean requiresPostProcessing() {
         return requiresPostProcessing;
+    }
+
+    @Override
+    public Object visit(NativeFilter nativeFilter, Object extraData) {
+        throw new UnsupportedOperationException("Native filter is not supported");
     }
 }

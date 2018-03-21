@@ -113,6 +113,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.GeographicCRS;
 import org.opengis.temporal.Period;
@@ -1746,5 +1747,16 @@ public class FilterToSQL implements FilterVisitor, ExpressionVisitor {
             return null;
         }
         return geom.getCentroid().getCoordinate();
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object data) {
+        try {
+            out.write("(" + filter.getNative() + ")");
+        } catch (Exception exception) {
+            throw new RuntimeException(String.format(
+                    "Error encoding native filter '%s'.", filter.getNative()), exception);
+        }
+        return data;
     }
 }

@@ -149,6 +149,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.geometry.BoundingBox3D;
 import org.opengis.geometry.Geometry;
@@ -1106,5 +1107,9 @@ public class FilterFactoryImpl implements Factory, org.opengis.filter.FilterFact
 
     public TemporalCapabilities temporalCapabilities(TemporalOperator[] temporalOperators) {
         return new TemporalCapabilitiesImpl(Arrays.asList(temporalOperators));
+    }
+
+    public NativeFilter nativeFilter(String nativeFilter) {
+        return new NativeFilterImpl(nativeFilter);
     }
 }

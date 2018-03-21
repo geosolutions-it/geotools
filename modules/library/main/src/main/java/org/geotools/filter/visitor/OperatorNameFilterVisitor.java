@@ -58,6 +58,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * A FilterVisitor responsible for providing the capabilities name used to identify the provided
@@ -239,5 +240,10 @@ public class OperatorNameFilterVisitor implements FilterVisitor {
 
     public Object visit(TOverlaps contains, Object extraData) {
         return TOverlaps.NAME;
+    }
+
+    @Override
+    public Object visit(NativeFilter nativeFilter, Object extraData) {
+        return NativeFilter.NAME;
     }
 }

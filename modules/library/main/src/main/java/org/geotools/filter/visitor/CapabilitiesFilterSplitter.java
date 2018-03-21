@@ -86,6 +86,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Determines what queries can be processed server side and which can be processed client side.
@@ -1031,6 +1032,12 @@ public class CapabilitiesFilterSplitter implements FilterVisitor, ExpressionVisi
 
     protected Object visit(BinaryTemporalOperator filter, Object data) {
         visitBinaryOperator(filter, filter.getExpression1(), filter.getExpression2());
+        return null;
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object extraData) {
+        preStack.push(filter);
         return null;
     }
 }

@@ -65,6 +65,7 @@ import org.opengis.filter.temporal.OverlappedBy;
 import org.opengis.filter.temporal.TContains;
 import org.opengis.filter.temporal.TEquals;
 import org.opengis.filter.temporal.TOverlaps;
+import org.opengis.filter.NativeFilter;
 
 /**
  * Base implementation of the FilterVisitor used for inorder traversal of expressions.
@@ -406,5 +407,10 @@ public class AbstractFilterVisitor implements FilterVisitor {
     public String toString() {
         String name = getClass().getSimpleName();
         return "AbstractFilterVisitor " + name + " [expressionVisitor=" + expressionVisitor + "]";
+    }
+
+    @Override
+    public Object visit(NativeFilter filter, Object extraData) {
+        return filter;
     }
 }
