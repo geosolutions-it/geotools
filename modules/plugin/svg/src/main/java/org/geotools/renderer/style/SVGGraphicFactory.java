@@ -53,6 +53,7 @@ import org.apache.batik.util.XMLResourceDescriptor;
 import org.geotools.factory.Factory;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
+import org.geotools.util.CanonicalSet;
 import org.geotools.util.Converters;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.xml.NullEntityResolver;
@@ -90,6 +91,8 @@ public class SVGGraphicFactory implements Factory, ExternalGraphicFactory {
 
     /** The possible mime types for SVG */
     static final Set<String> formats = new HashSet<String>();
+    
+    static final CanonicalSet<String> CANONICAL_PATHS = CanonicalSet.newInstance(String.class);
     
     static {
         formats.add("image/svg");
@@ -144,34 +147,47 @@ public class SVGGraphicFactory implements Factory, ExternalGraphicFactory {
         }
 
         // turn the svg into a document and cache results
+        svgfile = CANONICAL_PATHS.unique(svgfile);
         RenderableSVG svg = glyphCache.get(svgfile);
         if(svg == null) {
-            String parser = XMLResourceDescriptor.getXMLParserClassName();
-            SAXSVGDocumentFactory f = new SAXSVGDocumentFactory(parser) {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId)
-                        throws SAXException {
-                    InputSource source = super.resolveEntity(publicId, systemId);
-                    if (source == null) {
-                        try {
-                            return resolver.resolveEntity(publicId, systemId);
-                        } catch (IOException e) {
-                            throw new SAXException(e);
-                        }
-                    }
-                    return source;
+            // double checked locking to reduce extra work when many threads all want the same
+            // SVG, e.g., a tile cache seed with many layers
+            synchronized (svgfile) {
+                svg = glyphCache.get(svgfile);
+                if (svg == null) {
+                    svg = toRenderableSVG(svgfile);
+                    glyphCache.put(svgfile, svg);
                 }
-            };
-            Document doc = f.createDocument(svgfile);
-            Map<String, String> parameters = getParametersFromUrl(svgfile);
-            if(!parameters.isEmpty() || hasParameters(doc.getDocumentElement())) {
-                replaceParameters(doc.getDocumentElement(), parameters);
             }
-            svg = new RenderableSVG(doc);
-            glyphCache.put(svgfile, svg);
         }
 
         return new SVGIcon(svg, size);
+    }
+
+    protected RenderableSVG toRenderableSVG(String svgfile) throws IOException {
+        String parser = XMLResourceDescriptor.getXMLParserClassName();
+        SAXSVGDocumentFactory f = new SAXSVGDocumentFactory(parser) {
+            @Override
+            public InputSource resolveEntity(String publicId, String systemId)
+                    throws SAXException {
+                InputSource source = super.resolveEntity(publicId, systemId);
+                if (source == null) {
+                    try {
+                        return resolver.resolveEntity(publicId, systemId);
+                    } catch (IOException e) {
+                        throw new SAXException(e);
+                    }
+                }
+                return source;
+            }
+        };
+        Document doc = f.createDocument(svgfile);
+        Map<String, String> parameters = getParametersFromUrl(svgfile);
+        if(!parameters.isEmpty() || hasParameters(doc.getDocumentElement())) {
+            replaceParameters(doc.getDocumentElement(), parameters);
+        }
+        RenderableSVG svg = new RenderableSVG(doc);
+        return svg;
     }
 
     /**
@@ -336,7 +352,7 @@ public class SVGGraphicFactory implements Factory, ExternalGraphicFactory {
         }
     }
 
-    private static class RenderableSVG {
+    protected static class RenderableSVG {
         Rectangle2D bounds;
 
         private GraphicsNode node;
