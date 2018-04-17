@@ -52,6 +52,17 @@ import org.opengis.filter.PropertyIsNotEqualTo;
 import org.opengis.filter.PropertyIsNull;
 import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.PropertyName;
+import org.opengis.filter.spatial.BBOX;
+import org.opengis.filter.spatial.Beyond;
+import org.opengis.filter.spatial.Contains;
+import org.opengis.filter.spatial.Crosses;
+import org.opengis.filter.spatial.DWithin;
+import org.opengis.filter.spatial.Disjoint;
+import org.opengis.filter.spatial.Equals;
+import org.opengis.filter.spatial.Intersects;
+import org.opengis.filter.spatial.Overlaps;
+import org.opengis.filter.spatial.Touches;
+import org.opengis.filter.spatial.Within;
 import org.xml.sax.helpers.NamespaceSupport;
 
 /**
@@ -60,7 +71,18 @@ import org.xml.sax.helpers.NamespaceSupport;
  * <p>
  * Currently, the filters that can be translated to SQL are:
  * <ul>
- * <li>PropertyIsEqualTo>
+ * <li>BBOX</li>
+ * <li>Contains</li>
+ * <li>Touches</li>
+ * <li>Intersects</li>
+ * <li>Overlaps</li>
+ * <li>Within</li>
+ * <li>Crosses</li>
+ * <li>Disjoint</li>
+ * <li>Equals</li>
+ * <li>Beyond</li>
+ * <li>DWithin</li>
+ * <li>PropertyIsEqualTo</li>
  * <li>PropertyIsNotEqualTo</li>
  * <li>PropertyIsLessThan</li>
  * <li>PropertyIsLessThanOrEqualTo</li>
@@ -126,7 +148,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         }
     }
 
-    protected Object visitBinaryComparison(Filter filter, Object extraData, String xpath) {
+    protected Object visitNestedFilter(Filter filter, Object extraData, String xpath) {
         try {
 
             FeatureChainedAttributeVisitor nestedMappingsExtractor = new FeatureChainedAttributeVisitor(rootMapping);
@@ -307,12 +329,111 @@ public class NestedFilterToSQL extends FilterToSQL {
     }
 
     @Override
+    public Object visit(BBOX filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Contains filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Touches filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Intersects filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Overlaps filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Within filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Crosses filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Disjoint filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Equals filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(Beyond filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
+    public Object visit(DWithin filter, Object extraData) {
+        NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
+        if (nestedAttr == null) {
+            return original.visit(filter, extraData);
+        }
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
+    }
+
+    @Override
     public Object visit(PropertyIsEqualTo filter, Object extraData) {
         NestedAttributeExpression nestedAttr = getNestedAttributeExpression(filter);
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -321,7 +442,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -330,7 +451,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -339,7 +460,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -348,7 +469,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -357,7 +478,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -366,7 +487,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -375,7 +496,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     @Override
@@ -384,7 +505,7 @@ public class NestedFilterToSQL extends FilterToSQL {
         if (nestedAttr == null) {
             return original.visit(filter, extraData);
         }
-        return visitBinaryComparison(filter, extraData, nestedAttr.getPropertyName());
+        return visitNestedFilter(filter, extraData, nestedAttr.getPropertyName());
     }
 
     /**
