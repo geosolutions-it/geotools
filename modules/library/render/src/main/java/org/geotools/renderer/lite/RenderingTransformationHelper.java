@@ -78,6 +78,8 @@ public abstract class RenderingTransformationHelper {
     
     
     private static final CoverageProcessor PROCESSOR = CoverageProcessor.getInstance();
+
+    public static final int TRANSFORM_READ_BUFFER_PIXELS = 10;
     
     public Object applyRenderingTransformation(Expression transformation,
             FeatureSource featureSource, Query layerQuery, Query renderingQuery, 
@@ -110,7 +112,7 @@ public abstract class RenderingTransformationHelper {
                     final GridCoverage2DReader reader = (GridCoverage2DReader) GRID_PROPERTY_NAME.evaluate(gridWrapper);
                     // don't read more than the native resolution (in case we are oversampling)
                     if(CRS.equalsIgnoreMetadata(reader.getCoordinateReferenceSystem(), gridGeometry.getCoordinateReferenceSystem())) {
-                         MathTransform g2w = reader.getOriginalGridToWorld(PixelInCell.CELL_CENTER);
+                         MathTransform g2w = reader.getOriginalGridToWorld(PixelInCell.CELL_CORNER);
                          if(g2w instanceof AffineTransform2D && readGG.getGridToCRS2D() instanceof AffineTransform2D) {
                              AffineTransform2D atOriginal = (AffineTransform2D) g2w;
                              AffineTransform2D atMap = (AffineTransform2D) readGG.getGridToCRS2D(); 
@@ -124,9 +126,14 @@ public abstract class RenderingTransformationHelper {
                                  int miny = (int) Math.floor(transformed.getMinimum(1));
                                  int maxx = (int) Math.ceil(transformed.getMaximum(0));
                                  int maxy = (int) Math.ceil(transformed.getMaximum(1));
-                                 Rectangle rect = new Rectangle(minx, miny, (maxx - minx), (maxy - miny));
+                                 Rectangle rect =
+                                         new Rectangle(
+                                                 minx - TRANSFORM_READ_BUFFER_PIXELS,
+                                                 miny - TRANSFORM_READ_BUFFER_PIXELS,
+                                                 (maxx - minx) + TRANSFORM_READ_BUFFER_PIXELS * 2,
+                                                 (maxy - miny) + TRANSFORM_READ_BUFFER_PIXELS * 2);
                                  GridEnvelope2D gridEnvelope = new GridEnvelope2D(rect);
-                                 readGG = new GridGeometry2D(gridEnvelope, atOriginal, worldEnvelope.getCoordinateReferenceSystem());
+                                 readGG = new GridGeometry2D(gridEnvelope, PixelInCell.CELL_CORNER, atOriginal, worldEnvelope.getCoordinateReferenceSystem(), null);
                              }
                          }
                     }
