@@ -47,7 +47,7 @@ public class WrappingProjectionHandler extends ProjectionHandler {
 
     private int maxWraps;
 
-    private boolean datelineWrappingCheckEnabled = true;
+    private boolean datelineWrappingCheckEnabled = System.getProperty("DATELINE_WRAPPING_CHECK_ENABLED") != null ? Boolean.valueOf(System.getProperty("DATELINE_WRAPPING_CHECK_ENABLED")) : true;
 
     /**
      * Provides the strategy with the area we want to render and its CRS (the SPI lookup will do
