@@ -18,6 +18,7 @@ package org.geotools.renderer.crs;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -47,7 +48,7 @@ public class WrappingProjectionHandler extends ProjectionHandler {
 
     private int maxWraps;
 
-    private boolean datelineWrappingCheckEnabled = System.getProperty("DATELINE_WRAPPING_CHECK_ENABLED") != null ? Boolean.valueOf(System.getProperty("DATELINE_WRAPPING_CHECK_ENABLED")) : true;
+    private boolean datelineWrappingHeuristicEnabled = true;
 
     /**
      * Provides the strategy with the area we want to render and its CRS (the SPI lookup will do
@@ -63,6 +64,18 @@ public class WrappingProjectionHandler extends ProjectionHandler {
         // this will compute the radius
         setCentralMeridian(centralMeridian);
     }
+    
+    
+
+    @Override
+    public void setProjectionParameters(Map projectionParameters) {
+        super.setProjectionParameters(projectionParameters);
+        if (projectionParameters.containsKey("datelineWrappingHeuristic")) {
+            datelineWrappingHeuristicEnabled = (Boolean)projectionParameters.get("datelineWrappingHeuristic");
+        }
+    }
+
+
 
     @Override
     public Geometry postProcess(MathTransform mt, Geometry geometry) {
@@ -89,7 +102,7 @@ public class WrappingProjectionHandler extends ProjectionHandler {
         // anything larger than half of the world might have wrapped it, however,
         // if it's touching both datelines then don't wrap it, as it might be something
         // like antarctica
-        if (datelineWrappingCheckEnabled && width > radius && width < radius * 2) {
+        if (datelineWrappingHeuristicEnabled && width > radius && width < radius * 2) {
             final Geometry wrapped = (Geometry) geometry.clone();
             wrapped.apply(new WrappingCoordinateFilter(radius, radius * 2, mt, northEast));
             wrapped.geometryChanged();
@@ -233,7 +246,7 @@ public class WrappingProjectionHandler extends ProjectionHandler {
     }
 
     public boolean isDatelineWrappingCheckEnabled() {
-        return datelineWrappingCheckEnabled;
+        return datelineWrappingHeuristicEnabled;
     }
 
     /**
@@ -243,6 +256,6 @@ public class WrappingProjectionHandler extends ProjectionHandler {
      * @param datelineWrappingCheckEnabled
      */
     public void setDatelineWrappingCheckEnabled(boolean datelineWrappingCheckEnabled) {
-        this.datelineWrappingCheckEnabled = datelineWrappingCheckEnabled;
+        this.datelineWrappingHeuristicEnabled = datelineWrappingCheckEnabled;
     }
 }

@@ -20,18 +20,20 @@ import static org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import com.vividsolutions.jts.geom.*;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.transform.ConcatenatedTransform;
 import org.geotools.referencing.operation.transform.GeocentricTransform;
+import org.geotools.renderer.lite.StreamingRenderer;
 import org.opengis.metadata.extent.GeographicBoundingBox;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -39,6 +41,17 @@ import org.opengis.referencing.crs.GeographicCRS;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 
+import com.vividsolutions.jts.densify.Densifier;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.geom.prep.PreparedGeometry;
 import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
 import com.vividsolutions.jts.precision.EnhancedPrecisionOp;
@@ -81,6 +94,10 @@ public class ProjectionHandler {
     protected double radius = Double.NaN;
 
     protected boolean queryAcrossDateline;
+    
+    protected double densify = 0.0;
+    
+    Map projectionParameters;
 
     /**
      * Initializes a projection handler 
@@ -133,6 +150,13 @@ public class ProjectionHandler {
             this.validArea = validArea;
             this.validaAreaTester = PreparedGeometryFactory.prepare(validArea);
         }
+    }
+    
+    public void setProjectionParameters(Map projectionParameters) {
+        if (projectionParameters.containsKey("advancedProjectionDensify")) {
+            densify = (Double)projectionParameters.get("advancedProjectionDensify");
+        }
+        this.projectionParameters = projectionParameters;
     }
 
     /**
@@ -285,7 +309,7 @@ public class ProjectionHandler {
             
             ReferencedEnvelope transformed = envelope.transform(targetCRS, true, 10);
             ProjectionHandler handler = ProjectionHandlerFinder.getHandler(new ReferencedEnvelope(targetCRS),
-                    DefaultGeographicCRS.WGS84, true);
+                    DefaultGeographicCRS.WGS84, true, projectionParameters);
             // does the target CRS have a strict notion of what's possible in terms of
             // valid coordinate ranges?
             if(handler == null || handler instanceof WrappingProjectionHandler) {
@@ -422,14 +446,14 @@ public class ProjectionHandler {
     public Geometry preProcess(Geometry geometry) throws TransformException, FactoryException {
         // if there is no valid area, no cutting is required either
         if(validAreaBounds == null)
-            return geometry;
+            return densify(geometry);
         
         // if not reprojection is going on, we don't need to cut
         CoordinateReferenceSystem geometryCRS = CRS.getHorizontalCRS(sourceCRS);
         if (geometryCRS == null
                 || CRS.findMathTransform(geometryCRS,
                         renderingEnvelope.getCoordinateReferenceSystem()).isIdentity()) {
-            return geometry;
+            return densify(geometry);
         }
         
         Geometry mask;
@@ -444,7 +468,7 @@ public class ProjectionHandler {
             // if the geometry is within the valid area for this projection
             // just skip expensive cutting
             if (validAreaBounds.contains((Envelope) geWGS84)) {
-                return geometry;
+                return densify(geometry);
             }
 
             // we need to cut, first thing, we intersect the geometry envelope
@@ -460,14 +484,14 @@ public class ProjectionHandler {
                     ReferencedEnvelope translated = new ReferencedEnvelope(validAreaBounds);
                     translated.translate(-360, 0);
                     if(translated.contains((Envelope) geWGS84)) {
-                        return geometry;
+                        return densify(geometry);
                     }
                     envIntWgs84 = translated.intersection(geWGS84);
                 } else if(validAreaBounds.contains(-180, (validAreaBounds.getMinY() + validAreaBounds.getMaxY()) / 2)) {
                     ReferencedEnvelope translated = new ReferencedEnvelope(validAreaBounds);
                     translated.translate(360, 0);
                     if(translated.contains((Envelope) geWGS84)) {
-                        return geometry;
+                        return densify(geometry);
                     }
                     envIntWgs84 = translated.intersection(geWGS84);
                 }
@@ -482,7 +506,7 @@ public class ProjectionHandler {
             // if the geometry is within the valid area for this projection
             // just skip expensive cutting
             if (validaAreaTester.contains(JTS.toGeometry(geWGS84))) {
-                return geometry;
+                return densify(geometry);
             }
 
             // we need to cut, first thing, we intersect the geometry envelope
@@ -503,10 +527,20 @@ public class ProjectionHandler {
             }
             mask = JTS.transform(maskWgs84, CRS.findMathTransform(WGS84, geometryCRS));
         }
-        
-        return intersect(geometry, mask, geometryCRS);
+        return densify(intersect(geometry, mask, geometryCRS));
     }
 
+    protected Geometry densify(Geometry geometry) {
+        if (geometry != null && densify > 0.0) {
+            try {
+                geometry = Densifier.densify(geometry, densify);
+            } catch(Throwable t) {
+                LOGGER.severe("Cannot densify geometry");
+            }
+        }
+        return geometry;
+    }
+    
     protected Geometry intersect(Geometry geometry, Geometry mask,
             CoordinateReferenceSystem geometryCRS) {
         // this seems to cause issues to JTS, reduce to

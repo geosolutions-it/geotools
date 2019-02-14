@@ -17,6 +17,8 @@
 package org.geotools.renderer.crs;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -92,13 +94,25 @@ public class ProjectionHandlerFinder {
      * @throws FactoryException 
      */
     public static ProjectionHandler getHandler(ReferencedEnvelope renderingArea, CoordinateReferenceSystem sourceCrs, boolean wrap) throws FactoryException {
+        return getHandler(renderingArea, sourceCrs, wrap, new HashMap());
+    }
+    
+    /**
+     * Returns a projection handler for the specified rendering area, or null if not found
+     * @param renderingArea The area to be painted (mind, the CRS must be property set for projection handling to work)
+     * @param wrap Enable continuous map wrapping if it's possible for the current projection
+     * @throws FactoryException 
+     */
+    public static ProjectionHandler getHandler(ReferencedEnvelope renderingArea, CoordinateReferenceSystem sourceCrs, boolean wrap, Map projectionParameters) throws FactoryException {
         if (renderingArea.getCoordinateReferenceSystem() == null)
             return null;
         
         for (ProjectionHandlerFactory factory : getProjectionHandlerFactories()) {
             ProjectionHandler handler = factory.getHandler(renderingArea, sourceCrs, wrap, WRAP_LIMIT);
-            if (handler != null)
+            if (handler != null) {
+                handler.setProjectionParameters(projectionParameters);
                 return handler;
+            }
         }
 
         return null;
