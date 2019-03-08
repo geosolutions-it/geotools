@@ -185,42 +185,61 @@ public class ProjectionHandler {
             // subsystem directly
             ReferencedEnvelope re = renderingEnvelope;
             List<ReferencedEnvelope> envelopes = new ArrayList<ReferencedEnvelope>();
-            envelopes.add(re);
+            addTransformedEnvelope(re, envelopes);
             if (CRS.getAxisOrder(renderingCRS) == CRS.AxisOrder.NORTH_EAST) {
                 if (re.getMinY() >= -180.0 && re.getMaxY() <= 180) {
-                    return Collections
-                            .singletonList(transformEnvelope(renderingEnvelope, sourceCRS));
+                    return envelopes;
                 }
                 // We need to split reprojected envelope and normalize it. To be lenient with
                 // situations in which the data is just broken (people saying 4326 just because they
                 // have no idea at all) we don't actually split, but add elements
                 if (re.getMinY() < -180) {
-                    envelopes.add(new ReferencedEnvelope(re.getMinX(), re.getMaxX(),
+                    ReferencedEnvelope envelope =
+                            new ReferencedEnvelope(
+                                    re.getMinX(),
+                                    re.getMaxX(),
                             re.getMinY() + 360,
-                            Math.min(re.getMaxY() + 360, 180), re.getCoordinateReferenceSystem()));
+                                    Math.min(re.getMaxY() + 360, 180),
+                                    re.getCoordinateReferenceSystem());
+                    addTransformedEnvelope(envelope, envelopes);
                 }
                 if (re.getMaxY() > 180) {
-                    envelopes.add(new ReferencedEnvelope(re.getMinX(), re.getMaxX(),
-                            Math.max(re.getMinY() - 360, -180), re.getMaxY() - 360,
-                            re.getCoordinateReferenceSystem()));
+                    ReferencedEnvelope envelope =
+                            new ReferencedEnvelope(
+                                    re.getMinX(),
+                                    re.getMaxX(),
+                                    Math.max(re.getMinY() - 360, -180),
+                                    re.getMaxY() - 360,
+                                    re.getCoordinateReferenceSystem());
+                    addTransformedEnvelope(envelope, envelopes);
                 }
             } else {
                 if (re.getMinX() >= -180.0 && re.getMaxX() <= 180) {
-                    return Collections
-                            .singletonList(transformEnvelope(renderingEnvelope, sourceCRS));
+                    return Collections.singletonList(
+                            transformEnvelope(renderingEnvelope, sourceCRS));
                 }
                 // We need to split reprojected envelope and normalize it. To be lenient with
                 // situations in which the data is just broken (people saying 4326 just because they
                 // have no idea at all) we don't actually split, but add elements
                 if (re.getMinX() < -180) {
-                    envelopes.add(new ReferencedEnvelope(re.getMinX() + 360,
-                            Math.min(re.getMaxX() + 360, 180), re.getMinY(), re.getMaxY(),
-                            re.getCoordinateReferenceSystem()));
+                    ReferencedEnvelope envelope =
+                            new ReferencedEnvelope(
+                                    re.getMinX() + 360,
+                                    Math.min(re.getMaxX() + 360, 180),
+                                    re.getMinY(),
+                                    re.getMaxY(),
+                                    re.getCoordinateReferenceSystem());
+                    addTransformedEnvelope(envelope, envelopes);
                 }
                 if (re.getMaxX() > 180) {
-                    envelopes.add(new ReferencedEnvelope(Math.max(re.getMinX() - 360, -180),
-                            re.getMaxX() - 360, re.getMinY(), re.getMaxY(),
-                            re.getCoordinateReferenceSystem()));
+                    ReferencedEnvelope envelope =
+                            new ReferencedEnvelope(
+                                    Math.max(re.getMinX() - 360, -180),
+                                    re.getMaxX() - 360,
+                                    re.getMinY(),
+                                    re.getMaxY(),
+                                    re.getCoordinateReferenceSystem());
+                    addTransformedEnvelope(envelope, envelopes);
                 }
             }
             mergeEnvelopes(envelopes);
@@ -240,7 +259,7 @@ public class ProjectionHandler {
                 ReferencedEnvelope tx1 = transformEnvelope(re1, WGS84);
                 if(tx1 != null) {
                     tx1.expandToInclude(180, tx1.getMinY());
-                    result.add(tx1);
+                    addTransformedEnvelope(tx1, result);
                 }
                 ReferencedEnvelope re2 = new ReferencedEnvelope(datelineX + EPS, maxX, minY,
                         maxY, renderingCRS);
@@ -250,7 +269,7 @@ public class ProjectionHandler {
                         tx2.translate(-360, 0);
                     }
                     tx2.expandToInclude(-180, tx1.getMinY());
-                    result.add(tx2);
+                    addTransformedEnvelope(tx2, result);
                 }
                 
                 mergeEnvelopes(result);
@@ -258,6 +277,14 @@ public class ProjectionHandler {
             } else {
                 return getSourceEnvelopes(renderingEnvelope);
             }
+        }
+    }
+
+    private void addTransformedEnvelope(ReferencedEnvelope re, List<ReferencedEnvelope> envelopes)
+            throws TransformException, FactoryException {
+        ReferencedEnvelope transformed = transformEnvelope(re, sourceCRS);
+        if (transformed != null) {
+            envelopes.add(transformed);
         }
     }
 
@@ -296,8 +323,28 @@ public class ProjectionHandler {
         return envelopes.stream().filter(e -> e != null).collect(Collectors.toList());
     }
 
-    protected ReferencedEnvelope transformEnvelope(ReferencedEnvelope envelope,
-            CoordinateReferenceSystem targetCRS) throws TransformException, FactoryException {
+    /**
+     * Reprojects the given envelope to the target CRS, taking into account the ProjectionHandler
+     * constraints (valid area bounds, etc.).
+     *
+     * @param envelope envelope to reproject
+     * @param targetCRS target CRS
+     * @return reprojected envelope
+     * @throws TransformException
+     * @throws FactoryException
+     */
+    public ReferencedEnvelope getProjectedEnvelope(
+            ReferencedEnvelope envelope, CoordinateReferenceSystem targetCRS)
+            throws TransformException, FactoryException {
+        return transformEnvelope(envelope, targetCRS);
+    }
+
+    protected ReferencedEnvelope transformEnvelope(
+            ReferencedEnvelope envelope, CoordinateReferenceSystem targetCRS)
+            throws TransformException, FactoryException {
+        if (CRS.equalsIgnoreMetadata(envelope.getCoordinateReferenceSystem(), targetCRS)) {
+            return envelope;
+        }
         try {
             if (validAreaBounds != null) {
                 ReferencedEnvelope validAreaInTargetCRS = validAreaBounds.transform(envelope.getCoordinateReferenceSystem(), true);
