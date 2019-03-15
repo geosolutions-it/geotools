@@ -16,10 +16,6 @@
  */
 package org.geotools.coverage.processing.operation;
 
-import it.geosolutions.jaiext.JAIExt;
-import it.geosolutions.jaiext.range.NoDataContainer;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -57,6 +53,8 @@ import org.geotools.coverage.processing.CannotReprojectException;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.geometry.jts.JTS;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.image.ImageWorker;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
@@ -90,6 +88,10 @@ import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.referencing.operation.MathTransformFactory;
 import org.opengis.referencing.operation.NoninvertibleTransformException;
 import org.opengis.referencing.operation.TransformException;
+
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
 
 
 /**
@@ -477,7 +479,11 @@ final class Resampler2D extends GridCoverage2D {
             step2          = factory.createOperation(targetCRS, compatibleSourceCRS).getMathTransform();
             step3          = (force2D ? sourceGG.getGridToCRS2D(CORNER) : sourceGG.getGridToCRS(CORNER)).inverse();
             sourceEnvelope = sourceCoverage.getEnvelope(); // Don't force this one to 2D.
-            targetEnvelope = CRS.transform(operation, sourceEnvelope);
+            // targetEnvelope = CRS.transform(operation, sourceEnvelope);
+            ReferencedEnvelope jtsEnvelope = new ReferencedEnvelope(sourceEnvelope);
+            jtsEnvelope = jtsEnvelope.transform(targetCRS, true, 10);
+            jtsEnvelope.expandBy(Math.max(jtsEnvelope.getWidth(), jtsEnvelope.getWidth()) * 0.03);
+            targetEnvelope = new GeneralEnvelope(new double[] {jtsEnvelope.getMinX(), jtsEnvelope.getMinY()}, new double[] {jtsEnvelope.getMaxX(), jtsEnvelope.getMaxY()});
             targetEnvelope.setCoordinateReferenceSystem(targetCRS);
             // 'targetCRS' may be different than the one set by CRS.transform(...).
             /*

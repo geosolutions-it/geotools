@@ -219,7 +219,7 @@ public class GridCoverageReaderHelper {
                     .reference(reader.getOriginalEnvelope());
             boolean northEast = CRS.getAxisOrder(readerCRS) == AxisOrder.NORTH_EAST;
             int lonAxis = northEast ? 1 : 0;
-            if (readerEnvelope.getMaximum(lonAxis) > 180) {
+            if (readerEnvelope.getMaximum(lonAxis) > 180.00001) {
                 ReferencedEnvelope excess;
                 double tx, ty;
                 if (northEast) {
