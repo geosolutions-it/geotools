@@ -1052,7 +1052,12 @@ public class StreamingRenderer implements GTRenderer {
                     MathTransform2D fullTranform = (MathTransform2D) ConcatenatedTransform.create(crsTransform, screenTransform);
                     Rectangle2D.Double sourceDomain = new Rectangle2D.Double(sourceEnvelope.getMinX(), sourceEnvelope.getMinY(), sourceEnvelope.getWidth(), sourceEnvelope.getHeight());
                     WarpBuilder wb = new WarpBuilder(0.8);
-                    int[] actualSplit = wb.getRowColsSplit(fullTranform, sourceDomain);
+                    int[] actualSplit = null;
+                    try {
+                        actualSplit = wb.getRowColsSplit(fullTranform, sourceDomain);
+                    } catch(Throwable t) {
+                        // let's continue with defaults
+                    }
                     if (actualSplit != null && (actualSplit[0] != 1 || actualSplit[1] != 1)) {
                         double densifyDistance = Math.min(sourceEnvelope.getWidth() / Math.min(actualSplit[0], MAX_PIXELS_DENSIFY), sourceEnvelope.getHeight() / Math.min(actualSplit[1], MAX_PIXELS_DENSIFY));
                         projectionHints.put("advancedProjectionDensify", densifyDistance);
