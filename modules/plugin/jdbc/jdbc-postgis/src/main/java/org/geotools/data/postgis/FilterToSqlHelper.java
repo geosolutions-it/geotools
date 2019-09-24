@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.geotools.data.jdbc.FilterToSQL;
+import org.geotools.data.postgis.filter.FilterFunction_pgAny;
 import org.geotools.data.postgis.filter.FilterFunction_pgNearest;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.FilterCapabilities;
@@ -178,6 +179,8 @@ class FilterToSqlHelper {
 
             // n nearest function
             caps.addType(FilterFunction_pgNearest.class);
+            // any function
+            caps.addType(FilterFunction_pgAny.class);
         }
 
         // native filter support
@@ -513,6 +516,8 @@ class FilterToSqlHelper {
                 || function instanceof FilterFunction_abs_3
                 || function instanceof FilterFunction_abs_4) {
             return "abs";
+        } else if (function instanceof FilterFunction_pgAny) {
+            return "any";
         }
         return function.getName();
     }

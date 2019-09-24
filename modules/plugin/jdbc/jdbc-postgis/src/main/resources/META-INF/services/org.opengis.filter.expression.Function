@@ -1,1 +1,2 @@
 org.geotools.data.postgis.filter.FilterFunction_pgNearest
+org.geotools.data.postgis.filter.FilterFunction_pgAny
