@@ -20,6 +20,7 @@ import java.io.IOException;
 import org.geotools.data.postgis.filter.FilterFunction_pgNearest;
 import org.geotools.filter.FilterCapabilities;
 import org.geotools.filter.function.FilterFunction_arrayAnyMatch;
+import org.geotools.filter.function.FilterFunction_equalTo;
 import org.geotools.jdbc.PreparedFilterToSQL;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.filter.BinaryComparisonOperator;
@@ -171,6 +172,8 @@ public class PostgisPSFilterToSql extends PreparedFilterToSQL {
         helper.out = out;
         FilterFunction_pgNearest nearest = helper.getNearestFilter(filter);
         FilterFunction_arrayAnyMatch any = helper.getArrayAnyMatch(filter);
+        // FilterFunction_arrayOverlap overlap = helper.getArrayOverlap(filter);
+        FilterFunction_equalTo equalTo = helper.getEqualTo(filter);
         if (nearest != null) {
             return helper.visit(
                     nearest,
@@ -191,6 +194,10 @@ public class PostgisPSFilterToSql extends PreparedFilterToSQL {
                             }));
         } else if (any != null) {
             return helper.visit(any, extraData);
+            /*} else if (overlap != null) {
+            return helper.visit(overlap, extraData);*/
+        } else if (equalTo != null) {
+            return helper.visit(equalTo, extraData);
         } else {
             return super.visit(filter, extraData);
         }

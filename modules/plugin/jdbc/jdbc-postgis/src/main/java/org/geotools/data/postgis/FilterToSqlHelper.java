@@ -34,6 +34,8 @@ import org.geotools.filter.FilterCapabilities;
 import org.geotools.filter.function.DateDifferenceFunction;
 import org.geotools.filter.function.FilterFunction_area;
 import org.geotools.filter.function.FilterFunction_arrayAnyMatch;
+import org.geotools.filter.function.FilterFunction_arrayOverlap;
+import org.geotools.filter.function.FilterFunction_equalTo;
 import org.geotools.filter.function.FilterFunction_strConcat;
 import org.geotools.filter.function.FilterFunction_strEndsWith;
 import org.geotools.filter.function.FilterFunction_strEqualsIgnoreCase;
@@ -69,6 +71,7 @@ import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.filter.BinaryComparisonOperator;
 import org.opengis.filter.MultiValuedFilter;
+import org.opengis.filter.MultiValuedFilter.MatchAction;
 import org.opengis.filter.NativeFilter;
 import org.opengis.filter.PropertyIsBetween;
 import org.opengis.filter.PropertyIsEqualTo;
@@ -182,6 +185,8 @@ class FilterToSqlHelper {
 
             // array functions
             caps.addType(FilterFunction_arrayAnyMatch.class);
+            caps.addType(FilterFunction_arrayOverlap.class);
+            caps.addType(FilterFunction_equalTo.class);
         }
 
         // native filter support
@@ -946,6 +951,36 @@ class FilterToSqlHelper {
         return extraData;
     }
 
+    /*public Object visit(FilterFunction_arrayOverlap filter, Object extraData) {
+        Expression left = getParameter(filter, 0, true);
+        Expression right = getParameter(filter, 1, true);
+        visitArrayComparison(
+                CommonFactoryFinder.getFilterFactory(null)
+                        .equal(left, right, true, MatchAction.ALL),
+                left,
+                right,
+                null,
+                null,
+                "&&");
+        return extraData;
+    }*/
+
+    public Object visit(FilterFunction_equalTo filter, Object extraData) {
+        Expression left = getParameter(filter, 0, true);
+        Expression right = getParameter(filter, 1, true);
+        Expression type = getParameter(filter, 2, true);
+        String matchType = (String) type.evaluate(null);
+        visitArrayComparison(
+                CommonFactoryFinder.getFilterFactory(null)
+                        .equal(left, right, false, MatchAction.valueOf(matchType)),
+                left,
+                right,
+                null,
+                null,
+                "&&");
+        return extraData;
+    }
+
     public Object visit(
             FilterFunction_pgNearest filter, Object extraData, NearestHelperContext ctx) {
         SQLDialect pgDialect = ctx.getPgDialect();
@@ -1038,6 +1073,37 @@ class FilterToSqlHelper {
         }
         if (expr1 instanceof FilterFunction_arrayAnyMatch) {
             return (FilterFunction_arrayAnyMatch) expr1;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Detects and return a FilterFunction_arrayOverlap if found, otherwise null
+     *
+     * @param filter filter to evaluate
+     * @return FilterFunction_any if found
+     *     <p>public FilterFunction_arrayOverlap getArrayOverlap(PropertyIsEqualTo filter) {
+     *     Expression expr1 = filter.getExpression1(); Expression expr2 = filter.getExpression2();
+     *     if (expr2 instanceof FilterFunction_arrayOverlap) { return (FilterFunction_arrayOverlap)
+     *     expr2; } if (expr1 instanceof FilterFunction_arrayOverlap) { return
+     *     (FilterFunction_arrayOverlap) expr1; } else { return null; } }
+     */
+
+    /**
+     * Detects and return a FilterFunction_multiEqualTo if found, otherwise null
+     *
+     * @param filter filter to evaluate
+     * @return FilterFunction_multiEqualTo if found
+     */
+    public FilterFunction_equalTo getEqualTo(PropertyIsEqualTo filter) {
+        Expression expr1 = filter.getExpression1();
+        Expression expr2 = filter.getExpression2();
+        if (expr2 instanceof FilterFunction_equalTo) {
+            return (FilterFunction_equalTo) expr2;
+        }
+        if (expr1 instanceof FilterFunction_equalTo) {
+            return (FilterFunction_equalTo) expr1;
         } else {
             return null;
         }
