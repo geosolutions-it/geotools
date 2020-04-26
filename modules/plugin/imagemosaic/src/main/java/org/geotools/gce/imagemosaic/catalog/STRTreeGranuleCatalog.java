@@ -16,6 +16,10 @@
  */
 package org.geotools.gce.imagemosaic.catalog;
 
+import static org.geotools.coverage.grid.io.GranuleSource.NATIVE_BOUNDS;
+import static org.geotools.coverage.grid.io.GranuleSource.NATIVE_BOUNDS_KEY;
+import static org.geotools.geometry.jts.ReferencedEnvelope.reference;
+
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -220,8 +224,7 @@ class STRTreeGranuleCatalog extends GranuleCatalog {
             long size = 0;
             while (it.hasNext()) {
                 final GranuleDescriptor granule = it.next();
-                final ReferencedEnvelope env =
-                        ReferencedEnvelope.reference(granule.getGranuleBBOX());
+                final ReferencedEnvelope env = reference(granule.getGranuleBBOX());
                 final Geometry g =
                         FeatureUtilities.getPolygon(
                                 new Rectangle2D.Double(
@@ -257,7 +260,7 @@ class STRTreeGranuleCatalog extends GranuleCatalog {
             lock.lock();
             checkStore();
             checkIndex(lock);
-            return index.query(ReferencedEnvelope.reference(envelope));
+            return index.query(reference(envelope));
         } finally {
             lock.unlock();
         }
@@ -279,8 +282,7 @@ class STRTreeGranuleCatalog extends GranuleCatalog {
 
             checkIndex(lock);
 
-            index.query(
-                    ReferencedEnvelope.reference(envelope), new JTSIndexVisitorAdapter(visitor));
+            index.query(reference(envelope), new JTSIndexVisitorAdapter(visitor));
         } finally {
             lock.unlock();
         }
@@ -334,7 +336,14 @@ class STRTreeGranuleCatalog extends GranuleCatalog {
                 // check how many tiles we are returning
                 if (q.getSortBy() == null && maxGranules > 0 && numGranules >= maxGranules) break;
                 final SimpleFeature originator = g.getOriginator();
-                if (originator != null && filter.evaluate(originator)) filtered.add(originator);
+                if (originator != null && filter.evaluate(originator)) {
+                    if (Boolean.TRUE.equals(q.getHints().get(NATIVE_BOUNDS))) {
+                        originator
+                                .getUserData()
+                                .put(NATIVE_BOUNDS_KEY, reference(g.getGranuleBBOX()));
+                    }
+                    filtered.add(originator);
+                }
             }
             if (q.getSortBy() != null) {
                 Comparator<SimpleFeature> comparator =
@@ -356,7 +365,7 @@ class STRTreeGranuleCatalog extends GranuleCatalog {
         final Utils.BBOXFilterExtractor bboxExtractor = new Utils.BBOXFilterExtractor();
         filter.accept(bboxExtractor, null);
         BoundingBox bbox = wrappedCatalogue.getBounds(typeName);
-        return ReferencedEnvelope.reference(bbox);
+        return reference(bbox);
     }
 
     public List<GranuleDescriptor> getGranules() throws IOException {
