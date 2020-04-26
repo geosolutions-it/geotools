@@ -102,6 +102,7 @@ import org.geotools.map.MapContent;
 import org.geotools.map.StyleLayer;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.referencing.operation.LinearTransform;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.referencing.operation.transform.ConcatenatedTransform;
@@ -1129,53 +1130,17 @@ public class StreamingRenderer implements GTRenderer {
                         ReferencedEnvelope targetEnvelope = envelope;
                         ReferencedEnvelope sourceEnvelope =
                                 transformEnvelope(targetEnvelope, featCrs);
-                        AffineTransform at = worldToScreenTransform;
-                        AffineTransform screenToWorldTransform = new AffineTransform(at);
-                        screenToWorldTransform.invert();
-                        MathTransform2D crsTransform =
-                                (MathTransform2D)
-                                        CRS.findMathTransform(
-                                                CRS.getHorizontalCRS(featCrs),
-                                                CRS.getHorizontalCRS(mapCRS));
-                        MathTransform2D screenTransform = new AffineTransform2D(at);
-                        MathTransform2D fullTranform =
-                                (MathTransform2D)
-                                        ConcatenatedTransform.create(crsTransform, screenTransform);
-                        Rectangle2D.Double sourceDomain =
-                                new Rectangle2D.Double(
-                                        sourceEnvelope.getMinX(),
-                                        sourceEnvelope.getMinY(),
-                                        sourceEnvelope.getWidth(),
-                                        sourceEnvelope.getHeight());
-                        WarpBuilder wb = new WarpBuilder(tolerance);
-                        double densifyDistance = 0.0;
-                        int[] actualSplit =
-                                wb.isValidDomain(sourceDomain)
-                                        ? wb.getRowColsSplit(fullTranform, sourceDomain)
-                                        : null;
-                        double minDistance =
-                                Math.min(
-                                        MAX_PIXELS_DENSIFY
-                                                * sourceEnvelope.getWidth()
-                                                / screenSize.getWidth(),
-                                        MAX_PIXELS_DENSIFY
-                                                * sourceEnvelope.getHeight()
-                                                / screenSize.getHeight());
-                        if (actualSplit == null) {
-                            // alghoritm gave up, we decide to use a fixed distance value
-                            densifyDistance = minDistance;
-                        } else if (actualSplit[0] != 1 || actualSplit[1] != 1) {
-
-                            densifyDistance =
-                                    Math.max(
-                                            Math.min(
-                                                    sourceEnvelope.getWidth() / actualSplit[0],
-                                                    sourceEnvelope.getHeight() / actualSplit[1]),
-                                            minDistance);
-                        }
-                        if (densifyDistance > 0.0) {
-                            projectionHints.put(
-                                    ProjectionHandler.ADVANCED_PROJECTION_DENSIFY, densifyDistance);
+                        if (sourceEnvelope != null
+                                && !sourceEnvelope.isEmpty()
+                                && !sourceEnvelope.isNull()) {
+                            setupDensificationHints(
+                                    mapCRS,
+                                    featCrs,
+                                    screenSize,
+                                    worldToScreenTransform,
+                                    projectionHints,
+                                    tolerance,
+                                    sourceEnvelope);
                         }
                     }
                 }
@@ -1328,6 +1293,116 @@ public class StreamingRenderer implements GTRenderer {
         query.setFilter(simplifiedFilter);
 
         return query;
+    }
+
+    private void setupDensificationHints(
+            CoordinateReferenceSystem mapCRS,
+            CoordinateReferenceSystem featCrs,
+            Rectangle screenSize,
+            AffineTransform worldToScreenTransform,
+            Map projectionHints,
+            double tolerance,
+            ReferencedEnvelope sourceEnvelope)
+            throws NoninvertibleTransformException, FactoryException {
+        AffineTransform at = worldToScreenTransform;
+        AffineTransform screenToWorldTransform = new AffineTransform(at);
+        screenToWorldTransform.invert();
+        MathTransform2D crsTransform =
+                (MathTransform2D)
+                        CRS.findMathTransform(
+                                CRS.getHorizontalCRS(featCrs), CRS.getHorizontalCRS(mapCRS));
+        MathTransform2D screenTransform = new AffineTransform2D(at);
+        MathTransform2D fullTranform =
+                (MathTransform2D) ConcatenatedTransform.create(crsTransform, screenTransform);
+        Rectangle2D.Double sourceDomain =
+                new Rectangle2D.Double(
+                        sourceEnvelope.getMinX(),
+                        sourceEnvelope.getMinY(),
+                        sourceEnvelope.getWidth(),
+                        sourceEnvelope.getHeight());
+        WarpBuilder wb = new WarpBuilder(tolerance);
+        double densifyDistance = 0.0;
+        int[] actualSplit =
+                wb.isValidDomain(sourceDomain)
+                        ? wb.getRowColsSplit(fullTranform, sourceDomain)
+                        : null;
+        double minDistance =
+                Math.min(
+                        MAX_PIXELS_DENSIFY * sourceEnvelope.getWidth() / screenSize.getWidth(),
+                        MAX_PIXELS_DENSIFY * sourceEnvelope.getHeight() / screenSize.getHeight());
+        if (actualSplit == null) {
+            // alghoritm gave up, we decide to use a fixed distance value
+            densifyDistance = minDistance;
+        } else if (actualSplit[0] != 1 || actualSplit[1] != 1) {
+
+            densifyDistance =
+                    Math.max(
+                            Math.min(
+                                    sourceEnvelope.getWidth() / actualSplit[0],
+                                    sourceEnvelope.getHeight() / actualSplit[1]),
+                            minDistance);
+        }
+        if (densifyDistance > 0.0) {
+            projectionHints.put(ProjectionHandler.ADVANCED_PROJECTION_DENSIFY, densifyDistance);
+        }
+    }
+
+    private double[] getGeneralizationSpans(
+            ReferencedEnvelope envelope,
+            MathTransform sourceToScreen,
+            AffineTransform worldToScreenTransform,
+            CoordinateReferenceSystem featureCRS,
+            Rectangle screen)
+            throws TransformException {
+        // can we cut on the valid area? No? well, let's hope for the best
+        try {
+            ProjectionHandler ph =
+                    ProjectionHandlerFinder.getHandler(
+                            new ReferencedEnvelope(featureCRS),
+                            envelope.getCoordinateReferenceSystem(),
+                            false);
+            if (isAdvancedProjectionHandlingEnabled() && ph != null) {
+
+                Polygon renderPolygon = JTS.toGeometry(envelope);
+                // make it cut to valid area
+                Geometry preProcessed = ph.preProcess(renderPolygon);
+                if (preProcessed != null && !preProcessed.isEmpty()) {
+                    LinearTransform w2s = ProjectiveTransform.create(worldToScreenTransform);
+                    Geometry screenGeometry = JTS.transform(preProcessed, w2s);
+                    Envelope screenEnvelope = screenGeometry.getEnvelopeInternal();
+                    int minX, minY, maxX, maxY;
+                    if (screenEnvelope.getWidth() > 1) {
+                        // ensure expansion does not bring it outside of the valid area
+                        minX = (int) Math.ceil(screenEnvelope.getMinX());
+                        maxX = (int) Math.floor(screenEnvelope.getMaxX());
+                    } else {
+                        double midPoint = (screenEnvelope.getMinX() + screenEnvelope.getMaxX()) / 2;
+                        minX = maxX = (int) Math.round(midPoint);
+                    }
+                    if (screenEnvelope.getHeight() > 1) {
+                        // ensure expansion does not bring it outside of the valid area
+                        minY = (int) Math.ceil(screenEnvelope.getMinY());
+                        maxY = (int) Math.floor(screenEnvelope.getMaxY());
+                    } else {
+                        double midPoint = (screenEnvelope.getMinY() + screenEnvelope.getMaxY()) / 2;
+                        minY = maxY = (int) Math.round(midPoint);
+                    }
+
+                    screen = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+                }
+            }
+
+        } catch (FactoryException e) {
+            if (LOGGER.isLoggable(Level.FINE))
+                LOGGER.log(
+                        Level.INFO,
+                        "Failed to compute the generalization spans with projection handlers, falling back to full area evaluation",
+                        e);
+        }
+
+        // fallback, use the entire rendering area
+        return Decimator.computeGeneralizationDistances(
+                sourceToScreen.inverse(), screen, generalizationDistance);
     }
 
     protected ReferencedEnvelope transformEnvelope(
