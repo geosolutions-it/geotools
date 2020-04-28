@@ -90,7 +90,7 @@ public class FeatureTypeDBObject {
         }
         ftDBO.put(KEY_geometryDescriptor, gdDBO);
 
-        BasicDBList adDBL = new BasicDBList();
+        BasicDBList adDBL = new BasicDBList().toString();
         for (AttributeDescriptor ad : ft.getAttributeDescriptors()) {
             String adLocalName = ad.getLocalName();
             DBObject adDBO = new BasicDBObject(KEY_localName, adLocalName);
