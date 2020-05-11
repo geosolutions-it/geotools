@@ -100,7 +100,7 @@ Concatenate(text): result
 * result: String 1:1 required
 
 EqualArea(value, classes, areaFunction, percentages): EqualArea
-''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 * value: Double 1:1 required
 
@@ -113,7 +113,7 @@ EqualArea(value, classes, areaFunction, percentages): EqualArea
 * EqualArea: RangedClassifier 1:1 required
 
 EqualInterval(value, classes, percentages): EqualInterval
-''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 * value: Double 1:1 required
 
@@ -144,7 +144,7 @@ Interpolate(data value pairs, mode, method): lookup
 * lookup
 
 Jenks(value, classes, percentages): Jenks
-''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''
 
 * value: Double 1:1 required
 
@@ -162,7 +162,7 @@ PropertyExists(propertyName): exists
 * exists: Boolean 1:1 required
 
 Quantile(value, classes, percentages): Quantile
-''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''
 
 * value: Double 1:1 required
 
@@ -197,7 +197,7 @@ StandardDeviation(value, classes): StandardDeviation
 * StandardDeviation: RangedClassifier 1:1 required
 
 UniqueInterval(value, classes, percentages): UniqueInterval
-''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 * value: Double 1:1 required
 

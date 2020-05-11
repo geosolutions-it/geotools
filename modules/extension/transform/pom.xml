@@ -10,7 +10,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>extension</artifactId>
-    <version>21-tc</version>
+    <version>21-tc-SNAPSHOT</version>
   </parent>
 
 

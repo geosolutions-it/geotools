@@ -337,7 +337,7 @@
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
   <packaging>pom</packaging>
-  <version>21-tc</version>
+  <version>21-tc-SNAPSHOT</version>
   <name>GeoTools</name>
 
   <scm>
