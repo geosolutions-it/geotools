@@ -404,7 +404,7 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
             try {
                 final File sourceF = URLs.urlToFile(sourceURL);
                 if (FilenameUtils.getName(sourceF.getAbsolutePath())
-                        .equalsIgnoreCase("datastore.properties")) {
+                        .equalsIgnoreCase(Utils.DATASTORE_PROPERTIES)) {
                     shapefile = false;
                     // load spi anche check it
                     // read the properties file
@@ -479,7 +479,8 @@ public final class ImageMosaicFormat extends AbstractGridFormat implements Forma
                                                     and(
                                                             notFileFilter(
                                                                     nameFileFilter(
-                                                                            "datastore.properties")),
+                                                                            Utils
+                                                                                    .DATASTORE_PROPERTIES)),
                                                             makeFileOnly(
                                                                     suffixFileFilter(
                                                                             ".properties")))));
