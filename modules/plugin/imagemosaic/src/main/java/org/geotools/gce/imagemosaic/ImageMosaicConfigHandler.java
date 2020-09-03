@@ -44,10 +44,7 @@ import javax.imageio.spi.ImageReaderSpi;
 import javax.media.jai.ImageLayout;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.geotools.coverage.grid.io.GranuleSource;
-import org.geotools.coverage.grid.io.GranuleStore;
-import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
+import org.geotools.coverage.grid.io.*;
 import org.geotools.coverage.grid.io.footprint.MultiLevelROIProvider;
 import org.geotools.coverage.util.CoverageUtilities;
 import org.geotools.data.DataSourceException;
@@ -148,6 +145,8 @@ public class ImageMosaicConfigHandler {
     private CatalogBuilderConfiguration runConfiguration;
 
     private ImageReaderSpi cachedReaderSPI;
+
+    private AbstractGridFormat cachedFormat;
 
     private ReferencedEnvelope imposedBBox;
 
@@ -1339,6 +1338,9 @@ public class ImageMosaicConfigHandler {
             // suggested spi
             properties.setProperty(Utils.Prop.SUGGESTED_SPI, cachedReaderSPI.getClass().getName());
         }
+        if (cachedFormat != null) {
+            properties.setProperty(Prop.SUGGESTED_FORMAT, cachedFormat.getClass().getName());
+        }
 
         // write down imposed bbox
         if (imposedBBox != null) {
@@ -1787,6 +1789,14 @@ public class ImageMosaicConfigHandler {
 
     public void setCachedReaderSPI(ImageReaderSpi cachedReaderSPI) {
         this.cachedReaderSPI = cachedReaderSPI;
+    }
+
+    public AbstractGridFormat getCachedFormat() {
+        return cachedFormat;
+    }
+
+    public void setCachedFormat(AbstractGridFormat cachedFormat) {
+        this.cachedFormat = cachedFormat;
     }
 
     public List<GranuleAcceptor> getGranuleAcceptors() {
