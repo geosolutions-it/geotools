@@ -57,6 +57,9 @@
   <!--                                                             -->
   <!--     dependencycheck    Profile to check dependency versions -->
   <!--                                                             -->
+  <!--     deploygeosolutions Profile to publish artifacts to      -->
+  <!--	                      GeoSolutions maven repository        -->
+  <!--                                                             -->
   <!--   Example:                                                  -->
   <!--       mvn install -Dall                                     -->
   <!--       mvn eclipse:eclipse -Dall                             -->
@@ -437,6 +440,18 @@
         </plugins>
       </build>  
     </profile>
+
+   <profile>
+    <id>deploygeosolutions</id>
+     <distributionManagement>
+      <repository>
+       <uniqueVersion>false</uniqueVersion>
+       <id>geosolutions</id>
+       <url>ftp://demo.geo-solutions.it</url>
+      </repository>
+    </distributionManagement>
+    </profile>
+
 </profiles>
 
 
