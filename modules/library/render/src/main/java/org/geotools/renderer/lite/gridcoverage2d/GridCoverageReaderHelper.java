@@ -81,6 +81,8 @@ public class GridCoverageReaderHelper {
 
     private GridCoverage2DReader reader;
 
+    private static final double EPSILON = 1.0 / 1000.0;
+
     private ReferencedEnvelope mapExtent;
 
     private Rectangle mapRasterArea;
@@ -266,7 +268,7 @@ public class GridCoverageReaderHelper {
                     ReferencedEnvelope.reference(reader.getOriginalEnvelope());
             boolean northEast = CRS.getAxisOrder(readerCRS) == AxisOrder.NORTH_EAST;
             int lonAxis = northEast ? 1 : 0;
-            if (readerEnvelope.getMaximum(lonAxis) > 180) {
+            if (readerEnvelope.getMaximum(lonAxis) > 180 + EPSILON) {
                 ReferencedEnvelope excess;
                 double tx, ty;
                 if (northEast) {
