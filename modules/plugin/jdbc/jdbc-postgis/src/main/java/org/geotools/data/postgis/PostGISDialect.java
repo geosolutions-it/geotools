@@ -192,6 +192,8 @@ public class PostGISDialect extends BasicSQLDialect {
 
     boolean simplifyEnabled = true;
 
+    boolean topologyPreserved = false;
+
     Version version, pgsqlVersion;
 
     public boolean isLooseBBOXEnabled() {
@@ -239,6 +241,20 @@ public class PostGISDialect extends BasicSQLDialect {
      */
     public void setSimplifyEnabled(boolean simplifyEnabled) {
         this.simplifyEnabled = simplifyEnabled;
+    }
+
+    public boolean isTopologyPreserved() {
+        return topologyPreserved;
+    }
+
+    /**
+     * Enables/disables usage of ST_SimplifyPreserveTopology, instead of ST_Simplify when
+     * simplification has to be applied.
+     *
+     * @param topologyPreserved
+     */
+    public void setTopologyPreserved(boolean topologyPreserved) {
+        this.topologyPreserved = topologyPreserved;
     }
 
     @Override
@@ -364,9 +380,18 @@ public class PostGISDialect extends BasicSQLDialect {
                 sql.append("),'base64')");
             } else {
                 if (NON_CURVED_GEOMETRY_CLASSES.contains(gatt.getType().getBinding())) {
-                    sql.append("encode(ST_AsBinary(ST_Simplify(" + getForce2DFunction() + "(");
-                    encodeColumnName(prefix, gatt.getLocalName(), sql);
-                    sql.append("), " + distance + preserveCollapsed + ")),'base64')");
+                    if (isTopologyPreserved()) {
+                        sql.append(
+                                "encode(ST_AsBinary(ST_SimplifyPreserveTopology("
+                                        + getForce2DFunction()
+                                        + "(");
+                        encodeColumnName(prefix, gatt.getLocalName(), sql);
+                        sql.append("), " + distance + ")),'base64')");
+                    } else {
+                        sql.append("encode(ST_AsBinary(ST_Simplify(" + getForce2DFunction() + "(");
+                        encodeColumnName(prefix, gatt.getLocalName(), sql);
+                        sql.append("), " + distance + preserveCollapsed + ")),'base64')");
+                    }
                 } else {
                     // we can have curves mixed in
                     sql.append("encode(ST_AsBinary(");
@@ -375,9 +400,15 @@ public class PostGISDialect extends BasicSQLDialect {
                     sql.append(") THEN ");
                     encodeColumnName(prefix, gatt.getLocalName(), sql);
                     sql.append(" ELSE ");
-                    sql.append("ST_Simplify(" + getForce2DFunction() + "(");
-                    encodeColumnName(prefix, gatt.getLocalName(), sql);
-                    sql.append("), " + distance + preserveCollapsed + ") END),'base64')");
+                    if (isTopologyPreserved()) {
+                        sql.append("ST_SimplifyPreserveTopology(" + getForce2DFunction() + "(");
+                        encodeColumnName(prefix, gatt.getLocalName(), sql);
+                        sql.append("), " + distance + ") END),'base64')");
+                    } else {
+                        sql.append("ST_Simplify(" + getForce2DFunction() + "(");
+                        encodeColumnName(prefix, gatt.getLocalName(), sql);
+                        sql.append("), " + distance + preserveCollapsed + ") END),'base64')");
+                    }
                 }
             }
         }
