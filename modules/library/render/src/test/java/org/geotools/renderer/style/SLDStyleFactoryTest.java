@@ -32,8 +32,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import junit.framework.TestCase;
+import org.apache.commons.collections4.IteratorUtils;
 import org.geotools.data.DataUtilities;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
@@ -61,7 +63,9 @@ import org.geotools.styling.StyleBuilder;
 import org.geotools.styling.StyleFactory;
 import org.geotools.styling.TextSymbolizer;
 import org.geotools.util.NumberRange;
+import org.geotools.util.factory.Hints;
 import org.hamcrest.CoreMatchers;
+import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -601,5 +605,26 @@ public class SLDStyleFactoryTest extends TestCase {
         assertThat(ls2d.getStroke(), CoreMatchers.instanceOf(BasicStroke.class));
         BasicStroke bs = (BasicStroke) ls2d.getStroke();
         assertNull(bs.getDashArray());
+    }
+
+    @Test
+    public void testOptimizedMarkFactoryHints() {
+        // create a list with two mark factories identifiers
+        List<String> list = Arrays.asList("WellKnownMarkFactory", "WKTMarkFactory");
+        Map<RenderingHints.Key, Object> map = new HashMap<>();
+        map.put(DynamicSymbolFactoryFinder.MARK_FACTORY_FILTER, new MarkFactoryListPredicate(list));
+        map.put(DynamicSymbolFactoryFinder.MARK_FACTORY_ORDER, new MarkFactoryListComparator(list));
+
+        Hints hints = new Hints(map);
+
+        List<MarkFactory> factories =
+                IteratorUtils.toList(DynamicSymbolFactoryFinder.getMarkFactories(hints));
+        assertEquals(2, factories.size());
+        List<String> result =
+                factories
+                        .stream()
+                        .map(mf -> mf.getClass().getSimpleName())
+                        .collect(Collectors.toList());
+        assertEquals(list, result);
     }
 }
