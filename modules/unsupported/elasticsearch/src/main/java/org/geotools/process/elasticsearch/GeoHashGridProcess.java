@@ -16,6 +16,9 @@
  */
 package org.geotools.process.elasticsearch;
 
+import static com.github.davidmoten.geo.GeoHash.widthDegrees;
+
+import com.github.davidmoten.geo.GeoHash;
 import java.util.ArrayList;
 import java.util.List;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -36,6 +39,8 @@ import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import org.opengis.filter.expression.PropertyName;
 import org.opengis.filter.spatial.BBOX;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.ProgressListener;
 
 @SuppressWarnings("unused")
@@ -83,7 +88,7 @@ public class GeoHashGridProcess implements VectorProcess {
                         name = "gridStrategy",
                         description = "GeoHash grid strategy",
                         defaultValue = "Basic",
-                        min = 1
+                        min = 0
                     )
                     String gridStrategy,
             @DescribeParameter(
@@ -119,23 +124,33 @@ public class GeoHashGridProcess implements VectorProcess {
                     )
                     Integer argOutputHeight,
             @DescribeParameter(
-                            name = "aggregationDefinition",
-                            description = "Native Elasticsearch Aggregation definition")
+                        name = "aggregationDefinition",
+                        description = "Native Elasticsearch Aggregation definition",
+                        min = 0
+                    )
                     String aggregationDefinition,
             @DescribeParameter(
-                            name = "queryDefinition",
-                            description = "Native Elasticsearch Query definition",
-                            min = 0)
+                        name = "queryDefinition",
+                        description = "Native Elasticsearch Query definition",
+                        min = 0
+                    )
                     String queryDefinition,
             @DescribeParameter(
-                            name = "nativeOnly",
-                            description = "Use native Elasticsearch query and ignore other filters",
-                            min = 0)
+                        name = "nativeOnly",
+                        description = "Use native Elasticsearch query and ignore other filters",
+                        min = 0
+                    )
                     Boolean nativeOnly,
             ProgressListener monitor)
             throws ProcessException {
 
         try {
+            // setup sane defaults for aggregation definition, if missing
+            if (aggregationDefinition == null)
+                aggregationDefinition =
+                        defaultAggregation(
+                                argOutputEnv, argOutputWidth, argOutputHeight, obsFeatures);
+
             // construct and populate grid
             final GeoHashGrid geoHashGrid =
                     Strategy.valueOf(gridStrategy.toUpperCase()).createNewInstance();
@@ -165,6 +180,37 @@ public class GeoHashGridProcess implements VectorProcess {
         } catch (Exception e) {
             throw new ProcessException("Error executing GeoHashGridProcess", e);
         }
+    }
+
+    String defaultAggregation(
+            ReferencedEnvelope envelope,
+            Integer width,
+            Integer height,
+            SimpleFeatureCollection obsFeatures)
+            throws FactoryException, TransformException {
+        ReferencedEnvelope wgse = envelope.transform(DefaultGeographicCRS.WGS84, true);
+        double cellw = wgse.getWidth() / width;
+        double cellh = wgse.getHeight() / height;
+
+        // find out which GeoHash precision best fits the target width and height, we need
+        // something just a little bit more precise
+        int precision = 0;
+        double ghw = 0, ghh = 0;
+        for (; precision <= GeoHash.MAX_HASH_LENGTH; precision++) {
+            ghw = widthDegrees(precision);
+            ghh = GeoHash.heightDegrees(precision);
+            if (ghw <= cellw && ghh <= cellh) break;
+        }
+        // stick with a lower precision, number of cells goes up by a factor of 32 for
+        // each precision level
+        if (precision > 1 && (ghw != cellw || ghh != cellh)) {
+            precision = precision - 1;
+        }
+
+        // having the precision, compute the aggregation definition
+        return "{\"agg\": {\"geohash_grid\": {\"size\": 65536, \"field\": \"\", \"precision\": "
+                + precision
+                + "}}}";
     }
 
     public Query invertQuery(
