@@ -58,7 +58,8 @@ public class ElasticTestSupport {
 
     static {
         elasticsearch =
-                new ElasticsearchContainer(IMAGE + ":" + System.getProperty(VERSION_PROPERTY_NAME));
+                new ElasticsearchContainer(
+                        IMAGE + ":" + System.getProperty(VERSION_PROPERTY_NAME, "7.10.2"));
         elasticsearch.start();
     }
 
