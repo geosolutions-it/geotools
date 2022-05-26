@@ -94,8 +94,8 @@ public class WarpBuilder {
     }
 
     private boolean isValidDomain(double minx, double maxx, double miny, double maxy) {
-        final int width = (int) (maxx - minx);
-        final int height = (int) (maxy - miny);
+        final double width = maxx - minx;
+        final double height = maxy - miny;
         return width > 0 && height > 0;
     }
 
