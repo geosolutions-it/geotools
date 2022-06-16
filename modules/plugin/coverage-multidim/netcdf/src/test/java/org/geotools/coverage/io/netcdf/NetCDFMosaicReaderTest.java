@@ -16,7 +16,11 @@
  */
 package org.geotools.coverage.io.netcdf;
 
+import static org.geotools.coverage.util.CoverageUtilities.loadPropertiesFromURL;
 import static org.geotools.gce.imagemosaic.Utils.FF;
+import static org.geotools.gce.imagemosaic.Utils.Prop.AUXILIARY_DATASTORE_FILE;
+import static org.geotools.gce.imagemosaic.Utils.Prop.AUXILIARY_FILE;
+import static org.geotools.util.URLs.fileToUrl;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -86,7 +90,6 @@ import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.test.TestData;
-import org.geotools.util.URLs;
 import org.geotools.util.factory.Hints;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
@@ -798,7 +801,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n";
         //  + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "hdf5Coverage2D.xml";
+        indexer += AUXILIARY_FILE + "=" + "hdf5Coverage2D.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         // simply test if the mosaic can be read without exceptions
@@ -919,7 +922,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "GOME2.NO2_new.xml";
+        indexer += AUXILIARY_FILE + "=" + "GOME2.NO2_new.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         String timeregex = "regex=[0-9]{8}";
@@ -1002,7 +1005,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
+        indexer += AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         String timeregex = "regex=[0-9]{8}";
@@ -1111,7 +1114,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
+        indexer += AUXILIARY_FILE + "=" + "GOME2.NO2.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         String timeregex = "regex=[0-9]{8}";
@@ -1207,7 +1210,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "GOME2.NO2.xml\n";
+        indexer += AUXILIARY_FILE + "=" + "GOME2.NO2.xml\n";
 
         // Setting RelativePath behavior
         indexer += Prop.ABSOLUTE_PATH + "=" + "false";
@@ -1238,7 +1241,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 props.load(inStream);
             }
             // Before the fix, the AuxiliaryFile was always an absolute path
-            assertEquals(auxFileName, (String) props.getProperty(Prop.AUXILIARY_FILE));
+            assertEquals(auxFileName, props.getProperty(AUXILIARY_FILE));
         } finally {
             if (reader != null) {
                 try {
@@ -1265,7 +1268,7 @@ public class NetCDFMosaicReaderTest extends Assert {
         String indexer =
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "O3-NO2.xml";
+        indexer += AUXILIARY_FILE + "=" + "O3-NO2.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         // the datastore.properties file is also mandatory...
@@ -1317,7 +1320,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
+        indexer += AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         String timeregex = "regex=[0-9]{8}";
@@ -1389,7 +1392,7 @@ public class NetCDFMosaicReaderTest extends Assert {
                 "TimeAttribute=time\n"
                         + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n"
                         + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
-        indexer += Prop.AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
+        indexer += AUXILIARY_FILE + "=" + "DUMMYGOME2.xml";
         FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer, "UTF-8");
 
         String timeregex = "regex=[0-9]{8}";
@@ -1500,7 +1503,7 @@ public class NetCDFMosaicReaderTest extends Assert {
     @Test
     public void testMultiCoverage() throws Exception {
         File testDir = tempFolder.newFolder("multi-coverage");
-        URL testUrl = URLs.fileToUrl(testDir);
+        URL testUrl = fileToUrl(testDir);
         FileUtils.copyDirectory(TestData.file(this, "multi-coverage"), testDir);
         ImageMosaicReader reader = null;
         try {
@@ -1614,7 +1617,7 @@ public class NetCDFMosaicReaderTest extends Assert {
 
     private File[] runNO2Removal(String folder, Hints hints) throws IOException {
         File testDir = tempFolder.newFolder(folder);
-        URL testUrl = URLs.fileToUrl(testDir);
+        URL testUrl = fileToUrl(testDir);
         FileUtils.copyDirectory(TestData.file(this, "gome"), testDir);
         ImageMosaicReader reader = null;
         try {
@@ -1654,7 +1657,7 @@ public class NetCDFMosaicReaderTest extends Assert {
         FileUtils.deleteQuietly(netcdfAux);
 
         File testDir = tempFolder.newFolder(folder);
-        URL testUrl = URLs.fileToUrl(testDir);
+        URL testUrl = fileToUrl(testDir);
         FileUtils.copyDirectory(TestData.file(this, "poliaux"), testDir);
         ImageMosaicReader reader = null;
         PropertyIsLike locationFilter = FF.like(FF.property("location"), "*Poli1*");
@@ -1701,6 +1704,61 @@ public class NetCDFMosaicReaderTest extends Assert {
         assertEquals(0, store.getFeatureSource("O3").getFeatures(locationFilter).size());
     }
 
+    @Test
+    public void testAuxiliaryFileRelativeReference() throws Exception {
+        String folder = "poliaux-relative";
+        File testDir = tempFolder.newFolder(folder);
+        FileUtils.copyDirectory(TestData.file(this, "poliaux"), testDir);
+
+        // create and perform checks in original directory
+        ImageMosaicReader reader = null;
+        try {
+            reader = new ImageMosaicReader(fileToUrl(testDir));
+            assertNotNull(reader);
+
+            // force full init and creation of all config files
+            reader.read("NO2", NO_DEFERRED_LOADING_PARAMS).dispose(true);
+            reader.read("O3", NO_DEFERRED_LOADING_PARAMS).dispose(true);
+
+            // check that the per store property files use relative references
+            Properties no2 = loadPropertiesFromURL(fileToUrl(new File(testDir, "NO2.properties")));
+            assertEquals("_polyphemus.xml", no2.getProperty(AUXILIARY_FILE));
+            assertEquals("netcdf_datastore.properties", no2.getProperty(AUXILIARY_DATASTORE_FILE));
+
+            Properties o3 = loadPropertiesFromURL(fileToUrl(new File(testDir, "O3.properties")));
+            assertEquals("_polyphemus.xml", o3.getProperty(AUXILIARY_FILE));
+            assertEquals("netcdf_datastore.properties", o3.getProperty(AUXILIARY_DATASTORE_FILE));
+        } finally {
+            if (reader != null) {
+                reader.dispose();
+            }
+        }
+
+        // copy the folder, make sure the reader works there too
+        File testDir2 = tempFolder.newFolder(folder + "2");
+        FileUtils.copyDirectory(testDir, testDir2);
+        try {
+            reader = new ImageMosaicReader(fileToUrl(testDir2));
+            assertNotNull(reader);
+
+            // check reads are still working as expected (no exceptions, there is actual data)
+            float[] pixel = new float[1];
+            GridCoverage2D no2 = reader.read("NO2", NO_DEFERRED_LOADING_PARAMS);
+            no2.evaluate(new Point2D.Double(12, 47), pixel);
+            assertEquals(0.92, pixel[0], 0.01);
+            no2.dispose(true);
+
+            GridCoverage2D o3 = reader.read("O3", NO_DEFERRED_LOADING_PARAMS);
+            o3.evaluate(new Point2D.Double(12, 47), pixel);
+            assertEquals(56.25, pixel[0], 0.01);
+            o3.dispose(true);
+        } finally {
+            if (reader != null) {
+                reader.dispose();
+            }
+        }
+    }
+
     /** Cleanup granules metadata, fully */
     @Test
     public void testMultiCoverageCleanupMetadataInAuxDB() throws Exception {
@@ -1712,7 +1770,7 @@ public class NetCDFMosaicReaderTest extends Assert {
         FileUtils.deleteQuietly(netcdfAux);
 
         File testDir = tempFolder.newFolder(folder);
-        URL testUrl = URLs.fileToUrl(testDir);
+        URL testUrl = fileToUrl(testDir);
         FileUtils.copyDirectory(TestData.file(this, "poliaux"), testDir);
         ImageMosaicReader reader = null;
         PropertyIsLike locationFilter = FF.like(FF.property("location"), "*Poli1*");
