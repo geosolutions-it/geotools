@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.sql.DataSource;
 import org.geotools.data.DataStore;
 import org.geotools.data.DefaultTransaction;
@@ -1772,14 +1773,14 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
                 ps.addBatch();
             }
             int[] inserts = ps.executeBatch();
-            checkAllInserted(inserts, features.size());
+            checkAllInserted(LOGGER, inserts, features.size());
             keysFetcher.postInsert(featureType, features, ps);
         } finally {
             closeSafe(ps);
         }
     }
 
-    static void checkAllInserted(int[] inserts, int size) throws IOException {
+    static void checkAllInserted(Logger logger, int[] inserts, int size) throws IOException {
         int sum = 0;
         for (int cur : inserts) {
             if (cur == PreparedStatement.SUCCESS_NO_INFO) {
@@ -1790,7 +1791,13 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
             sum += cur;
         }
         if (sum != size) {
-            throw new IOException("Failed to insert some features");
+            logger.log(
+                    Level.FINEST,
+                    "Was expecting "
+                            + size
+                            + " records inserted, but got "
+                            + sum
+                            + ". If you are targeting a PARTITIONED table it's a bug in the JDBC driver, there is likely no actual issue.");
         }
     }
 
