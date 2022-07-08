@@ -128,12 +128,12 @@ public class JDBCInsertFeatureWriter extends JDBCFeatureReader
             for (ResultSetFeature cur : features) {
                 // the datastore sets as userData, grab it and update the fid
                 final String fid = (String) cur.getUserData().get("fid");
-                cur.setID(fid);
+                if (fid != null) cur.setID(fid);
                 final SimpleFeature orig =
                         (SimpleFeature)
                                 cur.getUserData().get(ContentFeatureStore.ORIGINAL_FEATURE_KEY);
                 if (orig != null) {
-                    ((FeatureIdImpl) orig.getIdentifier()).setID(fid);
+                    if (fid != null) ((FeatureIdImpl) orig.getIdentifier()).setID(fid);
                     orig.getUserData().putAll(cur.getUserData());
                     orig.getUserData().remove(ContentFeatureStore.ORIGINAL_FEATURE_KEY);
                 }
