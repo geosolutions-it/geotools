@@ -10,7 +10,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>extension</artifactId>
-    <version>22-EOWS-SNAPSHOT</version>
+    <version>22-EOWS-p1</version>
   </parent>
 
 
