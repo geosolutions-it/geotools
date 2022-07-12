@@ -91,7 +91,8 @@
   
   <modules>
     <module>ogr-core</module>
-    <module>ogr-bridj</module>
+    <!-- Removing from the build, no longer compatible with modern GDAL/OGR, tests do fail, not used in EOWS-158 -->
+    <!--module>ogr-bridj</module-->
     <module>ogr-jni</module>
   </modules>
 </project>
