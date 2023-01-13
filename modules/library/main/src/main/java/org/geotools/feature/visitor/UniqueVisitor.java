@@ -67,6 +67,10 @@ public class UniqueVisitor implements FeatureCalc, FeatureAttributeVisitor, Limi
         }
     }
 
+    public UniqueVisitor(String attributeTypeName) {
+        expressions.add(factory.property(attributeTypeName));
+    }
+
     public UniqueVisitor(SimpleFeatureType type, Integer... indexes) throws IllegalFilterException {
         for (Integer i : indexes) {
             String attrName = type.getDescriptor(i).getLocalName();
@@ -80,6 +84,10 @@ public class UniqueVisitor implements FeatureCalc, FeatureAttributeVisitor, Limi
             String attrName = type.getDescriptor(an).getLocalName();
             expressions.add(factory.property(attrName));
         }
+    }
+
+    public UniqueVisitor(Expression e) {
+        this.expressions.add(e);
     }
 
     public UniqueVisitor(Expression... expressions) {
