@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Types;
-import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,8 +37,6 @@ import oracle.sql.ARRAY;
 import oracle.sql.Datum;
 import oracle.sql.STRUCT;
 import org.geotools.data.jdbc.FilterToSQL;
-import org.geotools.data.jdbc.datasource.DataSourceFinder;
-import org.geotools.data.jdbc.datasource.UnWrapper;
 import org.geotools.data.oracle.sdo.GeometryConverter;
 import org.geotools.data.oracle.sdo.SDOSqlDumper;
 import org.geotools.data.oracle.sdo.TT;
@@ -80,34 +77,6 @@ import org.opengis.util.GenericName;
  */
 public class OracleDialect extends PreparedStatementSQLDialect {
 
-    /**
-     * Sentinel value used to mark that the unwrapper lookup happened already, and an unwrapper was
-     * not found
-     */
-    UnWrapper UNWRAPPER_NOT_FOUND =
-            new UnWrapper() {
-
-                @Override
-                public Statement unwrap(Statement statement) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Connection unwrap(Connection conn) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public boolean canUnwrap(Statement st) {
-                    return false;
-                }
-
-                @Override
-                public boolean canUnwrap(Connection conn) {
-                    return false;
-                }
-            };
-
     private static final int DEFAULT_AXIS_MAX = 10000000;
 
     private static final int DEFAULT_AXIS_MIN = -10000000;
@@ -116,14 +85,6 @@ public class OracleDialect extends PreparedStatementSQLDialect {
 
     /** Marks a geometry column as geodetic */
     public static final String GEODETIC = "geodetic";
-
-    /**
-     * Map of <code>UnWrapper</code> objects keyed by the class of <code>Connection</code> it is an
-     * unwrapper for. This avoids the overhead of searching the <code>DataSourceFinder</code>
-     * service registry at each unwrap.
-     */
-    Map<Class<? extends Connection>, UnWrapper> uwMap =
-            new HashMap<Class<? extends Connection>, UnWrapper>();
 
     private int nameLenghtLimit = 30;
 
@@ -625,60 +586,7 @@ public class OracleDialect extends PreparedStatementSQLDialect {
     /** Obtains the native oracle connection object given a database connecetion. */
     @SuppressWarnings("PMD.CloseResource")
     OracleConnection unwrapConnection(Connection cx) throws SQLException {
-        if (cx == null) {
-            return null;
-        }
-
-        if (cx instanceof OracleConnection) {
-            return (OracleConnection) cx;
-        }
-
-        try {
-            // Unwrap the connection multiple levels as necessary to get at the underlying
-            // OracleConnection. Maintain a map of UnWrappers to avoid searching
-            // the registry every time we need to unwrap.
-            Connection testCon = cx;
-            Connection toUnwrap;
-            do {
-                UnWrapper unwrapper = uwMap.get(testCon.getClass());
-                if (unwrapper == null) {
-                    unwrapper = DataSourceFinder.getUnWrapper(testCon);
-                    if (unwrapper == null) {
-                        unwrapper = UNWRAPPER_NOT_FOUND;
-                    }
-                    uwMap.put(testCon.getClass(), unwrapper);
-                }
-                if (unwrapper == UNWRAPPER_NOT_FOUND) {
-                    // give up and do Java 6 unwrap below
-                    break;
-                }
-                toUnwrap = testCon;
-                testCon = unwrapper.unwrap(testCon);
-                if (testCon instanceof OracleConnection) {
-                    return (OracleConnection) testCon;
-                }
-            } while (testCon != null && testCon != toUnwrap);
-
-            if (cx instanceof Wrapper) {
-                // try to use java 6 unwrapping
-                try {
-                    Wrapper w = cx;
-                    if (w.isWrapperFor(OracleConnection.class)) {
-                        return w.unwrap(OracleConnection.class);
-                    }
-                } catch (Throwable t) {
-                    // not a mistake, old DBCP versions will throw an Error here, we need to catch
-                    // it
-                    LOGGER.log(
-                            Level.FINER, "Failed to unwrap connection using java 6 facilities", t);
-                }
-            }
-        } catch (IOException e) {
-            throw (SQLException)
-                    new SQLException("Could not obtain native oracle connection.").initCause(e);
-        }
-
-        throw new SQLException("Could not obtain native oracle connection for " + cx.getClass());
+        return unwrapConnection(cx, OracleConnection.class);
     }
 
     public FilterToSQL createFilterToSQL() {
