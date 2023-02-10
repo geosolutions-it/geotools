@@ -32,6 +32,8 @@ import org.geotools.jdbc.NonIncrementingPrimaryKeyColumn;
 import org.geotools.jdbc.PrimaryKey;
 import org.geotools.temporal.object.DefaultInstant;
 import org.geotools.temporal.object.DefaultPosition;
+import org.junit.Assert;
+import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
@@ -411,5 +413,19 @@ public class FilterToSQLTest extends TestCase {
                                 ff.less(p2, ff.literal(4))));
         FilterToSQL encoder = new FilterToSQL(output);
         assertEquals("WHERE (P1 IN (1, 2) OR P2 > 3 OR P2 < 4)", encoder.encodeToString(filter));
+    }
+
+    @Test
+    public void testLikeEscaping() throws Exception {
+        Filter filter = ff.like(ff.property("testString"), "\\'FOO", "%", "-", "\\", true);
+        FilterToSQL encoder = new FilterToSQL(output);
+        Assert.assertEquals("WHERE testString LIKE '''FOO'", encoder.encodeToString(filter));
+    }
+
+    @Test
+    public void testIdEscaping() throws Exception {
+        Id id = ff.id(Collections.singleton(ff.featureId("'FOO")));
+        encoder.encode(id);
+        Assert.assertEquals("WHERE (id = '''FOO')", output.toString());
     }
 }

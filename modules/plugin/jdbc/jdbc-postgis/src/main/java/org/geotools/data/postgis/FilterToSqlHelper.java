@@ -538,30 +538,18 @@ class FilterToSqlHelper {
 
             out.write("(");
             str.accept(delegate, String.class);
-            out.write(" LIKE ");
-            if (end instanceof Literal) {
-                out.write("'%" + end.evaluate(null, String.class) + "'");
-            } else {
-                out.write("('%' || ");
-                end.accept(delegate, String.class);
-                out.write(")");
-            }
-            out.write(")");
+            out.write(" LIKE ('%' || ");
+            end.accept(delegate, String.class);
+            out.write("))");
         } else if (function instanceof FilterFunction_strStartsWith) {
             Expression str = getParameter(function, 0, true);
             Expression start = getParameter(function, 1, true);
 
             out.write("(");
             str.accept(delegate, String.class);
-            out.write(" LIKE ");
-            if (start instanceof Literal) {
-                out.write("'" + start.evaluate(null, String.class) + "%'");
-            } else {
-                out.write("(");
-                start.accept(delegate, String.class);
-                out.write(" || '%')");
-            }
-            out.write(")");
+            out.write(" LIKE (");
+            start.accept(delegate, String.class);
+            out.write(" || '%'))");
         } else if (function instanceof FilterFunction_strEqualsIgnoreCase) {
             Expression first = getParameter(function, 0, true);
             Expression second = getParameter(function, 1, true);

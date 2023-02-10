@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.geotools.data.oracle.filter.FilterFunction_sdonn;
+import org.geotools.data.oracle.sdo.SDOSqlDumper;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.FilterCapabilities;
 import org.geotools.filter.function.FilterFunction_area;
@@ -38,6 +39,7 @@ import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -534,9 +536,10 @@ public class OracleFilterToSQL extends PreparedFilterToSQL {
         e2.accept(this, extraData);
 
         // encode the unit verbatim when available
-        if (unit != null && !"".equals(unit.trim()))
+        if (unit != null && !"".equals(unit.trim())) {
+            unit = escapeLiteral(unit);
             out.write(",'distance=" + distance + " unit=" + unit + "') = '" + within + "' ");
-        else out.write(",'distance=" + distance + "') = '" + within + "' ");
+        } else out.write(",'distance=" + distance + "') = '" + within + "' ");
     }
 
     /**
@@ -562,5 +565,18 @@ public class OracleFilterToSQL extends PreparedFilterToSQL {
     private static String getSDOUnitFromOGCUnit(String ogcUnit) {
         Object sdoUnit = UNITS_MAP.get(ogcUnit);
         return sdoUnit != null ? sdoUnit.toString() : ogcUnit;
+    }
+
+    @Override
+    protected void visitLiteralGeometry(Literal expression) throws IOException {
+        // evaluate the literal and store it for later
+        Geometry geom = (Geometry) evaluateLiteral(expression, Geometry.class);
+
+        if (geom instanceof LinearRing) {
+            geom = geom.getFactory().createLineString(((LinearRing) geom).getCoordinateSequence());
+        }
+        geom = clipToWorldFeatureTypeGeometry(geom);
+        String sdoGeom = SDOSqlDumper.toSDOGeom(geom, getFeatureTypeGeometrySRID());
+        out.write(sdoGeom);
     }
 }

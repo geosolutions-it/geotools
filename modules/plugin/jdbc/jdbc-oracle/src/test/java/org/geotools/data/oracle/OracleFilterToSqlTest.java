@@ -18,6 +18,8 @@ package org.geotools.data.oracle;
 
 import junit.framework.TestCase;
 import org.geotools.factory.CommonFactoryFinder;
+import org.junit.Assert;
+import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.opengis.filter.FilterFactory2;
@@ -138,6 +140,19 @@ public class OracleFilterToSqlTest extends TestCase {
                 "WHERE SDO_WITHIN_DISTANCE(\"GEOM\",?,'distance=10.0 unit=km') = 'TRUE' ", encoded);
     }
 
+    @Test
+    public void testDWithinFilterWithUnitEscaping() throws Exception {
+        Coordinate coordinate = new Coordinate();
+        DWithin dwithin =
+                ff.dwithin(
+                        ff.property("GEOM"), ff.literal(gf.createPoint(coordinate)), 10.0, "'FOO");
+        String encoded = encoder.encodeToString(dwithin);
+        Assert.assertEquals(
+                "WHERE SDO_WITHIN_DISTANCE(\"GEOM\",?,'distance=10.0 unit=''FOO') = 'TRUE' ",
+                encoded);
+    }
+
+    @Test
     public void testDWithinFilterWithoutUnit() throws Exception {
         Coordinate coordinate = new Coordinate();
         DWithin dwithin =

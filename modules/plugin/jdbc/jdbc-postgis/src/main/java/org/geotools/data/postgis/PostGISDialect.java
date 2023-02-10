@@ -71,6 +71,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.postgresql.jdbc.PgConnection;
 
 public class PostGISDialect extends BasicSQLDialect {
 
@@ -196,6 +197,9 @@ public class PostGISDialect extends BasicSQLDialect {
 
     boolean base64EncodingEnabled = true;
 
+    // checkStandardConformingStrings will set this based on database configuration
+    boolean escapeBackslash = true;
+
     Version version, pgsqlVersion;
 
     public boolean isLooseBBOXEnabled() {
@@ -235,6 +239,11 @@ public class PostGISDialect extends BasicSQLDialect {
         return simplifyEnabled;
     }
 
+    public boolean isEscapeBackslash() {
+        return escapeBackslash;
+    }
+
+    @Override
     public boolean canSimplifyPoints() {
         // TWKB encoding is a form of simplified points representation (reduced precision)
         return version != null && version.compareTo(V_2_2_0) >= 0 && isSimplifyEnabled();
@@ -253,6 +262,7 @@ public class PostGISDialect extends BasicSQLDialect {
         super.initializeConnection(cx);
         getPostgreSQLVersion(cx);
         getVersion(cx);
+        checkStandardConformingStrings(cx);
     }
 
     @Override
@@ -1351,6 +1361,7 @@ public class PostGISDialect extends BasicSQLDialect {
         sql.setLooseBBOXEnabled(looseBBOXEnabled);
         sql.setEncodeBBOXFilterAsEnvelope(encodeBBOXFilterAsEnvelope);
         sql.setFunctionEncodingEnabled(functionEncodingEnabled);
+        sql.setEscapeBackslash(escapeBackslash);
         return sql;
     }
 
@@ -1483,6 +1494,40 @@ public class PostGISDialect extends BasicSQLDialect {
                                     md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()));
         }
         return pgsqlVersion;
+    }
+
+    /**
+     * Determines whether or not to escape backslashes based on the PostgreSQL server's
+     * standard_conforming_strings setting.
+     */
+    @SuppressWarnings("PMD.CloseResource")
+    private void checkStandardConformingStrings(Connection conn) throws SQLException {
+        Boolean escape = null;
+        // first, try to determine the setting from a native connection object
+        try {
+            PgConnection bc = unwrapConnection(conn, PgConnection.class);
+            escape = !bc.getStandardConformingStrings();
+        } catch (SQLException e) {
+            LOGGER.log(Level.FINER, "Unable to get native connection; falling back to query", e);
+        }
+        // otherwise, try to determine the setting from a database query
+        if (escape == null) {
+            Statement st = null;
+            ResultSet rs = null;
+            try {
+                st = conn.createStatement();
+                rs = st.executeQuery("SHOW standard_conforming_strings");
+                escape = !rs.next() || !"on".equals(rs.getString(1));
+            } catch (SQLException e) {
+                LOGGER.warning(
+                        "Unable to check standard_conforming_strings setting: " + e.getMessage());
+            } finally {
+                dataStore.closeSafe(rs);
+                dataStore.closeSafe(st);
+            }
+        }
+        // default to escape backslashes if both checks failed
+        escapeBackslash = !Boolean.FALSE.equals(escape);
     }
 
     /** Returns true if the PostGIS version is >= 1.5.0 */

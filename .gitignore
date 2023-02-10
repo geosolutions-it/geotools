@@ -16,3 +16,5 @@ workspace
 *.db
 .metadata
 .gradle
+.spotless-index
+
