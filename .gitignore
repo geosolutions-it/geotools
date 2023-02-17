@@ -22,3 +22,5 @@ workspace
 # Microsoft Visual Studio Code
 .vscode/
 _build
+
+.spotless-index
