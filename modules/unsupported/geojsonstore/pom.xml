@@ -4,7 +4,7 @@
 	<parent>
 		<artifactId>unsupported</artifactId>
 		<groupId>org.geotools</groupId>
-		<version>22-EOWS-p1</version>
+		<version>22-EOWS-p2</version>
 	</parent>
 	<groupId>org.geotools</groupId>
 	<artifactId>gt-geojsondatastore</artifactId>
