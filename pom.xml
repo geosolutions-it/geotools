@@ -447,7 +447,7 @@
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
   <packaging>pom</packaging>
-  <version>23.3</version>
+  <version>23.3.1</version>
   <name>GeoTools</name>
 
   <scm>
