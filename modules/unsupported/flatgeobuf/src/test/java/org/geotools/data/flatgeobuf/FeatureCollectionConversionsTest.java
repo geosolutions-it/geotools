@@ -10,6 +10,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.test.TestData;
 import org.junit.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.simple.SimpleFeature;
@@ -17,10 +19,7 @@ import org.opengis.feature.simple.SimpleFeature;
 public class FeatureCollectionConversionsTest {
     @Test
     public void countriesTest() throws IOException, URISyntaxException {
-        URL url =
-                getClass()
-                        .getClassLoader()
-                        .getResource("org/geotools/data/flatgeobuf/countries.fgb");
+        URL url = TestData.url(FlatGeobufDataStore.class, "countries.fgb");
         File file = Paths.get(url.toURI()).toFile();
         try (InputStream stream = new FileInputStream(file)) {
             Iterator<SimpleFeature> it =
@@ -36,10 +35,7 @@ public class FeatureCollectionConversionsTest {
 
     @Test
     public void countriesTestFilter() throws IOException, URISyntaxException {
-        URL url =
-                getClass()
-                        .getClassLoader()
-                        .getResource("org/geotools/data/flatgeobuf/countries.fgb");
+        URL url = TestData.url(FlatGeobufDataStore.class, "countries.fgb");
         File file = Paths.get(url.toURI()).toFile();
         try (InputStream stream = new FileInputStream(file)) {
             Envelope rect = new Envelope(12, 12, 56, 56);
@@ -56,10 +52,7 @@ public class FeatureCollectionConversionsTest {
 
     @Test
     public void countriesTestFilterFid() throws IOException, URISyntaxException {
-        URL url =
-                getClass()
-                        .getClassLoader()
-                        .getResource("org/geotools/data/flatgeobuf/countries.fgb");
+        URL url = TestData.url(FlatGeobufDataStore.class, "countries.fgb");
         File file = Paths.get(url.toURI()).toFile();
         try (InputStream stream = new FileInputStream(file)) {
             long[] fids = {0, 1, 2, 45, 46, 178};
