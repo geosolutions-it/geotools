@@ -26,6 +26,15 @@ import org.geotools.util.factory.Hints.Key;
  */
 public interface PropertyAccessorFactory {
 
+    /** The numeric value for highest priority. */
+    int HIGHEST_PRIOIRTY = 0;
+
+    /** The numeric value for lowest priority. */
+    int LOWEST_PRIOIRTY = 5000;
+
+    /** The numeric value for the default priority. */
+    int DEFAULT_PRIOIRTY = 3000;
+
     /**
      * {@link Hints} key used to pass namespace context to {@link #createPropertyAccessor(Class, String, Class, Hints)}
      * in the form of a {@link NamespaceSupport} instance with the prefix/namespaceURI mappings
@@ -42,5 +51,17 @@ public interface PropertyAccessorFactory {
      * @return The property accessor, or <code>null</code> if this factory cannot create an accessor for the specified
      *     type.
      */
-    PropertyAccessor createPropertyAccessor(Class<?> type, String xpath, Class<?> target, Hints hints);
+    PropertyAccessor createPropertyAccessor(
+            Class<?> type, String xpath, Class<?> target, Hints hints);
+
+    /**
+     * Return the priority associated with this property accessor. By default, a priority value
+     * within the range of the lowest and highest priorities will be returned. The more generic a
+     * property accessor is, the lower its priority should be.
+     *
+     * @return the priority of this property accessor
+     */
+    default int getPriority() {
+        return DEFAULT_PRIOIRTY;
+    }
 }
