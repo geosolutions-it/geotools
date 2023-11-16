@@ -382,18 +382,13 @@
   </ciManagement>
 
   <distributionManagement>
+
     <repository>
       <uniqueVersion>false</uniqueVersion>
-      <id>nexus</id>
-      <name>OSGeo Release Repository</name>
-      <url>https://repo.osgeo.org/repository/geotools-releases/</url>
+      <id>geosolutions</id>
+      <url>ftp://demo.geo-solutions.it</url>
     </repository>
-    <snapshotRepository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>nexus</id>
-      <name>OSGeo Snapshot Repository</name>
-      <url>https://repo.osgeo.org/repository/geotools-snapshots/</url>
-    </snapshotRepository>
+
   </distributionManagement>
 
   <!-- =========================================================== -->
@@ -1534,6 +1529,14 @@
   <!--     Build Configuration                                     -->
   <!-- =========================================================== -->
   <build>
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ftp</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+    </extensions>
     <!-- ========================================================= -->
     <!--   Maven plugins dependencies management.                  -->
     <!--   It should not be needed since Maven select by default   -->
