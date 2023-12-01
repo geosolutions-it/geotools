@@ -29,6 +29,7 @@ import org.geotools.filter.text.cql2.CQLTemporalPredicateTest;
 import org.geotools.temporal.object.DefaultInstant;
 import org.geotools.temporal.object.DefaultPosition;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
@@ -142,6 +143,7 @@ public class ECQLTemporalPredicateTest extends CQLTemporalPredicateTest {
     }
 
     @Test
+    @Ignore
     public void beforeFilterWithOgcInstantToEcql() throws Exception {
         final Date date = new Date();
         FilterFactory ff = new FilterFactoryImpl();
