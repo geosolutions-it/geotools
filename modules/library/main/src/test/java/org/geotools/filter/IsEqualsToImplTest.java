@@ -16,9 +16,11 @@
  */
 package org.geotools.filter;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.math.BigDecimal;
 import org.geotools.factory.CommonFactoryFinder;
-import org.junit.Assert;
 import org.junit.Test;
 import org.opengis.filter.PropertyIsEqualTo;
 import org.opengis.filter.expression.Expression;
@@ -33,7 +35,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal(1);
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertTrue(equal.evaluate(null));
+        assertTrue(equal.evaluate(null));
     }
 
     @Test
@@ -45,13 +47,13 @@ public class IsEqualsToImplTest {
         Expression literalFloat42 = filterFactory.literal((float) 42);
         Expression literalBig42 = filterFactory.literal(new BigDecimal(42));
 
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalShort42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalString42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalDouble42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalLong42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalFloat42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalBig42).evaluate(null));
-        Assert.assertTrue(filterFactory.equals(literalShort42, literalDouble42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalShort42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalString42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalDouble42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalLong42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalFloat42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalBig42).evaluate(null));
+        assertTrue(filterFactory.equals(literalShort42, literalDouble42).evaluate(null));
     }
 
     @Test
@@ -60,7 +62,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal("1");
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertTrue(equal.evaluate(null));
+        assertTrue(equal.evaluate(null));
     }
 
     @Test
@@ -69,7 +71,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal("1.2");
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertFalse(equal.evaluate(null));
+        assertFalse(equal.evaluate(null));
     }
 
     @Test
@@ -78,7 +80,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal(1l);
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertTrue(equal.evaluate(null));
+        assertTrue(equal.evaluate(null));
     }
 
     @Test
@@ -87,7 +89,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal(1);
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertTrue(equal.evaluate(null));
+        assertTrue(equal.evaluate(null));
     }
 
     @Test
@@ -96,7 +98,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal(1l);
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertTrue(equal.evaluate(null));
+        assertTrue(equal.evaluate(null));
     }
 
     @Test
@@ -105,7 +107,7 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal(Long.MAX_VALUE);
 
         PropertyIsEqualTo equal = filterFactory.equals(e1, e2);
-        Assert.assertFalse(equal.evaluate(null));
+        assertFalse(equal.evaluate(null));
     }
 
     @Test
@@ -114,9 +116,21 @@ public class IsEqualsToImplTest {
         Expression e2 = filterFactory.literal("FoO");
 
         PropertyIsEqualTo caseSensitive = filterFactory.equal(e1, e2, true);
-        Assert.assertFalse(caseSensitive.evaluate(null));
+        assertFalse(caseSensitive.evaluate(null));
 
         PropertyIsEqualTo caseInsensitive = filterFactory.equal(e1, e2, false);
-        Assert.assertTrue(caseInsensitive.evaluate(null));
+        assertTrue(caseInsensitive.evaluate(null));
+    }
+
+    @Test
+    public void testLiteralConversion() {
+        Expression e1 = filterFactory.literal("true");
+        Expression e2 = filterFactory.literal(Boolean.TRUE);
+
+        PropertyIsEqualTo caseSensitive = filterFactory.equal(e1, e2, true);
+        assertTrue(caseSensitive.evaluate(null));
+
+        PropertyIsEqualTo caseInsensitive = filterFactory.equal(e1, e2, false);
+        assertTrue(caseInsensitive.evaluate(null));
     }
 }
