@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.geotools.xsd</groupId>
     <artifactId>xsd</artifactId>
-    <version>29-EOWS-p2</version>
+    <version>29-EOWS-p3</version>
   </parent>
   <!-- =========================================================== -->
   <!--     Module Description                                      -->

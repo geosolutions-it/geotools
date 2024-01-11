@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.geotools</groupId>
         <artifactId>app-schema</artifactId>
-        <version>29-EOWS-p2</version>
+        <version>29-EOWS-p3</version>
     </parent>
 
     <groupId>org.geotools</groupId>
