@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>unsupported</artifactId>
-    <version>29-EOWS-p3</version>
+    <version>29-EOWS-p4</version>
   </parent>
 
   <!-- =========================================================== -->
