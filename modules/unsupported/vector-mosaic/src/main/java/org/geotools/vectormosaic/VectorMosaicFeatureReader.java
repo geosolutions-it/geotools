@@ -36,6 +36,7 @@ import org.opengis.feature.Feature;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory;
 
 /**
  * Feature reader for vector mosaics, it reads from the delegate and granule stores, merges the
@@ -147,9 +148,7 @@ class VectorMosaicFeatureReader implements SimpleFeatureReader {
                 params = granule.getParams();
             }
 
-            Filter granuleFilter =
-                    source.getSplitFilter(
-                            query, granuleDataStore, granule.getGranuleTypeName(), false);
+            Filter granuleFilter = getGranuleFilter(granule);
             Query granuleQuery = new Query(granule.getGranuleTypeName(), granuleFilter);
             if (query.getPropertyNames() != Query.ALL_NAMES) {
                 String[] filteredArray =
@@ -172,6 +171,17 @@ class VectorMosaicFeatureReader implements SimpleFeatureReader {
         // no more
         close();
         return false;
+    }
+
+    private Filter getGranuleFilter(VectorMosaicGranule granule) {
+        Filter filter =
+                source.getSplitFilter(query, granuleDataStore, granule.getGranuleTypeName(), false);
+        Filter configuredFilter = granule.getFilter();
+        if (configuredFilter != null && configuredFilter != Filter.INCLUDE) {
+            FilterFactory ff = source.getDataStore().getFilterFactory();
+            return ff.and(filter, configuredFilter);
+        }
+        return filter;
     }
 
     private SimpleFeature readNext() {
