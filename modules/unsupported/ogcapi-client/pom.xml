@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>unsupported</artifactId>
-    <version>29-EOWS-p4</version>
+    <version>29-EOWS-p5</version>
   </parent>
   <groupId>org.geotools</groupId>
   <artifactId>gt-ogcapi-client</artifactId>

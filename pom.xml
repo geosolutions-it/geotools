@@ -15,7 +15,7 @@
   <!-- =========================================================== -->
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
-  <version>29-EOWS-p4</version>
+  <version>29-EOWS-p5</version>
   <packaging>pom</packaging>
   <name>GeoTools</name>
 

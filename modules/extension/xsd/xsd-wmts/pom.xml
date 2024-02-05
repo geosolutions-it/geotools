@@ -11,7 +11,7 @@
   <parent>
     <groupId>org.geotools.xsd</groupId>
     <artifactId>xsd</artifactId>
-    <version>29-EOWS-p4</version>
+    <version>29-EOWS-p5</version>
   </parent>
 
   <!-- =========================================================== -->

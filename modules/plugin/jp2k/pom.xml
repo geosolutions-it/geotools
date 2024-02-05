@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>plugin</artifactId>
-    <version>29-EOWS-p4</version>
+    <version>29-EOWS-p5</version>
   </parent>
 
   <!-- =========================================================== -->
