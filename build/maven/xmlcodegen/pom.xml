@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.geotools.maven</groupId>
     <artifactId>maven</artifactId>
-    <version>29-EOWS-p6</version>
+    <version>29-EOWS-p7</version>
   </parent>
 
   <!-- =========================================================== -->

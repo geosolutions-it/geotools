@@ -54,7 +54,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <geotools.version>29-EOWS-p6</geotools.version>
+        <geotools.version>29-EOWS-p7</geotools.version>
     </properties>
 
     <repositories>
