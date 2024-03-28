@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2019, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2024, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  */
 package org.geotools.referencing.factory.wms;
 
-import org.geotools.api.parameter.ParameterValueGroup;
+import org.opengis.parameter.ParameterValueGroup;
 
 /**
  * Auto Geostationary Satellite ({@code AUTO:97004}). In the notation below, "<code>${var}</code>"

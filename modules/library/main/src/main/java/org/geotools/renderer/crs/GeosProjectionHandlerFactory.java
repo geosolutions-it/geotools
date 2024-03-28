@@ -22,12 +22,6 @@ import static org.geotools.referencing.operation.projection.MapProjection.Abstra
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.geotools.api.parameter.ParameterValueGroup;
-import org.geotools.api.referencing.FactoryException;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.api.referencing.crs.ProjectedCRS;
-import org.geotools.api.referencing.datum.Ellipsoid;
-import org.geotools.api.referencing.operation.TransformException;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -43,6 +37,12 @@ import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.util.AffineTransformation;
+import org.opengis.parameter.ParameterValueGroup;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.crs.ProjectedCRS;
+import org.opengis.referencing.datum.Ellipsoid;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  * Projection handler for {@link
@@ -95,11 +95,6 @@ public class GeosProjectionHandlerFactory implements ProjectionHandlerFactory {
      * @return the valid area of the projection
      */
     static Geometry getValidAreaLatLon(double centralMeridian, double angle) {
-
-        // center of the valid area
-        double lon0 = centralMeridian;
-        double lat0 = 0;
-
         // compute "circle" around the center, one segment every 2 degrees
         Point center = new GeometryFactory().createPoint(new Coordinate(centralMeridian, 0));
         Geometry circle = center.buffer(angle, 45);

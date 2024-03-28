@@ -59,6 +59,8 @@ import org.opengis.referencing.operation.TransformException;
  */
 class EnvelopeReprojector {
 
+    private static final int MAX_BISECT_DEPTH = 6;
+
     /**
      * Transforms an envelope using the given {@linkplain CoordinateOperation coordinate operation}.
      * The transformation is only approximative. It may be bigger than the smallest possible
@@ -90,7 +92,20 @@ class EnvelopeReprojector {
         }
         MathTransform mt = operation.getMathTransform();
         final GeneralDirectPosition centerPt = new GeneralDirectPosition(mt.getTargetDimensions());
-        final GeneralEnvelope transformed = CRS.transform(mt, envelope, centerPt);
+        GeneralEnvelope transformed;
+        try {
+            transformed = CRS.transform(mt, envelope, centerPt);
+        } catch (TransformException e) {
+            // ok, let's try bisecting the envelope then
+            transformed =
+                    TransformException.runWithoutStackTraces(
+                            () ->
+                                    bisectionTransform(
+                                            mt,
+                                            envelope,
+                                            new GeneralEnvelope(mt.getTargetDimensions()),
+                                            MAX_BISECT_DEPTH));
+        }
 
         expandOnAxisExtremCrossing(envelope, sourceCRS, mt, transformed);
 
@@ -153,6 +168,114 @@ class EnvelopeReprojector {
         }
 
         return transformed;
+    }
+
+    /**
+     * Recursively split by 4 the envelope, and transform each quadrant. If the transformed envelope
+     * is not valid, then the envelope is split again. The process is repeated until the envelope is
+     * not growing any longer.
+     *
+     * @param mt
+     * @param envelope
+     * @return
+     */
+    private static GeneralEnvelope bisectionTransform(
+            MathTransform mt, Envelope envelope, GeneralEnvelope transformed, int maxDepth)
+            throws TransformException {
+        if (maxDepth <= 0) {
+            return transformed;
+        }
+
+        GeneralEnvelope oldTransformed = new GeneralEnvelope(transformed);
+        double minX = envelope.getMinimum(0);
+        double minY = envelope.getMinimum(1);
+        double maxX = envelope.getMaximum(0);
+        double maxY = envelope.getMaximum(1);
+        double midX = minX + (maxX - minX) / 2;
+        double midY = minY + (maxY - minY) / 2;
+
+        // Create the 9 sample points for the entire envelope (4 corners, 4 midpoints, 1 center)
+        double[] points = {
+            minX, minY, midX, minY, maxX, minY, // 0 1 2, bottom
+            minX, midY, midX, midY, maxX, midY, // 3 4 5, mid row
+            minX, maxY, midX, maxY, maxX, maxY // 6 7 8, top row
+        };
+
+        // transform each point, with tolerance
+        int numPoints = points.length / 2;
+        boolean[] failures = new boolean[numPoints];
+        double[] tx = new double[2];
+        DirectPosition position = new DirectPosition2D();
+        for (int i = 0; i < numPoints; i++) {
+            try {
+                mt.transform(points, i * 2, tx, 0, 1);
+                position.setOrdinate(0, tx[0]);
+                position.setOrdinate(1, tx[1]);
+                transformed.add(position);
+            } catch (TransformException | IllegalArgumentException e) {
+                failures[i] = true;
+            }
+        }
+
+        // If all points failed to transform, throw an exception
+        if (allTrue(failures)) {
+            throw new TransformException("Failed to transform envelope");
+        }
+
+        // do not recurse if the envelope is not growing, or not growing enough
+        if (allFalse(failures)
+                && (oldTransformed.equals(transformed)
+                        || (growth(transformed, oldTransformed, 0) < 0.01)
+                                && growth(transformed, oldTransformed, 1) < 0.01)) {
+            return oldTransformed;
+        }
+
+        // recurse otherwise
+        if (mixedResults(failures, 0, 1, 3, 4)) {
+            GeneralEnvelope lowerLeft =
+                    new GeneralEnvelope(new double[] {minX, minY}, new double[] {midX, midY});
+            bisectionTransform(mt, lowerLeft, transformed, maxDepth - 1);
+        }
+        if (mixedResults(failures, 1, 2, 4, 5)) {
+            GeneralEnvelope lowerRight =
+                    new GeneralEnvelope(new double[] {midX, minY}, new double[] {maxX, midY});
+            bisectionTransform(mt, lowerRight, transformed, maxDepth - 1);
+        }
+        if (mixedResults(failures, 3, 4, 6, 7)) {
+            GeneralEnvelope upperLeft =
+                    new GeneralEnvelope(new double[] {minX, midY}, new double[] {midX, maxY});
+            bisectionTransform(mt, upperLeft, transformed, maxDepth - 1);
+        }
+        if (mixedResults(failures, 4, 5, 7, 8)) {
+            GeneralEnvelope upperRight =
+                    new GeneralEnvelope(new double[] {midX, midY}, new double[] {maxX, maxY});
+            bisectionTransform(mt, upperRight, transformed, maxDepth - 1);
+        }
+
+        return transformed;
+    }
+
+    private static boolean mixedResults(boolean[] failures, int... indexes) {
+        int foundTrue = 0;
+        for (int i : indexes) {
+            if (failures[i]) foundTrue++;
+        }
+        return foundTrue > 0 && foundTrue < indexes.length;
+    }
+
+    private static double growth(GeneralEnvelope bounds, GeneralEnvelope oldBounds, int dimension) {
+        return (bounds.getSpan(dimension) - oldBounds.getSpan(dimension))
+                / bounds.getSpan(dimension);
+    }
+
+    private static boolean allTrue(boolean[] array) {
+        for (boolean b : array) if (!b) return false;
+        return true;
+    }
+
+    private static boolean allFalse(boolean[] array) {
+        for (boolean b : array) if (b) return false;
+        return true;
     }
 
     private static void expandOnOrthographicQuadrants(
