@@ -23,6 +23,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,20 +38,24 @@ import org.geotools.data.DefaultRepository;
 import org.geotools.data.Query;
 import org.geotools.data.property.PropertyDataStore;
 import org.geotools.data.property.PropertyDataStoreFactory;
+import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.store.DecoratingDataStore;
 import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.geometry.jts.JTS;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.filter.FilterFactory;
+import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.PropertyIsEqualTo;
+import org.opengis.filter.spatial.Intersects;
 
 public class VectorMosaicFilterTest {
     protected static DataStore MOSAIC_STORE;
 
-    protected static FilterFactory FF = CommonFactoryFinder.getFilterFactory();
+    protected static FilterFactory2 FF = CommonFactoryFinder.getFilterFactory2();
 
     @BeforeClass
     public static void initialize() throws IOException {
@@ -168,6 +173,26 @@ public class VectorMosaicFilterTest {
         SimpleFeature f = features.get(0);
         assertEquals(1, f.getAttributes().size());
         assertEquals(1, f.getType().getDescriptors().size());
+    }
+
+    @Test
+    public void testSpatialFilter() throws Exception {
+        SimpleFeatureSource featureSource = MOSAIC_STORE.getFeatureSource("RoadSegmentsAll_mosaic");
+        GranuleTracker tracker = new GranuleTracker();
+        GranuleStoreFinder finder = ((VectorMosaicFeatureSource) featureSource).finder;
+        finder.granuleTracker = tracker;
+
+        Polygon polygon = JTS.toPolygon(new Rectangle2D.Double(0, 0, 1, 1));
+        Intersects filter = FF.intersects(FF.property("geom"), FF.literal(polygon));
+
+        Query q = new Query();
+        q.setFilter(filter);
+        assertEquals(2, featureSource.getCount(q));
+        FilterTracker filterTracker = ((VectorMosaicFeatureSource) featureSource).filterTracker;
+        // the spatial filter is used in both, with the right property name
+        Intersects delegateIntersects = FF.intersects(FF.property("the_geom"), FF.literal(polygon));
+        assertEquals(delegateIntersects, filterTracker.getDelegateFilter());
+        assertEquals(filter, filterTracker.getGranuleFilter());
     }
 
     private static Set<Object> collectFids(String typeName, Query query) throws IOException {
