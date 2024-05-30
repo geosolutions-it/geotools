@@ -1,7 +1,7 @@
 /*
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
- * 
+ *
  *    (C) 2009-2011, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
@@ -55,7 +55,7 @@ import static org.junit.Assert.fail;
  * attributes/features are passed in, instead of simple features. This is necessary since complex
  * features could contain nested properties, and we should be able to get properties of any level
  * from the features.
- * 
+ *
  * @author Rini Angreani (CSIRO Earth Science and Resource Engineering)
  *
  *
@@ -78,7 +78,7 @@ public class FeaturePropertyAccessorTest {
     static final Name SINGLE_LEAF_ATTRIBUTE = new NameImpl(EG, "singleLeafAttribute");
 
     static final Name MULTI_LEAF_ATTRIBUTE = new NameImpl(EG, "multiLeafAttribute");
-    
+
     /**
      * Mock name space
      */
@@ -87,7 +87,7 @@ public class FeaturePropertyAccessorTest {
             declarePrefix("eg", EG);
         }
     };
-    
+
     @Test
     public void testComplexFeature() {
         FeatureType fType = createFeatureType();
@@ -96,7 +96,7 @@ public class FeaturePropertyAccessorTest {
         ComplexType complexAttType = (ComplexType) complexDesc.getType();
         AttributeDescriptor rootDesc = (AttributeDescriptor) complexAttType.getDescriptor(ROOT_ATTRIBUTE) ;
         ComplexType rootAttType = (ComplexType) rootDesc.getType();
-        
+
         // feature properties
         Collection<Property> properties = new ArrayList<Property>(fType.getDescriptors().size());
 
@@ -118,14 +118,14 @@ public class FeaturePropertyAccessorTest {
         rootPropertiesOne.add(leafTwo);
         // eg:complexAttribute/eg:rootAttribute[1]/eg:singleLeafAttribute
         AttributeDescriptor singleLeafDesc = (AttributeDescriptor) rootAttType.getDescriptor(SINGLE_LEAF_ATTRIBUTE);
-        AttributeImpl singleLeaf = new AttributeImpl("single leaf value", singleLeafDesc, null);        
+        AttributeImpl singleLeaf = new AttributeImpl("single leaf value", singleLeafDesc, null);
         rootPropertiesOne.add(singleLeaf);
-        
+
         //NC- add, test xml-attribute
         Map<Name, Object> userData = new HashMap<Name, Object>();
         singleLeaf.getUserData().put(Attributes.class, userData);
-        userData.put(Types.typeName(EG, "att"), "test attribute");        
-        
+        userData.put(Types.typeName(EG, "att"), "test attribute");
+
 
         AttributeImpl rootOne = new ComplexAttributeImpl(rootPropertiesOne, rootDesc, null);
 
@@ -170,23 +170,23 @@ public class FeaturePropertyAccessorTest {
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         // no index would return array of all features
         Object o = ex.evaluate(feature);
-        assertTrue( o instanceof List );        
+        assertTrue( o instanceof List );
         assertEquals(3,  ((List) o).size());
         assertEquals(rootOne,  ((List) o).get(0));
         assertEquals(rootTwo,  ((List) o).get(1));
         assertEquals(rootThree,  ((List) o).get(2));
-        
+
         //test nested on multi-valued attributes
         ex = new AttributeExpressionImpl("eg:complexAttribute/eg:rootAttribute/eg:singleLeafAttribute", new Hints(
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         // no index would return array of all features
         o = ex.evaluate(feature);
-        assertTrue( o instanceof List );     
+        assertTrue( o instanceof List );
         assertEquals(3,  ((List) o).size());
         assertEquals(singleLeaf,  ((List) o).get(0));
         assertEquals(singleLeaf,  ((List) o).get(1));
         assertEquals(singleLeaf,  ((List) o).get(2));
-        
+
         // index specified
         ex = new AttributeExpressionImpl("eg:complexAttribute/eg:rootAttribute[1]", new Hints(
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
@@ -194,31 +194,31 @@ public class FeaturePropertyAccessorTest {
         ex = new AttributeExpressionImpl("eg:complexAttribute/eg:rootAttribute[2]", new Hints(
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(rootTwo, ex.evaluate(feature));
-       
+
         // single valued nested property
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute[3]/eg:singleLeafAttribute", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(singleLeaf, ex.evaluate(feature));
-        
+
         // null values
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute[3]/eg:multiLeafAttribute", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(null, ex.evaluate(feature));
-        
+
         // deeper nesting
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute[2]/eg:multiLeafAttribute", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(leafOne, ex.evaluate(feature));
-        
+
         // property index doesn't exist
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute[2]/eg:multiLeafAttribute[2]", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(null, ex.evaluate(feature));
-               
+
         // expect an exception when object supplied is not a complex attribute
         boolean exceptionThrown = false;
         try {
@@ -236,38 +236,51 @@ public class FeaturePropertyAccessorTest {
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(null, ex.evaluate(feature));
         assertEquals(null, ex.evaluate(fType));
-                
+
         // NC - test xml attribute
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute[3]/eg:singleLeafAttribute/@eg:att", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals("test attribute", ex.evaluate(feature));
-        
+
         // NC - test descriptor functionality
-        
+
         ex = new AttributeExpressionImpl("eg:simpleAttribute", new Hints(
-                FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));        
+                FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals( simpleAttributeDesc, ex.evaluate(fType));
-        
+
         ex = new AttributeExpressionImpl("eg:complexAttribute", new Hints(
-                FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));        
+                FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals( complexDesc, ex.evaluate(fType));
-        
+
         // test nested properties
         ex = new AttributeExpressionImpl("eg:complexAttribute/eg:rootAttribute", new Hints(
                 FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals( rootDesc, ex.evaluate(fType));
-        
+
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute/eg:singleLeafAttribute", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(singleLeafDesc, ex.evaluate(fType));
-        
+
         ex = new AttributeExpressionImpl(
                 "eg:complexAttribute/eg:rootAttribute/eg:multiLeafAttribute", new Hints(
                         FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
         assertEquals(multiLeafDesc, ex.evaluate(fType));
-                       
+
+        // test that executing Java methods is blocked
+        ex =
+                new AttributeExpressionImpl(
+                        "java.lang.Thread.sleep(30000)",
+                        new Hints(FeaturePropertyAccessorFactory.NAMESPACE_CONTEXT, NAMESPACES));
+        long start = System.currentTimeMillis();
+        assertNull(ex.evaluate(feature));
+        long runtime = System.currentTimeMillis() - start;
+        assertTrue("java.lang.Thread.sleep(30000) was executed", runtime < 30000);
+        start = System.currentTimeMillis();
+        assertNull(ex.evaluate(fType));
+        runtime = System.currentTimeMillis() - start;
+        assertTrue("java.lang.Thread.sleep(30000) was executed", runtime < 30000);
     }
 
     public static FeatureType createFeatureType() {
@@ -318,6 +331,6 @@ public class FeaturePropertyAccessorTest {
         return tfac.createFeatureType(fName, schema, null, false, Collections.EMPTY_LIST, null,
                 null);
     }
-    
+
 
 }

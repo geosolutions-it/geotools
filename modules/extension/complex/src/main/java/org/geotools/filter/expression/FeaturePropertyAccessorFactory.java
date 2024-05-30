@@ -18,7 +18,6 @@
 package org.geotools.filter.expression;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
@@ -29,6 +28,21 @@ import org.geotools.factory.Hints;
 import org.opengis.feature.IllegalAttributeException;
 import org.geotools.feature.xpath.AttributeNodePointer;
 import org.geotools.feature.xpath.AttributeNodePointerFactory;
+import org.geotools.api.feature.Attribute;
+import org.geotools.api.feature.ComplexAttribute;
+import org.geotools.api.feature.Feature;
+import org.geotools.api.feature.GeometryAttribute;
+import org.geotools.api.feature.IllegalAttributeException;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.feature.type.AttributeDescriptor;
+import org.geotools.api.feature.type.AttributeType;
+import org.geotools.api.feature.type.ComplexType;
+import org.geotools.api.feature.type.FeatureType;
+import org.geotools.api.feature.type.GeometryDescriptor;
+import org.geotools.api.feature.type.PropertyDescriptor;
+import org.geotools.data.complex.feature.xpath.AttributeNodePointer;
+import org.geotools.data.complex.feature.xpath.AttributeNodePointerFactory;
 import org.geotools.filter.expression.PropertyAccessor;
 import org.geotools.filter.expression.PropertyAccessorFactory;
 import org.opengis.feature.Attribute;
@@ -42,6 +56,9 @@ import org.opengis.feature.type.ComplexType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.PropertyDescriptor;
+import org.geotools.util.factory.Hints;
+import org.geotools.xsd.impl.jxpath.JXPathUtils;
+import org.locationtech.jts.geom.Geometry;
 import org.xml.sax.helpers.NamespaceSupport;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -58,10 +75,10 @@ import com.vividsolutions.jts.geom.Geometry;
  * returned, in the latter a descriptor is returned (in case of "@" attributes, a Name is returned
  * or null if the attribute doesn't exist - can be used to validate an x-path!) .
  * </p>
- * 
+ *
  * @author Justin Deoliveira (The Open Planning Project)
  * @author Gabriel Roldan (Axios Engineering)
- * 
+ *
  *
  *
  *
@@ -69,7 +86,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @source $URL$
  */
 public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
-   
+
     static {
         // unfortunatley, jxpath only works against concreate classes
         // JXPathIntrospector.registerDynamicClass(DefaultFeature.class,
@@ -84,10 +101,14 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
 
     static PropertyAccessor FID_ACCESS = new FidFeaturePropertyAccessor();
 
-    public PropertyAccessor createPropertyAccessor(Class type, String xpath, Class target,
-            Hints hints) {
-        
-        if (SimpleFeature.class.isAssignableFrom(type)) {
+    static final Pattern FID_PATTERN = Pattern.compile("@(\\w+:)?id");
+
+    @Override
+    public PropertyAccessor createPropertyAccessor(
+            Class type, String xpath, Class target, Hints hints) {
+
+        if (SimpleFeature.class.isAssignableFrom(type)
+                || SimpleFeatureType.class.isAssignableFrom(type)) {
             /*
              * This class is not intended for use with SimpleFeature and causes problems when
              * discovered via SPI and used by code expecting SimpleFeature behaviour. In particular
@@ -130,7 +151,7 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
 
     /**
      * Access to Feature Identifier.
-     * 
+     *
      * @author Jody Garnett (Refractions Research)
      */
     static class FidFeaturePropertyAccessor implements PropertyAccessor {
@@ -165,10 +186,10 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
 
         public Object get(Object object, String xpath, Class target) {
             if (object instanceof Feature)
-                return ((Feature) object).getDefaultGeometryProperty();            
+                return ((Feature) object).getDefaultGeometryProperty();
             if (object instanceof FeatureType) {
                 FeatureType ft = (FeatureType) object;
-                GeometryDescriptor gd = ft.getGeometryDescriptor();            
+                GeometryDescriptor gd = ft.getGeometryDescriptor();
                 if ( gd == null ) {
                     //look for any geometry descriptor
                     for ( PropertyDescriptor pd : ft.getDescriptors() ) {
@@ -176,9 +197,9 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
                             return pd;
                         }
                     }
-                }                
+                }
                 return gd;
-            }            
+            }
             return null;
         }
 
@@ -248,7 +269,7 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
         }
 
         public boolean canHandle(Object object, String xpath, Class target) {
-           
+
             return object instanceof Attribute || object instanceof AttributeType
                     || object instanceof AttributeDescriptor;
 
@@ -256,14 +277,8 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
 
         public Object get(Object object, String xpath, Class target) {
 
-            JXPathContext context = JXPathContext.newContext(object);
-            Enumeration declaredPrefixes = namespaces.getDeclaredPrefixes();
-            while (declaredPrefixes.hasMoreElements()) {
-                String prefix = (String) declaredPrefixes.nextElement();
-                String uri = namespaces.getURI(prefix);
-                context.registerNamespace(prefix, uri);
-            }
-            
+            JXPathContext context =
+                    JXPathUtils.newSafeContext(object, false, this.namespaces, true);
             Iterator it = context.iteratePointers(xpath);
             List results = new ArrayList<Object>();
             while(it.hasNext()) {
@@ -274,7 +289,7 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
                     results.add(pointer.getValue());
                 }
             }
-            
+
             if (results.size()==0) {
                 throw new IllegalArgumentException("x-path gives no results.");
             } else if (results.size()==1) {
@@ -291,13 +306,8 @@ public class FeaturePropertyAccessorFactory implements PropertyAccessorFactory {
                 throw new IllegalAttributeException(null, "feature type is immutable");
             }
 
-            JXPathContext context = JXPathContext.newContext(object);
-            Enumeration declaredPrefixes = namespaces.getDeclaredPrefixes();
-            while (declaredPrefixes.hasMoreElements()) {
-                String prefix = (String) declaredPrefixes.nextElement();
-                String uri = namespaces.getURI(prefix);
-                context.registerNamespace(prefix, uri);
-            }
+            JXPathContext context =
+                    JXPathUtils.newSafeContext(object, false, this.namespaces, true);
             context.setValue(xpath, value);
 
             assert value == context.getValue(xpath);

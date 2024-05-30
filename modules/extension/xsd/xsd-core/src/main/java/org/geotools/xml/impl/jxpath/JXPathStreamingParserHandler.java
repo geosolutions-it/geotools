@@ -30,7 +30,7 @@ import org.geotools.xml.impl.StreamingParserHandler;
 
 
 /**
- * 
+ *
  *
  * @source $URL$
  */
@@ -51,16 +51,12 @@ public class JXPathStreamingParserHandler extends StreamingParserHandler {
         //            ElementHandlerPropertyHandler.class);
         JXPathIntrospector.registerDynamicClass(NodeImpl.class, NodePropertyHandler.class);
 
-        //        ElementHandler rootHandler = 
+        //        ElementHandler rootHandler =
         //        	((DocumentHandler) handlers.firstElement()).getDocumentElementHandler();
-        Node root = ((DocumentHandler) handlers.firstElement()).getParseNode();
-        JXPathContext jxpContext = JXPathContextFactory.newInstance().newContext(null, root);
+        Node root = handlers.firstElement().getParseNode();
+        Iterator itr = JXPathUtils.newSafeContext(root, true).iterate(xpath);
 
-        jxpContext.setLenient(true);
-
-        Iterator itr = jxpContext.iterate(xpath);
-
-        for (; itr.hasNext();) {
+        while (itr.hasNext()) {
             Object obj = itr.next();
 
             if (handler.getParseNode().equals(obj)) {
