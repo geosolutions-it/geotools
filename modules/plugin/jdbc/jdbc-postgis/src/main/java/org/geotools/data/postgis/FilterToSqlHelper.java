@@ -26,6 +26,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -703,21 +704,64 @@ class FilterToSqlHelper {
         }
     }
 
+    /**
+     * Encode the jsonArrayContains call using the jsonb_path_exists function from Postgres
+     *
+     * @param jsonArrayContains
+     * @throws IOException
+     */
     private void encodeJsonArrayContains(Function jsonArrayContains) throws IOException {
+        String useJsonPathExists =
+                System.getProperty("org.geotools.data.postgis.useJsonPathExists");
         PropertyName column = (PropertyName) getParameter(jsonArrayContains, 0, true);
         Literal jsonPath = (Literal) getParameter(jsonArrayContains, 1, true);
         Expression expected = getParameter(jsonArrayContains, 2, true);
 
         String[] strJsonPath = escapeJsonLiteral(jsonPath.getValue().toString()).split("/");
         if (strJsonPath.length > 0) {
-            column.accept(delegate, null);
-            out.write("::jsonb @> '{ ");
-            out.write(buildJsonFromStrPointer(strJsonPath, 0, expected));
-            out.write(" }'::jsonb");
+            // jsonb_path_exists was added in postgres 12, thus we are enabling it using flag, and
+            // keep using old implementation if it is not provided
+            if (Boolean.parseBoolean(useJsonPathExists)) {
+                out.write("jsonb_path_exists(");
+                column.accept(delegate, null);
+                out.write("::jsonb, '$");
+                out.write(constructPath(strJsonPath));
+                out.write(" ? ");
+                out.write(constructEquality(strJsonPath, expected));
+                out.write("')");
+            } else {
+                column.accept(delegate, null);
+                out.write("::jsonb @> '{ ");
+                out.write(buildJsonFromStrPointer(strJsonPath, 0, expected));
+                out.write(" }'::jsonb");
+            }
         } else {
             throw new IllegalArgumentException(
                     "Cannot encode filter Invalid pointer " + jsonPath.getValue());
         }
+    }
+
+    private String constructEquality(String[] jsonPath, Expression expected) {
+        int lastIndex = jsonPath.length - 1;
+        Object value = ((LiteralExpressionImpl) expected).getValue();
+        // Doing the explicit cast for each type because without it compiler will complain that
+        // Object can not be used for %d or %f in formatter
+        if (value instanceof Integer) {
+            return String.format("(@.%s == %d)", jsonPath[lastIndex], (Integer) value);
+        } else if (value instanceof Float) {
+            return String.format("(@.%s == %f)", jsonPath[lastIndex], (Float) value);
+        } else if (value instanceof Double) {
+            return String.format("(@.%s == %f)", jsonPath[lastIndex], (Double) value);
+        }
+        return String.format("(@.%s == \"%s\")", jsonPath[lastIndex], value);
+    }
+
+    private String constructPath(String[] jsonPath) {
+        StringJoiner joiner = new StringJoiner(".");
+        for (int i = 0; i < jsonPath.length - 1; i++) {
+            joiner.add(jsonPath[i]);
+        }
+        return joiner.toString();
     }
 
     private static String escapeJsonLiteral(String literal) {

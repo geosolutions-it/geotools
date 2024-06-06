@@ -121,6 +121,16 @@ public class PostGISJsonTestSetup extends JDBCDelegatingTestSetup {
                         + ");"
                         + "INSERT INTO \"jsontest\" VALUES (9, 'arrayEntryStr', '{\"arrayStrValues\":[\"EL1\",\"EL2\",\"EL3\"]}'"
                         + (supportJsonB ? ", '{\"arrayStrValues\":[\"EL1\",\"EL2\",\"EL3\"]}'" : "")
+                        + ");"
+                        + "INSERT INTO \"jsontest\" VALUES (10, 'arrayEntryStr', '[{\"type\": \"MAIN\", \"version\": 1 }, {\"type\": \"OTHERS\", \"version\": 2 }]'"
+                        + (supportJsonB
+                                ? ", '[{\"type\": \"MAIN\", \"version\": 1 }, {\"type\": \"OTHERS\", \"version\": 2 }]'"
+                                : "")
+                        + ");"
+                        + "INSERT INTO \"jsontest\" VALUES (11, 'arrayEntryStr', '[{\"type\": \"DEFAULT\", \"version\": 3 }, {\"type\": \"UNKNOWN\", \"version\": 4 }]'"
+                        + (supportJsonB
+                                ? ", '[{\"type\": \"DEFAULT\", \"version\": 3 }, {\"type\": \"UNKNOWN\", \"version\": 4 }]'"
+                                : "")
                         + ");";
 
         run(sql);

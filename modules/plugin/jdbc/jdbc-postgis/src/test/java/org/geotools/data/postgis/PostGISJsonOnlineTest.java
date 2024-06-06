@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.function.Consumer;
 import org.geotools.api.data.FeatureReader;
 import org.geotools.api.data.Query;
 import org.geotools.api.feature.Feature;
@@ -40,9 +41,11 @@ import org.geotools.data.FilteringFeatureReader;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
+import org.geotools.feature.simple.SimpleFeatureImpl;
 import org.geotools.jdbc.JDBCFeatureReader;
 import org.geotools.jdbc.JDBCTestSetup;
 import org.geotools.jdbc.JDBCTestSupport;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class PostGISJsonOnlineTest extends JDBCTestSupport {
@@ -442,6 +445,99 @@ public class PostGISJsonOnlineTest extends JDBCTestSupport {
         }
     }
 
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testJSONArrayContainsFunctionRootArrayString() throws Exception {
+        ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
+        FilterFactory ff = dataStore.getFilterFactory();
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+
+        testDelegatedArrayContains(
+                ff,
+                fs,
+                "jsonColumn",
+                "/type",
+                "OTHERS",
+                feature -> assertEquals("jsontest.10", feature.getIdentifier().getID()),
+                feature ->
+                        assertTrue(
+                                feature.getAttribute("jsonColumn")
+                                        .toString()
+                                        .contains("\"type\": \"OTHERS\"")));
+
+        if (pgJsonTestSetup.supportJsonB) {
+            testDelegatedArrayContains(
+                    ff,
+                    fs,
+                    "jsonbColumn",
+                    "/type",
+                    "OTHERS",
+                    feature -> assertEquals("jsontest.10", feature.getIdentifier().getID()),
+                    feature ->
+                            assertTrue(
+                                    feature.getAttribute("jsonbColumn")
+                                            .toString()
+                                            .contains("\"type\": \"OTHERS\"")));
+        }
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testJSONArrayContainsFunctionRootArrayNumber() throws Exception {
+        ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
+        FilterFactory ff = dataStore.getFilterFactory();
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+
+        testDelegatedArrayContains(
+                ff,
+                fs,
+                "jsonColumn",
+                "/version",
+                3,
+                feature -> assertEquals("jsontest.11", feature.getIdentifier().getID()),
+                feature ->
+                        assertTrue(
+                                feature.getAttribute("jsonColumn")
+                                        .toString()
+                                        .contains("\"version\": 3")));
+
+        if (pgJsonTestSetup.supportJsonB) {
+            testDelegatedArrayContains(
+                    ff,
+                    fs,
+                    "jsonbColumn",
+                    "/version",
+                    3,
+                    feature -> assertEquals("jsontest.11", feature.getIdentifier().getID()),
+                    feature ->
+                            assertTrue(
+                                    feature.getAttribute("jsonbColumn")
+                                            .toString()
+                                            .contains("\"version\": 3")));
+        }
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testJSONArrayContainsWithJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+
+        testJSONArrayContainsFunction();
+        testJSONArrayContainsFunctionNested();
+        testJSONArrayContainsFunctionNestedEmpty();
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
     @Test
     public void testJSONArrayContainsFunctionNested() throws Exception {
         ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
@@ -476,9 +572,7 @@ public class PostGISJsonOnlineTest extends JDBCTestSupport {
                         ff.property(column),
                         ff.literal(pointer),
                         ff.literal(expected));
-        Filter filter = ff.equals(jsonArrayContains, ff.literal(true));
-        Query query = new Query(tname("jsontest"), filter);
-        FeatureCollection collection = fs.getFeatures(query);
+        FeatureCollection collection = fetchQueryResult(fs, ff, jsonArrayContains);
         try (FeatureIterator it = collection.features()) {
             int size = 0;
             while (it.hasNext()) {
@@ -488,5 +582,40 @@ public class PostGISJsonOnlineTest extends JDBCTestSupport {
             }
             assertEquals(result, size);
         }
+    }
+
+    @SafeVarargs
+    private void testDelegatedArrayContains(
+            FilterFactory ff,
+            ContentFeatureSource fs,
+            String column,
+            String path,
+            Object value,
+            Consumer<SimpleFeatureImpl>... assertions)
+            throws IOException {
+        Function jsonArrayContains =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property(column),
+                        ff.literal(path),
+                        ff.literal(value));
+
+        FeatureCollection collection = fetchQueryResult(fs, ff, jsonArrayContains);
+        try (FeatureIterator features = collection.features()) {
+            assertTrue(features.hasNext());
+
+            SimpleFeatureImpl feature = (SimpleFeatureImpl) features.next();
+            for (Consumer<SimpleFeatureImpl> assertion : assertions) {
+                assertion.accept(feature);
+            }
+        }
+    }
+
+    private FeatureCollection fetchQueryResult(
+            ContentFeatureSource fs, FilterFactory ff, Function jsonArrayContains)
+            throws IOException {
+        Filter filter = ff.equals(jsonArrayContains, ff.literal(true));
+        Query query = new Query(tname("jsontest"), filter);
+        return fs.getFeatures(query);
     }
 }

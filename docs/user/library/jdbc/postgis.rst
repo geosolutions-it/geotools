@@ -77,3 +77,7 @@ An optimization on spatial queries can be applied, to avoid a bug with PostGIS q
 This optimization can be enabled using a system-wide default from the command line::
   
   java -Dorg.geotools.data.postgis.largeGeometriesOptimize=true
+
+By default JsonArrayContains will be delegated to @> operator. It is possible to instead delegate it to jsonb_path_exists, which was added in postgres version 12, by setting following property::
+
+  java -Dorg.geotools.data.postgis.useJsonPathExists=true

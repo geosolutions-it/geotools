@@ -42,6 +42,7 @@ import org.geotools.filter.visitor.PostPreProcessFilterSplittingVisitor;
 import org.geotools.geometry.jts.ReferencedEnvelope3D;
 import org.geotools.referencing.CRS;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -383,5 +384,104 @@ public class PostgisFilterToSQLTest extends SQLFilterTestSupport {
         filterToSql.encode(pointer);
         String sql = writer.toString().trim();
         assertEquals("OPERATIONS::jsonb @> '{ \"operations\": [\"\\\"''FOO\"] }'::jsonb", sql);
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testFunctionJsonArrayContainsJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+        filterToSql.setFeatureType(testSchema);
+        Function pointer =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property("OPERATIONS"),
+                        ff.literal("/operations"),
+                        ff.literal("OP1"));
+        filterToSql.encode(pointer);
+        String sql = writer.toString().trim();
+        assertEquals("jsonb_path_exists(OPERATIONS::jsonb, '$ ? (@.operations == \"OP1\")')", sql);
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testFunctionJsonArrayContainsNumberJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+        filterToSql.setFeatureType(testSchema);
+        Function pointer =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property("OPERATIONS"),
+                        ff.literal("/operations"),
+                        ff.literal(1));
+        filterToSql.encode(pointer);
+        String sql = writer.toString().trim();
+        assertEquals("jsonb_path_exists(OPERATIONS::jsonb, '$ ? (@.operations == 1)')", sql);
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testNestedObjectJsonArrayContainsJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+        filterToSql.setFeatureType(testSchema);
+        Function pointer =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property("OPERATIONS"),
+                        ff.literal("/operations/parameters"),
+                        ff.literal("P1"));
+        filterToSql.encode(pointer);
+        String sql = writer.toString().trim();
+        assertEquals(
+                "jsonb_path_exists(OPERATIONS::jsonb, '$.operations ? (@.parameters == \"P1\")')",
+                sql);
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
+    // these tests for postgres versions starting from 12
+    @Test
+    public void testFunctionJsonArrayContainsEscapingPointerJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+        filterToSql.setFeatureType(testSchema);
+        Function pointer =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property("OPERATIONS"),
+                        ff.literal("/\"'FOO"),
+                        ff.literal("OP1"));
+        filterToSql.encode(pointer);
+        String sql = writer.toString().trim();
+        assertEquals("jsonb_path_exists(OPERATIONS::jsonb, '$ ? (@.\\\"''FOO == \"OP1\")')", sql);
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+    }
+
+    @Ignore
+    // disabled by default. Testing the functionality which was added in postgres 12. Run these
+    // tests for postgres versions starting from 12
+    @Test
+    public void testFunctionJsonArrayContainsEscapingExpectedJsonPathExists() throws Exception {
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
+        filterToSql.setFeatureType(testSchema);
+        Function pointer =
+                ff.function(
+                        "jsonArrayContains",
+                        ff.property("OPERATIONS"),
+                        ff.literal("/operations"),
+                        ff.literal("\"'FOO"));
+        filterToSql.encode(pointer);
+        String sql = writer.toString().trim();
+        assertEquals(
+                "jsonb_path_exists(OPERATIONS::jsonb, '$ ? (@.operations == \"\"'FOO\")')", sql);
+
+        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
     }
 }
