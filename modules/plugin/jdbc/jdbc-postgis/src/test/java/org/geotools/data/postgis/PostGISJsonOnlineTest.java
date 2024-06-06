@@ -45,7 +45,6 @@ import org.geotools.feature.simple.SimpleFeatureImpl;
 import org.geotools.jdbc.JDBCFeatureReader;
 import org.geotools.jdbc.JDBCTestSetup;
 import org.geotools.jdbc.JDBCTestSupport;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class PostGISJsonOnlineTest extends JDBCTestSupport {
@@ -445,97 +444,85 @@ public class PostGISJsonOnlineTest extends JDBCTestSupport {
         }
     }
 
-    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
-    // these tests for postgres versions starting from 12
     @Test
     public void testJSONArrayContainsFunctionRootArrayString() throws Exception {
-        ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
-        FilterFactory ff = dataStore.getFilterFactory();
+        if (pgJsonTestSetup.supportJsonPathExists) {
+            ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
+            FilterFactory ff = dataStore.getFilterFactory();
 
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
-
-        testDelegatedArrayContains(
-                ff,
-                fs,
-                "jsonColumn",
-                "/type",
-                "OTHERS",
-                feature -> assertEquals("jsontest.10", feature.getIdentifier().getID()),
-                feature ->
-                        assertTrue(
-                                feature.getAttribute("jsonColumn")
-                                        .toString()
-                                        .contains("\"type\": \"OTHERS\"")));
-
-        if (pgJsonTestSetup.supportJsonB) {
             testDelegatedArrayContains(
                     ff,
                     fs,
-                    "jsonbColumn",
+                    "jsonColumn",
                     "/type",
                     "OTHERS",
                     feature -> assertEquals("jsontest.10", feature.getIdentifier().getID()),
                     feature ->
                             assertTrue(
-                                    feature.getAttribute("jsonbColumn")
+                                    feature.getAttribute("jsonColumn")
                                             .toString()
                                             .contains("\"type\": \"OTHERS\"")));
-        }
 
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+            if (pgJsonTestSetup.supportJsonB) {
+                testDelegatedArrayContains(
+                        ff,
+                        fs,
+                        "jsonbColumn",
+                        "/type",
+                        "OTHERS",
+                        feature -> assertEquals("jsontest.10", feature.getIdentifier().getID()),
+                        feature ->
+                                assertTrue(
+                                        feature.getAttribute("jsonbColumn")
+                                                .toString()
+                                                .contains("\"type\": \"OTHERS\"")));
+            }
+        }
     }
 
-    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
-    // these tests for postgres versions starting from 12
     @Test
     public void testJSONArrayContainsFunctionRootArrayNumber() throws Exception {
-        ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
-        FilterFactory ff = dataStore.getFilterFactory();
+        if (pgJsonTestSetup.supportJsonPathExists) {
+            ContentFeatureSource fs = dataStore.getFeatureSource(tname("jsontest"));
+            FilterFactory ff = dataStore.getFilterFactory();
 
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
-
-        testDelegatedArrayContains(
-                ff,
-                fs,
-                "jsonColumn",
-                "/version",
-                3,
-                feature -> assertEquals("jsontest.11", feature.getIdentifier().getID()),
-                feature ->
-                        assertTrue(
-                                feature.getAttribute("jsonColumn")
-                                        .toString()
-                                        .contains("\"version\": 3")));
-
-        if (pgJsonTestSetup.supportJsonB) {
             testDelegatedArrayContains(
                     ff,
                     fs,
-                    "jsonbColumn",
+                    "jsonColumn",
                     "/version",
                     3,
                     feature -> assertEquals("jsontest.11", feature.getIdentifier().getID()),
                     feature ->
                             assertTrue(
-                                    feature.getAttribute("jsonbColumn")
+                                    feature.getAttribute("jsonColumn")
                                             .toString()
                                             .contains("\"version\": 3")));
-        }
 
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+            if (pgJsonTestSetup.supportJsonB) {
+                testDelegatedArrayContains(
+                        ff,
+                        fs,
+                        "jsonbColumn",
+                        "/version",
+                        3,
+                        feature -> assertEquals("jsontest.11", feature.getIdentifier().getID()),
+                        feature ->
+                                assertTrue(
+                                        feature.getAttribute("jsonbColumn")
+                                                .toString()
+                                                .contains("\"version\": 3")));
+            }
+        }
     }
 
-    @Ignore // disabled by default. Testing the functionality which was added in postgres 12. Run
-    // these tests for postgres versions starting from 12
     @Test
     public void testJSONArrayContainsWithJsonPathExists() throws Exception {
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.TRUE.toString());
-
-        testJSONArrayContainsFunction();
-        testJSONArrayContainsFunctionNested();
-        testJSONArrayContainsFunctionNestedEmpty();
-
-        System.setProperty("org.geotools.data.postgis.useJsonPathExists", Boolean.FALSE.toString());
+        if (pgJsonTestSetup.supportJsonPathExists) {
+            testJSONArrayContainsFunction();
+            testJSONArrayContainsFunctionNested();
+            testJSONArrayContainsFunctionNestedEmpty();
+        }
     }
 
     @Test

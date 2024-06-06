@@ -42,8 +42,8 @@ public class PostgisFilterToSQL extends FilterToSQL {
     private boolean functionEncodingEnabled;
     protected PostGISDialect pgDialect;
 
-    public PostgisFilterToSQL(PostGISDialect dialect) {
-        helper = new FilterToSqlHelper(this);
+    public PostgisFilterToSQL(PostGISDialect dialect, boolean pg12OrNewer) {
+        helper = new FilterToSqlHelper(this, pg12OrNewer);
         pgDialect = dialect;
     }
 

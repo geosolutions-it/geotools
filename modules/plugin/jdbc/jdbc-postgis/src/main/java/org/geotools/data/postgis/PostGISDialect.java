@@ -174,6 +174,8 @@ public class PostGISDialect extends BasicSQLDialect {
 
     static final Version PGSQL_V_9_1 = new Version("9.1");
 
+    static final Version PGSQL_V_12_0 = new Version("12.0");
+
     public PostGISDialect(JDBCDataStore dataStore) {
         super(dataStore);
         this.forceLongitudeFirst =
@@ -1407,12 +1409,24 @@ public class PostGISDialect extends BasicSQLDialect {
 
     @Override
     public FilterToSQL createFilterToSQL() {
-        PostgisFilterToSQL sql = new PostgisFilterToSQL(this);
+        PostgisFilterToSQL sql =
+                new PostgisFilterToSQL(this, postgresMajorVersionIsHigherThen(PGSQL_V_12_0));
         sql.setLooseBBOXEnabled(looseBBOXEnabled);
         sql.setEncodeBBOXFilterAsEnvelope(encodeBBOXFilterAsEnvelope);
         sql.setFunctionEncodingEnabled(functionEncodingEnabled);
         sql.setEscapeBackslash(escapeBackslash);
         return sql;
+    }
+
+    public boolean postgresMajorVersionIsHigherThen(Version version) {
+        if (version != null && pgsqlVersion != null) {
+            Comparable<?> current = pgsqlVersion.getMajor();
+            Comparable<?> expected = version.getMajor();
+            if (current instanceof Integer && expected instanceof Integer) {
+                return (Integer) current >= (Integer) expected;
+            }
+        }
+        return false;
     }
 
     @Override

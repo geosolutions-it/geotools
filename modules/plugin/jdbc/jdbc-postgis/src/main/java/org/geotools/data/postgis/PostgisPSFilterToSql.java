@@ -35,9 +35,9 @@ public class PostgisPSFilterToSql extends PreparedFilterToSQL {
     FilterToSqlHelper helper;
     boolean functionEncodingEnabled;
 
-    public PostgisPSFilterToSql(PostGISPSDialect dialect) {
+    public PostgisPSFilterToSql(PostGISPSDialect dialect, boolean pg12OrNewer) {
         super(dialect);
-        helper = new FilterToSqlHelper(this);
+        helper = new FilterToSqlHelper(this, pg12OrNewer);
     }
 
     public boolean isLooseBBOXEnabled() {

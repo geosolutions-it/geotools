@@ -127,9 +127,11 @@ class FilterToSqlHelper {
     Writer out;
     boolean looseBBOXEnabled;
     boolean encodeBBOXFilterAsEnvelope;
+    boolean pg12OrNewer;
 
-    public FilterToSqlHelper(FilterToSQL delegate) {
+    public FilterToSqlHelper(FilterToSQL delegate, boolean pg12OrNewer) {
         this.delegate = delegate;
+        this.pg12OrNewer = pg12OrNewer;
     }
 
     public static FilterCapabilities createFilterCapabilities(boolean encodeFunctions) {
@@ -704,24 +706,16 @@ class FilterToSqlHelper {
         }
     }
 
-    /**
-     * Encode the jsonArrayContains call using the jsonb_path_exists function from Postgres
-     *
-     * @param jsonArrayContains
-     * @throws IOException
-     */
     private void encodeJsonArrayContains(Function jsonArrayContains) throws IOException {
-        String useJsonPathExists =
-                System.getProperty("org.geotools.data.postgis.useJsonPathExists");
         PropertyName column = (PropertyName) getParameter(jsonArrayContains, 0, true);
         Literal jsonPath = (Literal) getParameter(jsonArrayContains, 1, true);
         Expression expected = getParameter(jsonArrayContains, 2, true);
 
         String[] strJsonPath = escapeJsonLiteral(jsonPath.getValue().toString()).split("/");
         if (strJsonPath.length > 0) {
-            // jsonb_path_exists was added in postgres 12, thus we are enabling it using flag, and
-            // keep using old implementation if it is not provided
-            if (Boolean.parseBoolean(useJsonPathExists)) {
+            // jsonb_path_exists was added in postgres 12, thus we are enabling only for 12 or later
+            // versions
+            if (pg12OrNewer) {
                 out.write("jsonb_path_exists(");
                 column.accept(delegate, null);
                 out.write("::jsonb, '$");

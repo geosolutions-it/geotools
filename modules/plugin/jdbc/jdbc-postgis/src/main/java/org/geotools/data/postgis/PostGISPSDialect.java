@@ -16,6 +16,8 @@
  */
 package org.geotools.data.postgis;
 
+import static org.geotools.data.postgis.PostGISDialect.PGSQL_V_12_0;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -259,7 +261,9 @@ public class PostGISPSDialect extends PreparedStatementSQLDialect {
 
     @Override
     public PreparedFilterToSQL createPreparedFilterToSQL() {
-        PostgisPSFilterToSql fts = new PostgisPSFilterToSql(this);
+        PostgisPSFilterToSql fts =
+                new PostgisPSFilterToSql(
+                        this, delegate.postgresMajorVersionIsHigherThen(PGSQL_V_12_0));
         fts.setFunctionEncodingEnabled(delegate.isFunctionEncodingEnabled());
         fts.setLooseBBOXEnabled(delegate.isLooseBBOXEnabled());
         fts.setEncodeBBOXFilterAsEnvelope(delegate.isEncodeBBOXFilterAsEnvelope());

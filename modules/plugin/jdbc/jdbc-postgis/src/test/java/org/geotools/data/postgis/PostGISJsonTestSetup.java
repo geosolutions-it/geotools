@@ -30,6 +30,8 @@ public class PostGISJsonTestSetup extends JDBCDelegatingTestSetup {
 
     protected boolean supportJsonB = false;
 
+    protected boolean supportJsonPathExists = false;
+
     @Override
     protected void setUpData() throws Exception {
         dropTestJsonTable();
@@ -39,11 +41,15 @@ public class PostGISJsonTestSetup extends JDBCDelegatingTestSetup {
                 ResultSet rs = st.executeQuery("SELECT current_setting('server_version_num')")) {
             if (rs.next()) {
                 try {
+                    int version = Integer.parseInt(rs.getString(1));
                     // JSONB has been introduced with version 9.4
-                    supportJsonB = Integer.parseInt(rs.getString(1)) >= 90004;
+                    supportJsonB = version >= 90004;
+                    // JsonPathExists has been introduced with version 12.0
+                    supportJsonPathExists = version >= 120000;
                 } catch (NumberFormatException nfe) {
                     // unable to determine PostgreSQL version because non-integer returned
                     supportJsonB = false;
+                    supportJsonPathExists = false;
                 }
             }
         } catch (PSQLException pse) {
