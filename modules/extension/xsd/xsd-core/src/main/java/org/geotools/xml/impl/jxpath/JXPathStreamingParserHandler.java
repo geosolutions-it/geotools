@@ -53,7 +53,7 @@ public class JXPathStreamingParserHandler extends StreamingParserHandler {
 
         //        ElementHandler rootHandler =
         //        	((DocumentHandler) handlers.firstElement()).getDocumentElementHandler();
-        Node root = handlers.firstElement().getParseNode();
+        Node root = ((DocumentHandler) handlers.firstElement()).getParseNode();
         Iterator itr = JXPathUtils.newSafeContext(root, true).iterate(xpath);
 
         while (itr.hasNext()) {

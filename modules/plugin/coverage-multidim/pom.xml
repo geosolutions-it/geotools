@@ -85,7 +85,7 @@
     <repository>
       <id>unidata</id>
       <name>Unidata UCAR Libraries repository</name>
-      <url>https://artifacts.unidata.ucar.edu/content/repositories/unidata/</url>
+      <url>	https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases/</url>
     </repository> 
   </repositories>
 

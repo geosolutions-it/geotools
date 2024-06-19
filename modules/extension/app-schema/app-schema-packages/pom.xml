@@ -35,7 +35,7 @@
             for groupId in cgiutilities-1.0 geosciml-2.0; do
                 mvn deploy:deploy-file \
                     -DrepositoryId=osgeo \
-                    -Durl=dav:http://download.osgeo.org/webdav/geotools/ \
+                    -Durl=dav:https://repo.osgeo.org/repository/release/ \
                     -DpomFile=$groupId/pom.xml \
                     -Dfile=`find $groupId -name "*.jar"`
             done

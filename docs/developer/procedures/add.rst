@@ -69,7 +69,7 @@ Our build process does not include jar files inside the subversion repository, i
   
   Jars specific to us such as JTS.
   
-  http://download.osgeo.org/webdav/geotools/
+  https://repo.osgeo.org/repository/release/
 
 * OpenGeo Maven Repository
   
@@ -104,7 +104,7 @@ Deploying to Open Source Geospatial Foundation Maven 2 Repository:
 1. This is the GeoTools repository used for stable releases; as such it is the best place to host
    extra 3rd party dependencies. Use your OSGeo ID login credentials:
    
-   * http://download.osgeo.org/webdav/geotools/
+   * https://repo.osgeo.org/repository/release/
    
    Your OSGeo ID must be on this list to enable WebDAV access. Anyone on the list can add you:
    
@@ -131,14 +131,14 @@ Deploying to Open Source Geospatial Foundation Maven 2 Repository:
                             -Dfile=<path-to-file>        \
                             -Dpackaging=jar              \
                             -DrepositoryId=osgeo   \
-                            -Durl=dav:http://download.osgeo.org/webdav/geotools/
+                            -Durl=dav:https://repo.osgeo.org/repository/release/
 
 4. Or if you have a pom file::
      
      mvn deploy:deploy-file -DpomFile=<path-to-pom>      \
                             -Dfile=<path-to-file>        \
                             -DrepositoryId=osgeo   \
-                            -Durl=dav:http://download.osgeo.org/webdav/geotools/
+                            -Durl=dav:https://repo.osgeo.org/repository/release/
 
 5. Elements in bracket (<foo>) need to be replaced by their actual values.
 
@@ -176,8 +176,8 @@ Examples of Updating JTS Jar
 
 2. Here is an example of how to deploy the JTS binary jar::
      
-      C:\java\geotools\trunk>mvn deploy:deploy-file -DgroupId=com.vividsolutions -DartifactId=jts -Dversion=1.13 -Dfile=C:\java\jts\lib\jts-1.13.jar -Dpackaging=jar -DrepositoryId=osgeo -Durl=dav:http://download.osgeo.org/webdav/geotools/
+      C:\java\geotools\trunk>mvn deploy:deploy-file -DgroupId=com.vividsolutions -DartifactId=jts -Dversion=1.13 -Dfile=C:\java\jts\lib\jts-1.13.jar -Dpackaging=jar -DrepositoryId=osgeo -Durl=dav:https://repo.osgeo.org/repository/release/
 
 3. And the source code (you will need to zip this up first since JTS does not provide a source download)::
     
-    C:\java\geotools\trunk>mvn deploy:deploy-file -DgroupId=com.vividsolutions -DartifactId=jts -Dversion=1.13 -Dfile=C:\java\jts\jts-1.13-src.zip -Dpackaging=java-source -DrepositoryId=osgeo -Durl=dav:http://download.osgeo.org/webdav/geotools/ -DgeneratePom=false
+    C:\java\geotools\trunk>mvn deploy:deploy-file -DgroupId=com.vividsolutions -DartifactId=jts -Dversion=1.13 -Dfile=C:\java\jts\jts-1.13-src.zip -Dpackaging=java-source -DrepositoryId=osgeo -Durl=dav:https://repo.osgeo.org/repository/release/ -DgeneratePom=false

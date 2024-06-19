@@ -77,10 +77,9 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.nativelibs4java</groupId>
-      <artifactId>bridj</artifactId>
-      <classifier>c-only</classifier>
-      <version>0.6</version>
+        <groupId>com.nativelibs4java</groupId>
+        <artifactId>bridj</artifactId>
+        <version>0.6.2</version>
       <exclusions>
         <exclusion>
           <groupId>com.nativelibs4java.thirdparty.com.google.android</groupId>

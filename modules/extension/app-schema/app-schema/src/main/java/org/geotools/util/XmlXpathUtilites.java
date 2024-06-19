@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import org.apache.commons.jxpath.JXPathContext;
-import org.geotools.xsd.impl.jxpath.JXPathUtils;
+import org.geotools.xml.impl.jxpath.JXPathUtils;
 import org.jdom.Document;
 import org.xml.sax.helpers.NamespaceSupport;
 

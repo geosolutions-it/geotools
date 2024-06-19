@@ -8,12 +8,12 @@ You can browse them online at:
 
 * http://central.maven.org/maven2 - maven central
 * http://maven.geo-solutions.it/ - geosolutions repository used for imageio-ext, jai-ext, ...
-* http://download.osgeo.org/webdav/geotools/ - osgeo repository used for geotools dependencies
+* https://repo.osgeo.org/repository/release/ - osgeo repository used for geotools dependencies
 * https://repo.boundlessgeo.com/release - boundless repo for releases
 
 GeoTools itself is deployed to the following repositories:
 
-* http://download.osgeo.org/webdav/geotools/ - geotools release repository
+* https://repo.osgeo.org/repository/release/ - geotools release repository
 * http://repo.boundlessgeo.com/snapshot - geotools SNAPSHOT repository
 
 Or you can make use of the following cache:

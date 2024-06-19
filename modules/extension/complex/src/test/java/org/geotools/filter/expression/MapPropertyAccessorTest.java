@@ -19,9 +19,9 @@ package org.geotools.filter.expression;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
-import org.geotools.api.filter.expression.PropertyName;
 import org.geotools.factory.CommonFactoryFinder;
 import org.junit.Test;
+import org.opengis.filter.expression.PropertyName;
 
 public class MapPropertyAccessorTest {
 

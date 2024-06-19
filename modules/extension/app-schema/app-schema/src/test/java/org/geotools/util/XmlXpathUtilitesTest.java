@@ -14,10 +14,9 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.appschema.util;
+package org.geotools.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
 import org.junit.Test;
 
@@ -25,34 +24,37 @@ public class XmlXpathUtilitesTest {
 
     @Test
     public void testGetXPathValuesWithJavaMethod() {
-        RuntimeException exception =
-                assertThrows(
-                        RuntimeException.class,
-                        () ->
-                                XmlXpathUtilites.getXPathValues(
-                                        null, "java.lang.Thread.sleep(30000)", null));
+        RuntimeException exception = null;
+        try {
+            XmlXpathUtilites.getXPathValues(
+                    null, "java.lang.Thread.sleep(30000)", null);
+        } catch (RuntimeException e) {
+            exception = e;
+        }
         assertEquals("Error reading xpath java.lang.Thread.sleep(30000)", exception.getMessage());
     }
 
     @Test
     public void testCountXPathNodesWithJavaMethod() {
-        RuntimeException exception =
-                assertThrows(
-                        RuntimeException.class,
-                        () ->
-                                XmlXpathUtilites.countXPathNodes(
-                                        null, "java.lang.Thread.sleep(30000)", null));
+        RuntimeException exception = null;
+        try {
+            XmlXpathUtilites.countXPathNodes(
+                    null, "java.lang.Thread.sleep(30000)", null);
+        } catch (RuntimeException e) {
+            exception = e;
+        }
         assertEquals("Error reading xpath java.lang.Thread.sleep(30000)", exception.getMessage());
     }
 
     @Test
     public void testGetSingleXPathValueWithJavaMethod() {
-        RuntimeException exception =
-                assertThrows(
-                        RuntimeException.class,
-                        () ->
-                                XmlXpathUtilites.getSingleXPathValue(
-                                        null, "java.lang.Thread.sleep(30000)", null));
+        RuntimeException exception = null;
+        try {
+            XmlXpathUtilites.getSingleXPathValue(
+                    null, "java.lang.Thread.sleep(30000)", null);
+        } catch (RuntimeException e) {
+            exception = e;
+        }
         assertEquals("Error reading xpath java.lang.Thread.sleep(30000)", exception.getMessage());
     }
 }

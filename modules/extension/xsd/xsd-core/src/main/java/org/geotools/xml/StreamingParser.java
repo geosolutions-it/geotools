@@ -16,6 +16,7 @@
  */
 package org.geotools.xml;
 
+import org.xml.sax.EntityResolver;
 import org.xml.sax.SAXException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -228,6 +229,10 @@ public class StreamingParser {
 
         this.handler = handler;
         this.input = input;
+    }
+
+    public void setEntityResolver(EntityResolver entityResolver) {
+        handler.setEntityResolver(entityResolver);
     }
 
     /**

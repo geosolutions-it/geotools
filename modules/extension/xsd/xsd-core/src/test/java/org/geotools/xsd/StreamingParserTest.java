@@ -23,7 +23,8 @@ import java.io.ByteArrayInputStream;
 import javax.xml.namespace.QName;
 import org.geotools.ml.MLConfiguration;
 import org.geotools.ml.bindings.ML;
-import org.geotools.util.PreventLocalEntityResolver;
+import org.geotools.xml.PreventLocalEntityResolver;
+import org.geotools.xml.StreamingParser;
 import org.junit.Test;
 
 public class StreamingParserTest {

@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.xsd.impl.jxpath;
+package org.geotools.xml.impl.jxpath;
 
 import java.util.Enumeration;
 import org.apache.commons.jxpath.FunctionLibrary;
