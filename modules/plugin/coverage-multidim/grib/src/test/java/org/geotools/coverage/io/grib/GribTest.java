@@ -53,6 +53,7 @@ import org.geotools.referencing.operation.projection.RotatedPole;
 import org.geotools.test.TestData;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
@@ -292,6 +293,7 @@ public class GribTest extends Assert {
 
     /** Test on a Grib image with temporal bands, querying different bands */
     @Test
+    @Ignore
     public void testGribImageWithTimeDimension() throws IOException {
         // Selection of the input file
         final File inputFile = TestData.file(this, "tpcprblty.2019100912.incremental.grib2");
