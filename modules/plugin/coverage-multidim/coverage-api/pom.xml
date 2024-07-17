@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>gt-coverage-multidim</artifactId>
-    <version>30.4</version>
+    <version>C105.30.4.0</version>
   </parent>
 
   <!-- =========================================================== -->
