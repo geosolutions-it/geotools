@@ -1555,6 +1555,18 @@
     <!--   plugins at                                              -->
     <!--   https://repo1.maven.org/maven2                           -->
     <!-- ========================================================= -->
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ftp</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+    </extensions>
     <pluginManagement>
       <plugins>
         <plugin>
