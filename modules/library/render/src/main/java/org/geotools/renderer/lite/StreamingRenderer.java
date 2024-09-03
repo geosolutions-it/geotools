@@ -1091,6 +1091,7 @@ public class StreamingRenderer implements GTRenderer {
 
         // if map extent are not already expanded by a constant buffer, try to compute a layer
         // specific one based on stroke widths
+        boolean excludeGlobalObjects = false;
         if (getRenderingBuffer() == 0) {
             int metaBuffer = findRenderingBuffer(styleList);
             if (metaBuffer > 0) {
@@ -1105,6 +1106,9 @@ public class StreamingRenderer implements GTRenderer {
                 for (LiteFeatureTypeStyle lfts : styleList) {
                     if (lfts.screenMap != null) {
                         lfts.screenMap = new ScreenMap(lfts.screenMap, metaBuffer);
+                    }
+                    if (lfts.excludeGlobalObjects) {
+                        excludeGlobalObjects = true;
                     }
                 }
             }
@@ -1159,6 +1163,11 @@ public class StreamingRenderer implements GTRenderer {
                 if (!isWrappingHeuristicEnabled()) {
                     projectionHints.put(
                             WrappingProjectionHandler.DATELINE_WRAPPING_CHECK_ENABLED, false);
+                }
+                if (excludeGlobalObjects) {
+                    projectionHints.put(
+                            WrappingProjectionHandler.DATELINE_WRAPPING_GLOBAL_OBJECTS_EXCLUSION,
+                            true);
                 }
                 // get the projection handler and set a tentative envelope
                 ProjectionHandler projectionHandler =
@@ -2054,6 +2063,13 @@ public class StreamingRenderer implements GTRenderer {
                                         org.geotools.api.style.FeatureTypeStyle
                                                 .KEY_EVALUATION_MODE))) {
                     lfts.matchFirst = true;
+                }
+                if (Boolean.parseBoolean(
+                        fts.getOptions()
+                                .get(
+                                        org.geotools.api.style.FeatureTypeStyle
+                                                .VENDOR_OPTION_GLOBAL_OBJECTS_EXCLUSION))) {
+                    lfts.excludeGlobalObjects = true;
                 }
 
                 // get the sort by, if any

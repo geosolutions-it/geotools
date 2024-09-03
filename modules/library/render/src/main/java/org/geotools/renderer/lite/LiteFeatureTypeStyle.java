@@ -83,6 +83,8 @@ final class LiteFeatureTypeStyle {
      */
     ProjectionHandler projectionHandler;
 
+    boolean excludeGlobalObjects = false;
+
     /** The meta buffer for the current layer */
     int metaBuffer;
 
