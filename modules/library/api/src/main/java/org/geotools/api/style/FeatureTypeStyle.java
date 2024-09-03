@@ -121,6 +121,12 @@ public interface FeatureTypeStyle {
     String RT_OVERASAMPLE = "rt-oversample";
 
     /**
+     * String value allowing to control whether the dateline wrapping heuristic should ignore large
+     * objects from the checks.
+     */
+    String VENDOR_OPTION_GLOBAL_OBJECTS_EXCLUSION = "globalObjectsExclusion";
+
+    /**
      * Returns a name for this style. This can be any string that uniquely identifies this style within a given canvas.
      * It is not meant to be human-friendly. (The "title" property is meant to be human friendly.)
      *
