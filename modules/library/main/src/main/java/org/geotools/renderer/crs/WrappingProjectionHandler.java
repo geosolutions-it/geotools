@@ -47,7 +47,7 @@ import si.uom.SI;
  */
 public class WrappingProjectionHandler extends ProjectionHandler {
 
-    private static final Object LARGE_EARTH_OBJECT = new Object();
+    private static final Object GLOBAL_OBJECT = new Object();
 
     /** The user data key to indicate that the geometry was pre-flipped */
     protected static final String PREFLIPPED_OBJECT = "PRE-FLIPPED";
@@ -61,7 +61,10 @@ public class WrappingProjectionHandler extends ProjectionHandler {
     private int maxWraps;
 
     private boolean datelineWrappingCheckEnabled = true;
+    private boolean excludeGlobalObjectsEnabled = false;
     public static final String DATELINE_WRAPPING_CHECK_ENABLED = "datelineWrappingCheckEnabled";
+    public static final String DATELINE_WRAPPING_GLOBAL_OBJECTS_EXCLUSION =
+            "datelineWrappingGlobalObjectsExclusion";
     double sourceHalfCircle;
 
     /** Provides the strategy with the area we want to render and its CRS (the SPI lookup will do this step) */
@@ -102,6 +105,10 @@ public class WrappingProjectionHandler extends ProjectionHandler {
         if (projectionParameters.containsKey(DATELINE_WRAPPING_CHECK_ENABLED)) {
             datelineWrappingCheckEnabled = (Boolean) projectionParameters.get(DATELINE_WRAPPING_CHECK_ENABLED);
         }
+        if (projectionParameters.containsKey(DATELINE_WRAPPING_GLOBAL_OBJECTS_EXCLUSION)) {
+            excludeGlobalObjectsEnabled =
+                    (Boolean) projectionParameters.get(DATELINE_WRAPPING_GLOBAL_OBJECTS_EXCLUSION);
+        }
     }
 
     @Override
@@ -121,8 +128,8 @@ public class WrappingProjectionHandler extends ProjectionHandler {
             Geometry copy = geometry.copy();
             if (preflipped(width)) {
                 copy.setUserData(PREFLIPPED_OBJECT);
-            } else {
-                copy.setUserData(LARGE_EARTH_OBJECT);
+            } else if (!excludeGlobalObjectsEnabled) {
+                copy.setUserData(GLOBAL_OBJECT);
             }
             return copy;
         }
@@ -156,20 +163,28 @@ public class WrappingProjectionHandler extends ProjectionHandler {
         // if it's touching both datelines then don't wrap it, as it might be something
         // like antarctica
         final boolean northEast = CRS.getAxisOrder(targetCRS) == CRS.AxisOrder.NORTH_EAST;
+        final boolean wrapExcludingGlobalObject =
+                (excludeGlobalObjectsEnabled
+                        && width > targetHalfCircle
+                        && width <= targetHalfCircle * 2);
         if (datelineWrappingCheckEnabled
-                && ((geometry.getUserData() == LARGE_EARTH_OBJECT && width < targetHalfCircle)
-                        || (geometry.getUserData() != LARGE_EARTH_OBJECT
-                                && width > targetHalfCircle
-                                && width < targetHalfCircle * 2)
-                        || (geometry.getUserData() != null
-                                && geometry.getUserData().equals(PREFLIPPED_OBJECT)))) {
+                        && ((geometry.getUserData() == GLOBAL_OBJECT && width < targetHalfCircle)
+                                || (geometry.getUserData() != GLOBAL_OBJECT
+                                        && width > targetHalfCircle
+                                        && width < targetHalfCircle * 2)
+                                || (geometry.getUserData() != null
+                                        && geometry.getUserData().equals(PREFLIPPED_OBJECT)))
+                || wrapExcludingGlobalObject) {
             final Geometry wrapped = geometry.copy();
-            wrapped.apply(new WrappingCoordinateFilter(
-                    targetHalfCircle,
-                    targetHalfCircle * 2,
-                    mt,
-                    northEast,
-                    geometry.getUserData() != null && geometry.getUserData().equals(PREFLIPPED_OBJECT)));
+            wrapped.apply(
+                    new WrappingCoordinateFilter(
+                            targetHalfCircle,
+                            targetHalfCircle * 2,
+                            mt,
+                            northEast,
+                            (geometry.getUserData() != null
+                                            && geometry.getUserData().equals(PREFLIPPED_OBJECT))
+                                    || wrapExcludingGlobalObject));
             wrapped.geometryChanged();
             geometry = wrapped;
             env = geometry.getEnvelopeInternal();
