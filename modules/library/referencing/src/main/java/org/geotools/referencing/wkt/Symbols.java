@@ -104,7 +104,7 @@ public class Symbols {
      * Consequently, each instances of {@link Parser} or {@link Formatter} must use a clone of this
      * object, not this object directly (unless they synchronize on it).
      */
-    final NumberFormat numberFormat;
+    public final NumberFormat numberFormat;
 
     /** Creates a new instance initialized to the default symbols. */
     private Symbols() {
