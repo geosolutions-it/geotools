@@ -15,7 +15,7 @@
   <!-- =========================================================== -->
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
-  <version>29-EOWS-p10</version>
+  <version>29-EOWS-p11</version>
   <packaging>pom</packaging>
   <name>GeoTools</name>
 
@@ -475,7 +475,7 @@
     <db2.jdbc.version>11.5.6.0</db2.jdbc.version>
     <eclipse.emf.version>2.15.0</eclipse.emf.version>
     <elasticsearch.version>7.14.0</elasticsearch.version>
-    <imageio.ext.version>1.4.7</imageio.ext.version>
+    <imageio.ext.version>1.4.7_p1</imageio.ext.version>
     <informix.jdbc.version>4.50.7.1</informix.jdbc.version>
     <jackson2.databind.version>2.15.2</jackson2.databind.version>
     <jackson2.version>2.15.2</jackson2.version>
