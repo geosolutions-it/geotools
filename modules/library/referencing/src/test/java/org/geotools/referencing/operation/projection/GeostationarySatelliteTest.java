@@ -19,6 +19,7 @@ package org.geotools.referencing.operation.projection;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 
 import org.geotools.geometry.DirectPosition2D;
@@ -59,6 +60,7 @@ public class GeostationarySatelliteTest {
                     + "    PARAMETER[\"satellite_height\",35785831.0],"
                     + "    PARAMETER[\"false_easting\",0],"
                     + "    PARAMETER[\"false_northing\",0],"
+                    + "    PARAMETER[\"sweep\",0],"
                     + "    UNIT[\"meter\", 1]]";
 
     static CoordinateReferenceSystem sphericalGeosCRS;
@@ -92,6 +94,8 @@ public class GeostationarySatelliteTest {
                 CRS.getMapProjection(sphericalGeosCRS).getParameterValues();
         double satelliteHeight = parameters.parameter("satellite_height").doubleValue();
         assertThat(satelliteHeight, is(35832548.5));
+        double sweep = parameters.parameter("sweep").doubleValue();
+        assertThat(sweep, is(1.));
     }
 
     @Test
@@ -100,6 +104,25 @@ public class GeostationarySatelliteTest {
                 CRS.getMapProjection(ellipsoidalGeosCRS).getParameterValues();
         double satelliteHeight = parameters.parameter("satellite_height").doubleValue();
         assertThat(satelliteHeight, is(35785831.0));
+        double sweep = parameters.parameter("sweep").doubleValue();
+        assertThat(sweep, is(0.));
+    }
+
+    @Test
+    public void testEllipsoidProjection() throws Exception {
+        // Allow for some floating point shenanigans.
+        double allowedError = 1e-10;
+        // Calculated with pyproj.
+        // +proj=geos +lon_0=-135 +h=35785831 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs +sweep=x
+        double[] wsg84 = {-71.391245, 41.766279, -80.452193, -5.547325};
+        double[] geos = {
+            3778584.7403456536, 3762727.556421232, 4779926.185724244, -569498.6040787804
+        };
+        double[] actual = new double[wsg84.length];
+        geogToEllipsoidalGeos.transform(wsg84, 0, actual, 0, actual.length / 2);
+        assertArrayEquals(geos, actual, allowedError);
+        ellipsoidalGeosToGeog.transform(geos, 0, actual, 0, actual.length / 2);
+        assertArrayEquals(wsg84, actual, allowedError);
     }
 
     @Test
