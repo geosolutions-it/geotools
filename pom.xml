@@ -15,7 +15,7 @@
   <!-- =========================================================== -->
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
-  <version>31.5</version>
+  <version>C009.31.5.01</version>
   <packaging>pom</packaging>
   <name>GeoTools</name>
 

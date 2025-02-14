@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>plugin</artifactId>
-    <version>31.5</version>
+    <version>C009.31.5.01</version>
   </parent>
 
   <groupId>org.geotools</groupId>
