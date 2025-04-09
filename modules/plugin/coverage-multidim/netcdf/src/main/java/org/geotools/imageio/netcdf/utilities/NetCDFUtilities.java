@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -165,6 +166,8 @@ public class NetCDFUtilities {
     public static final String EXTERNAL_DATA_DIR;
 
     public static final String NETCDF_DATA_DIR = "NETCDF_DATA_DIR";
+    public static final String NETCDF_DATA_DIR_TREE = "NETCDF_DATA_DIR_TREE";
+    public static final String NETCDF_ROOT = "NETCDF_ROOT";
 
     public static final String FILL_VALUE = "_FillValue";
 
@@ -437,18 +440,11 @@ public class NetCDFUtilities {
         VALID_TYPES.add(DataType.FLOAT);
         VALID_TYPES.add(DataType.DOUBLE);
 
-        // Didn't extracted to a separate method
-        // since we can't initialize the static fields
-        final Object externalDir = System.getProperty(NETCDF_DATA_DIR);
-        String finalDir = null;
-        if (externalDir != null) {
-            String dir = (String) externalDir;
-            final File file = new File(dir);
-            if (isValidDir(file)) {
-                finalDir = dir;
-            }
-        }
-        EXTERNAL_DATA_DIR = finalDir;
+        EXTERNAL_DATA_DIR =
+                Optional.ofNullable(
+                                BaseDirectoryStrategy.getSystemPropertyDirectory(NETCDF_DATA_DIR))
+                        .map(f -> f.getPath())
+                        .orElse(null);
 
         try {
             Class.forName("ucar.nc2.grib.collection.GribIosp");
