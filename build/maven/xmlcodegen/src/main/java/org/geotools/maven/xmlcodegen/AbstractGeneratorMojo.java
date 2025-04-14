@@ -392,11 +392,11 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
 									throw new RuntimeException(e);
 								}
                             }
-						}));
+						}), null, null);
 			} else {
 				xsdSchema = Schemas.parse(schemaLocation.getAbsolutePath(),
 						Collections.singletonList(locator),
-						Collections.singletonList(locationResolver));
+						Collections.singletonList(locationResolver), null, null);
 			}
 			
 			if ( xsdSchema == null ) {

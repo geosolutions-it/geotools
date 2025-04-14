@@ -338,232 +338,7 @@ public class ParserHandler extends DefaultHandler2 {
             logger.finest("startElement(" + uri + "," + localName + "," + qName);
         }
 
-        boolean root = schemas == null;
-        if (root) {
-            // root element, parse the schema
-            // TODO: this processing is too loose, do some validation will ya!
-            String[] locations = null;
-
-            for (int i = 0; i < attributes.getLength(); i++) {
-                String name = attributes.getQName(i);
-
-                if (name.endsWith("schemaLocation")) {
-                    logger.finer("schemaLocation found: " + attributes.getValue(i));
-
-                    // create an array of alternating namespace, location pairs
-                    locations = attributes.getValue(i).split(" +");
-
-                    break;
-                }
-            }
-
-            //            }
-            if (!isStrict() && (locations == null)) {
-                // use the configuration
-                logger.finer(
-                        "No schemaLocation found, using '"
-                                + config.getNamespaceURI()
-                                + " "
-                                + config.getXSD().getSchemaLocation());
-                locations =
-                        new String[] {
-                            config.getNamespaceURI(), config.getXSD().getSchemaLocation()
-                        };
-            }
-
-            // look up schema overrides
-            List<XSDSchemaLocator> locators = Arrays.asList(findSchemaLocators());
-            List<XSDSchemaLocationResolver> resolvers =
-                    Arrays.asList(findSchemaLocationResolvers());
-
-            if ((locations != null) && (locations.length > 0)) {
-                // parse each namespace location pair into schema objects
-                schemas = new XSDSchema[locations.length / 2];
-
-                for (int i = 0; i < locations.length; i += 2) {
-                    String namespace = locations[i];
-                    String location = null;
-                    if (i + 1 < locations.length) {
-                        location = locations[i + 1];
-                    } else {
-                        logger.warning(
-                                "Schema location not specified as namespace/location pair. "
-                                        + "Ignoring "
-                                        + namespace);
-                        continue;
-                    }
-
-                    // first check for a location override
-                    for (XSDSchemaLocationResolver resolver : resolvers) {
-                        String override = resolver.resolveSchemaLocation(null, namespace, location);
-                        if (override != null) {
-                            // ensure that override has no spaces
-                            override = override.replaceAll(" ", "%20");
-                            logger.finer(
-                                    "Found override for "
-                                            + namespace
-                                            + ": "
-                                            + location
-                                            + " ==> "
-                                            + override);
-                            location = override;
-
-                            break;
-                        }
-                    }
-
-                    // next check for schema override
-                    for (XSDSchemaLocator locator : locators) {
-                        XSDSchema schema = locator.locateSchema(null, namespace, location, null);
-
-                        if (schema != null) {
-                            schemas[i / 2] = schema;
-
-                            break;
-                        }
-                    }
-
-                    // if no schema override was found, parse location directly
-                    if (schemas[i / 2] == null) {
-                        // validate the schema location
-                        if (isValidating()) {
-                            try {
-                                Schemas.validateImportsIncludes(location, locators, resolvers);
-                            } catch (IOException e) {
-                                throw (SAXException)
-                                        new SAXException("error validating").initCause(e);
-                            }
-                        }
-
-                        // parse the document
-                        try {
-                            schemas[i / 2] =
-                                    Schemas.parse(location, locators, resolvers, uriHandlers);
-                        } catch (Exception e) {
-                            String msg = "Error parsing: " + location;
-                            logger.warning(msg);
-
-                            if (isStrict()) {
-                                // strict mode, throw exception
-                                throw (SAXException) new SAXException(msg).initCause(e);
-                            }
-                        }
-                    }
-                }
-            } else {
-                // could not find a schemaLocation attribute, use the locators
-                // look for schema with locators
-                for (XSDSchemaLocator locator : locators) {
-                    XSDSchema schema = locator.locateSchema(null, uri, null, null);
-
-                    if (schema != null) {
-                        schemas = new XSDSchema[] {schema};
-
-                        break;
-                    }
-                }
-            }
-
-            // strip out any null schemas
-            int n = 0;
-
-            for (XSDSchema xsdSchema : schemas) {
-                if (xsdSchema != null) {
-                    n++;
-                }
-            }
-
-            if (n != schemas.length) {
-                XSDSchema[] nschemas = new XSDSchema[n];
-                int j = 0;
-
-                for (XSDSchema schema : schemas) {
-                    if (schema == null) {
-                        continue;
-                    }
-
-                    nschemas[j++] = schema;
-                }
-
-                schemas = nschemas;
-            }
-
-            if ((schemas == null) || (schemas.length == 0)) {
-                logger.warning("Could not find a schema");
-
-                if (isStrict()) {
-                    // crap out
-                    String msg =
-                            "Could not find a schemaLocation attribute or " + "appropriate locator";
-                    throw new SAXException(msg);
-                } else {
-                    // just use the schema from configuration
-                    try {
-                        schemas = new XSDSchema[] {config.getXSD().getSchema()};
-                    } catch (IOException e) {
-                        throw (SAXException) new SAXException().initCause(e);
-                    }
-                }
-            }
-
-            // check to make sure that the schemas that were created include
-            // the schema for the parser configuration
-            boolean found = false;
-
-            O:
-            for (XSDSchema schema : schemas) {
-                if (config.getNamespaceURI().equals(schema.getTargetNamespace())) {
-                    found = true;
-                    break O;
-                }
-
-                List imports = Schemas.getImports(schema);
-
-                for (Object anImport : imports) {
-                    XSDImport imprt = (XSDImport) anImport;
-
-                    if (config.getNamespaceURI().equals(imprt.getNamespace())) {
-                        found = true;
-
-                        break O;
-                    }
-                }
-            }
-
-            if (!found) {
-                // add it if not operating in strict mode
-                if (!isStrict()) {
-                    logger.fine(
-                            "schema specified by parser configuration not found, supplementing...");
-
-                    XSDSchema[] copy = new XSDSchema[schemas.length + 1];
-                    System.arraycopy(schemas, 0, copy, 0, schemas.length);
-                    XSDSchema result;
-                    try {
-                        result = config.getXSD().getSchema();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    copy[schemas.length] = result;
-                    schemas = copy;
-                } else {
-                    String msg =
-                            "parser configuration specified schema: '"
-                                    + config.getNamespaceURI()
-                                    + "', but instance document does not reference this schema.";
-                    logger.info(msg);
-                }
-            }
-
-            index = new SchemaIndexImpl(schemas);
-            context.registerComponentInstance(index);
-
-            // if no default prefix is set in this namespace context, then
-            // set it to be the namesapce of the configuration
-            if (namespaces.getURI("") == null) {
-                namespaces.declarePrefix("", config.getNamespaceURI());
-            }
-        }
+        boolean root = loadSchemas(uri, attributes);
 
         // set up a new namespace context
         namespaces.pushContext();
@@ -758,6 +533,250 @@ public class ParserHandler extends DefaultHandler2 {
         }
     }
 
+    private boolean loadSchemas(String uri, Attributes attributes) throws SAXException {
+        boolean root = schemas == null;
+        if (root) {
+            // root element, parse the schema
+            // TODO: this processing is too loose, do some validation will ya!
+            String[] locations = getSchemaLocations(attributes);
+
+            // look up schema overrides
+            List<XSDSchemaLocator> locators = Arrays.asList(findSchemaLocators());
+            List<XSDSchemaLocationResolver> resolvers =
+                    Arrays.asList(findSchemaLocationResolvers());
+
+            if ((locations != null) && (locations.length > 0)) {
+                // parse each namespace location pair into schema objects
+                schemas = new XSDSchema[locations.length / 2];
+
+                for (int i = 0; i < locations.length; i += 2) {
+                    String namespace = locations[i];
+                    String location = null;
+                    if (i + 1 < locations.length) {
+                        location = locations[i + 1];
+                    } else {
+                        logger.warning(
+                                "Schema location not specified as namespace/location pair. "
+                                        + "Ignoring "
+                                        + namespace);
+                        continue;
+                    }
+
+                    // first check for a location override
+                    for (XSDSchemaLocationResolver resolver : resolvers) {
+                        String override = resolver.resolveSchemaLocation(null, namespace, location);
+                        if (override != null) {
+                            // ensure that override has no spaces
+                            override = override.replaceAll(" ", "%20");
+                            logger.finer(
+                                    "Found override for "
+                                            + namespace
+                                            + ": "
+                                            + location
+                                            + " ==> "
+                                            + override);
+                            location = override;
+
+                            break;
+                        }
+                    }
+
+                    // next check for schema override
+                    for (XSDSchemaLocator locator : locators) {
+                        XSDSchema schema = locator.locateSchema(null, namespace, location, null);
+
+                        if (schema != null) {
+                            schemas[i / 2] = schema;
+
+                            break;
+                        }
+                    }
+
+                    // if no schema override was found, parse location directly
+                    if (schemas[i / 2] == null) {
+                        // validate the schema location
+                        if (isValidating()) {
+                            try {
+                                Schemas.validateImportsIncludes(
+                                        location, locators, resolvers, entityResolver);
+                            } catch (IOException e) {
+                                throw (SAXException)
+                                        new SAXException("error validating").initCause(e);
+                            }
+                        }
+
+                        // parse the document
+                        try {
+                            schemas[i / 2] =
+                                    Schemas.parse(
+                                            location,
+                                            locators,
+                                            resolvers,
+                                            uriHandlers,
+                                            entityResolver);
+                        } catch (Exception e) {
+                            String msg =
+                                    "Error loading schema for namespace: "
+                                            + namespace
+                                            + " at location: "
+                                            + location;
+                            logger.warning(msg);
+
+                            if (isStrict()) {
+                                // strict mode, throw exception
+                                throw new SAXException(msg, e);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // could not find a schemaLocation attribute, use the locators
+                // look for schema with locators
+                for (XSDSchemaLocator locator : locators) {
+                    XSDSchema schema = locator.locateSchema(null, uri, null, null);
+
+                    if (schema != null) {
+                        schemas = new XSDSchema[] {schema};
+
+                        break;
+                    }
+                }
+            }
+
+            // strip out any null schemas
+            int n = 0;
+
+            for (XSDSchema xsdSchema : schemas) {
+                if (xsdSchema != null) {
+                    n++;
+                }
+            }
+
+            if (n != schemas.length) {
+                XSDSchema[] nschemas = new XSDSchema[n];
+                int j = 0;
+
+                for (XSDSchema schema : schemas) {
+                    if (schema == null) {
+                        continue;
+                    }
+
+                    nschemas[j++] = schema;
+                }
+
+                schemas = nschemas;
+            }
+
+            if ((schemas == null) || (schemas.length == 0)) {
+                logger.warning("Could not find a schema");
+
+                if (isStrict()) {
+                    // crap out
+                    String msg =
+                            "Could not find a schemaLocation attribute or " + "appropriate locator";
+                    throw new SAXException(msg);
+                } else {
+                    // just use the schema from configuration
+                    try {
+                        schemas = new XSDSchema[] {config.getXSD().getSchema()};
+                    } catch (IOException e) {
+                        throw (SAXException) new SAXException().initCause(e);
+                    }
+                }
+            }
+
+            // check to make sure that the schemas that were created include
+            // the schema for the parser configuration
+            boolean found = false;
+
+            O:
+            for (XSDSchema schema : schemas) {
+                if (config.getNamespaceURI().equals(schema.getTargetNamespace())) {
+                    found = true;
+                    break O;
+                }
+
+                List imports = Schemas.getImports(schema);
+
+                for (Object anImport : imports) {
+                    XSDImport imprt = (XSDImport) anImport;
+
+                    if (config.getNamespaceURI().equals(imprt.getNamespace())) {
+                        found = true;
+
+                        break O;
+                    }
+                }
+            }
+
+            if (!found) {
+                // add it if not operating in strict mode
+                if (!isStrict()) {
+                    logger.fine(
+                            "schema specified by parser configuration not found, supplementing...");
+
+                    XSDSchema[] copy = new XSDSchema[schemas.length + 1];
+                    System.arraycopy(schemas, 0, copy, 0, schemas.length);
+                    XSDSchema result;
+                    try {
+                        result = config.getXSD().getSchema();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    copy[schemas.length] = result;
+                    schemas = copy;
+                } else {
+                    String msg =
+                            "parser configuration specified schema: '"
+                                    + config.getNamespaceURI()
+                                    + "', but instance document does not reference this schema.";
+                    logger.info(msg);
+                }
+            }
+
+            index = new SchemaIndexImpl(schemas);
+            context.registerComponentInstance(index);
+
+            // if no default prefix is set in this namespace context, then
+            // set it to be the namesapce of the configuration
+            if (namespaces.getURI("") == null) {
+                namespaces.declarePrefix("", config.getNamespaceURI());
+            }
+        }
+        return root;
+    }
+
+    private String[] getSchemaLocations(Attributes attributes) {
+        String[] locations = null;
+
+        for (int i = 0; i < attributes.getLength(); i++) {
+            String name = attributes.getQName(i);
+
+            if (name.endsWith("schemaLocation")) {
+                logger.finer("schemaLocation found: " + attributes.getValue(i));
+
+                // create an array of alternating namespace, location pairs
+                locations = attributes.getValue(i).split(" +");
+
+                break;
+            }
+        }
+
+        //            }
+        if (!isStrict() && (locations == null)) {
+            // use the configuration
+            logger.finer(
+                    "No schemaLocation found, using '"
+                            + config.getNamespaceURI()
+                            + " "
+                            + config.getXSD().getSchemaLocation());
+            locations =
+                    new String[] {config.getNamespaceURI(), config.getXSD().getSchemaLocation()};
+        }
+        return locations;
+    }
+
+    @Override
     public void characters(char[] ch, int start, int length) throws SAXException {
         // pull the handler from the top of stack
         ElementHandler handler = (ElementHandler) handlers.peek();
