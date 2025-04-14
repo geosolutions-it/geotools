@@ -16,6 +16,8 @@
  */
 package org.geotools.xsd;
 
+import static java.util.Collections.emptyList;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -71,6 +73,7 @@ import org.eclipse.xsd.XSDTypeDefinition;
 import org.eclipse.xsd.XSDWildcard;
 import org.eclipse.xsd.impl.XSDImportImpl;
 import org.eclipse.xsd.impl.XSDSchemaImpl;
+import org.eclipse.xsd.util.DefaultJAXPConfiguration;
 import org.eclipse.xsd.util.XSDConstants;
 import org.eclipse.xsd.util.XSDResourceFactoryImpl;
 import org.eclipse.xsd.util.XSDResourceImpl;
@@ -87,6 +90,7 @@ import org.picocontainer.Parameter;
 import org.picocontainer.PicoContainer;
 import org.picocontainer.PicoVisitor;
 import org.xml.sax.Attributes;
+import org.xml.sax.EntityResolver;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -192,14 +196,15 @@ public class Schemas {
     }
 
     /**
-     * Parses a schema at the specified location.
+     * Parses a schema at the specified location. Only used for tests, for other purposes use {@link
+     * #parse(String, List, List, EntityResolver)}
      *
      * @param location A uri pointing to the location of the schema.
      * @return The parsed schema, or null if the schema could not be parsed.
      * @throws IOException In the event of a schema parsing error.
      */
     public static final XSDSchema parse(String location) throws IOException {
-        return parse(location, Collections.EMPTY_LIST, Collections.EMPTY_LIST);
+        return parse(location, emptyList(), emptyList());
     }
 
     /**
@@ -215,7 +220,7 @@ public class Schemas {
      */
     public static final XSDSchema parse(String location, List locators, List resolvers)
             throws IOException {
-        return parse(location, locators, resolvers, null);
+        return parse(location, locators, resolvers, emptyList(), null);
     }
 
     /**
@@ -232,7 +237,11 @@ public class Schemas {
      * @throws IOException In the event of a schema parsing error.
      */
     public static final XSDSchema parse(
-            String location, List locators, List resolvers, List<URIHandler> uriHandlers)
+            String location,
+            List<XSDSchemaLocator> locators,
+            List<XSDSchemaLocationResolver> resolvers,
+            List<URIHandler> uriHandlers,
+            EntityResolver entityResolver)
             throws IOException {
         ResourceSet resourceSet = new ResourceSetImpl();
 
@@ -252,10 +261,16 @@ public class Schemas {
         if (uriHandlers != null && !uriHandlers.isEmpty()) {
             resourceSet.getURIConverter().getURIHandlers().addAll(0, uriHandlers);
         }
-        return parse(location, resourceSet);
+        return parse(location, resourceSet, entityResolver);
     }
 
     public static final XSDSchema parse(String location, ResourceSet resourceSet)
+            throws IOException {
+        return parse(location, resourceSet, null);
+    }
+
+    public static final XSDSchema parse(
+            String location, ResourceSet resourceSet, EntityResolver entityResolver)
             throws IOException {
         // check for case of file url, make sure it is an absolute reference
         File locationFile = null;
@@ -280,6 +295,24 @@ public class Schemas {
         // read resource before synchronize: Shorter lock duration and prevention of deadlock
         // if remote schema is created on same JVM and synchronizes on Schemas, too.
         Map<Object, Object> options = resourceSet.getLoadOptions();
+        // first check if the entity resolve would allow reading the uri
+        if (entityResolver != null) {
+            try {
+                entityResolver.resolveEntity(null, uri.toString());
+            } catch (SAXException e) {
+                throw new IOException(e);
+            }
+
+            options.put(
+                    XSDResourceImpl.XSD_JAXP_CONFIG,
+                    new DefaultJAXPConfiguration() {
+
+                        @Override
+                        public EntityResolver createEntityResolver() {
+                            return entityResolver;
+                        }
+                    });
+        }
         Map<?, ?> response = getOrCreateResponseFrom(options);
         byte[] resourceData = readUriResource(uri, resourceSet, response);
 
@@ -456,7 +489,7 @@ public class Schemas {
     }
 
     public static final List validateImportsIncludes(String location) throws IOException {
-        return validateImportsIncludes(location, Collections.EMPTY_LIST, Collections.EMPTY_LIST);
+        return validateImportsIncludes(location, emptyList(), emptyList(), null);
     }
 
     public static final List validateImportsIncludes(
@@ -464,12 +497,25 @@ public class Schemas {
             throws IOException {
         return validateImportsIncludes(
                 location,
-                (locators != null) ? Arrays.asList(locators) : Collections.EMPTY_LIST,
-                (resolvers != null) ? Arrays.asList(resolvers) : Collections.EMPTY_LIST);
+                (locators != null) ? Arrays.asList(locators) : emptyList(),
+                (resolvers != null) ? Arrays.asList(resolvers) : emptyList());
     }
 
     public static final List validateImportsIncludes(String location, List locators, List resolvers)
             throws IOException {
+        return validateImportsIncludes(location, locators, resolvers, null);
+    }
+
+    public static final List validateImportsIncludes(
+            String location,
+            List<XSDSchemaLocator> locators,
+            List<XSDSchemaLocationResolver> resolvers,
+            EntityResolver entityResolver)
+            throws IOException {
+
+        // null safety
+        if (locators == null) locators = Collections.emptyList();
+        if (resolvers == null) resolvers = Collections.emptyList();
 
         // create a parser
         SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -481,6 +527,14 @@ public class Schemas {
             parser = factory.newSAXParser();
         } catch (Exception e) {
             throw (IOException) new IOException("could not create parser").initCause(e);
+        }
+
+        if (entityResolver != null) {
+            try {
+                parser.getXMLReader().setEntityResolver(entityResolver);
+            } catch (SAXException e) {
+                throw new IOException(e);
+            }
         }
 
         SchemaImportIncludeValidator validator =
@@ -510,7 +564,7 @@ public class Schemas {
             }
         }
 
-        return Collections.EMPTY_LIST;
+        return emptyList();
     }
 
     static final class SchemaImportIncludeValidator extends DefaultHandler {
