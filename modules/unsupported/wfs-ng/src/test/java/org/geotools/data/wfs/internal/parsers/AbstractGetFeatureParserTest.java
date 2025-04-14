@@ -364,9 +364,7 @@ public abstract class AbstractGetFeatureParserTest {
         try {
             IOException exception = assertThrows(IOException.class, () -> parser.parse());
             assertThat(exception.getCause(), instanceOf(XMLStreamException.class));
-            assertThat(
-                    exception.getMessage(),
-                    containsString("The entity \"xxe\" was referenced, but not declared"));
+            assertThat(exception.getMessage(), containsString("ParseError at [row,col]:[32,18]"));
         } finally {
             parser.close();
         }
