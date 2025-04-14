@@ -16,6 +16,12 @@
  */
 package org.geotools.xsd;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -39,8 +45,13 @@ import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.xsd.XSDElementDeclaration;
 import org.eclipse.xsd.XSDSchema;
 import org.eclipse.xsd.util.XSDSchemaLocationResolver;
+import org.geotools.util.NullEntityResolver;
+import org.geotools.util.PreventLocalEntityResolver;
+import org.geotools.util.factory.Hints;
 import org.geotools.xs.XS;
 import org.geotools.xsd.impl.HTTPURIHandler;
+import org.hamcrest.CoreMatchers;
+import org.junit.Test;
 
 /** Tests for {@link org.geotools.xsd.Schemas}. */
 public class SchemasTest extends TestCase {
@@ -50,6 +61,8 @@ public class SchemasTest extends TestCase {
 
     protected void setUp() throws Exception {
         super.setUp();
+        // tests need to be able to resolve local entities
+        Hints.putSystemDefault(Hints.ENTITY_RESOLVER, NullEntityResolver.INSTANCE);
 
         tmp = File.createTempFile("schemas", "xsd");
         tmp.delete();
@@ -104,6 +117,17 @@ public class SchemasTest extends TestCase {
                         + "xmlns:xsd='http://www.w3.org/2001/XMLSchema' "
                         + "targetNamespace='http://geotools.org/test'> "
                         + "</xsd:schema>";
+        write(f, xsd);
+
+        f = new File(sub, "test.xsd");
+        xsd =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                        + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n"
+                        + "           targetNamespace=\"http://geotools.org/test\"\n"
+                        + "           xmlns=\"http://geotools.org/test\"\n"
+                        + "           elementFormDefault=\"qualified\">\n"
+                        + "  <xs:element name=\"root\" type=\"xs:anyType\"/>\n"
+                        + "</xs:schema>";
         write(f, xsd);
 
         System.setProperty(Schemas.FORCE_SCHEMA_IMPORT, "false");
@@ -277,5 +301,33 @@ public class SchemasTest extends TestCase {
         XSDSchema schema =
                 Schemas.parse("http://www.foo.bar/remoteSchemaLocation.xsd", resourceSet);
         assertNotNull(schema);
+    }
+
+    @Test
+    public void testEntityResolverDisallow() throws IOException {
+        try {
+            Schemas.parse(
+                    new File(sub, "test.xsd").getCanonicalPath(),
+                    null,
+                    null,
+                    null,
+                    PreventLocalEntityResolver.INSTANCE);
+        } catch (IOException exception) {
+            assertThat(
+                    exception.getMessage(),
+                    CoreMatchers.containsString("Entity resolution disallowed"));
+        }
+    }
+
+    @Test
+    public void testEntityResolverAllow() throws IOException {
+        XSDSchema schema =
+                Schemas.parse(
+                        new File(sub, "test.xsd").getCanonicalPath(),
+                        null,
+                        null,
+                        null,
+                        NullEntityResolver.INSTANCE);
+        assertEquals("root", ((XSDElementDeclaration) schema.getContents().get(0)).getName());
     }
 }
