@@ -16,19 +16,21 @@
  */
 package org.geotools.xsd;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.xml.namespace.QName;
 import junit.framework.TestCase;
 import org.geotools.ml.MLConfiguration;
 import org.geotools.ml.Mail;
 import org.geotools.ml.bindings.MLSchemaLocationResolver;
 import org.geotools.xsd.impl.Handler;
-import org.junit.Test;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
@@ -37,6 +39,37 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.ext.EntityResolver2;
 
 public class ParserTest extends TestCase {
+
+    public void testParseEntityResolver() throws Exception {
+        Parser parser = new Parser(new XMLConfiguration());
+        AtomicBoolean resolverUsed = new AtomicBoolean(false);
+        parser.setEntityResolver(
+                new EntityResolver2() {
+                    @Override
+                    public InputSource getExternalSubset(String name, String baseURI)
+                            throws SAXException, IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public InputSource resolveEntity(
+                            String name, String publicId, String baseURI, String systemId)
+                            throws SAXException, IOException {
+                        if (systemId.equals("./mails.xsd")) resolverUsed.set(true);
+                        return null;
+                    }
+
+                    @Override
+                    public InputSource resolveEntity(String publicId, String systemId)
+                            throws SAXException, IOException {
+                        if (systemId.equals("./mails.xsd")) resolverUsed.set(true);
+                        return null;
+                    }
+                });
+        parser.parse(MLSchemaLocationResolver.class.getResourceAsStream("mails-local-schema.xml"));
+        assertTrue("The resolver was not used?", resolverUsed.get());
+    }
+
     public void testParse() throws Exception {
         Parser parser = new Parser(new MLConfiguration());
         List mails =
@@ -347,7 +380,6 @@ public class ParserTest extends TestCase {
     }
 
     /** Tests returned exception caused by entity expansion limit configuration on Parser. */
-    @Test
     public void testEntityExpansionLimitException() throws Exception {
         final StringBuffer sb = new StringBuffer();
         XSD xsd =
@@ -391,7 +423,6 @@ public class ParserTest extends TestCase {
     }
 
     /** Tests entity expansion limit configuration on Parser. */
-    @Test
     public void testEntityExpansionLimitAllowed() throws Exception {
         final StringBuffer sb = new StringBuffer();
         XSD xsd =
