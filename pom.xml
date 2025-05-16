@@ -15,7 +15,7 @@
   <!-- =========================================================== -->
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
-  <version>33.1</version>
+  <version>C105.33.1.00</version>
   <packaging>pom</packaging>
   <name>GeoTools</name>
 
@@ -1591,6 +1591,20 @@
     <!--   plugins at                                              -->
     <!--   https://repo1.maven.org/maven2                           -->
     <!-- ========================================================= -->
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ftp</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+    </extensions>
+
     <pluginManagement>
       <plugins>
         <plugin>
@@ -2309,6 +2323,18 @@
 
   <!-- Profiles set on the command-line overwrite default properties. -->
   <profiles>
+
+    <profile>
+      <id>deploygeosolutions</id>
+      <distributionManagement>
+        <repository>
+          <uniqueVersion>false</uniqueVersion>
+          <id>geosolutions</id>
+          <url>ftp://demo.geo-solutions.it</url>
+        </repository>
+      </distributionManagement>
+    </profile>
+
     <profile>
       <id>docs</id>
       <activation>
