@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.data.mysql;
+package org.geotools.data.singlestore;
 
 import java.sql.Connection;
 import java.util.Properties;
@@ -28,7 +28,7 @@ import org.geotools.jdbc.JDBCTestSetup;
  *
  * @author Justin Deoliveira, The Open Planning Project
  */
-public class MySQLTestSetup extends JDBCTestSetup {
+public class SingleStoreTestSetup extends JDBCTestSetup {
 
     @Override
     protected void initializeDataSource(BasicDataSource ds, Properties db) {
@@ -39,7 +39,7 @@ public class MySQLTestSetup extends JDBCTestSetup {
 
     @Override
     protected JDBCDataStoreFactory createDataStoreFactory() {
-        return new MySQLDataStoreFactory();
+        return new SingleStoreDataStoreFactory();
     }
 
     @Override
@@ -50,21 +50,21 @@ public class MySQLTestSetup extends JDBCTestSetup {
 
         // drop old data
         try {
-            run("DROP TABLE ft1;");
+            run("DROP TABLE IF EXISTS ft1;");
         } catch (Exception e) {
             // e.printStackTrace();
         }
 
         try {
-            run("DROP TABLE ft2;");
+            run("DROP TABLE IF EXISTS ft2;");
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
 
         try {
-            run("DROP TABLE ft4;");
+            run("DROP TABLE IF EXISTS ft4;");
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
         runSafe("DELETE FROM geometry_columns");
 
@@ -72,24 +72,24 @@ public class MySQLTestSetup extends JDBCTestSetup {
         StringBuffer sb = new StringBuffer();
         // JD: COLLATE latin1_general_cs is neccesary to ensure case-sensitive string comparisons
         sb.append("CREATE TABLE ft1 ")
-                .append("(id int AUTO_INCREMENT PRIMARY KEY , ")
-                .append("geometry POINT, intProperty int, ")
-                .append("doubleProperty double, stringProperty varchar(255) COLLATE latin1_general_cs) ENGINE=InnoDB;");
+                .append("(id int PRIMARY KEY , ")
+                .append("geometry GEOGRAPHYPOINT, intProperty int, ")
+                .append("doubleProperty DOUBLE(8,2), stringProperty varchar(255) COLLATE latin1_general_cs);");
         run(sb.toString());
 
         // setup so that we can start counting from 0, otherwise 0 is treated as a special value
         run("SET sql_mode='NO_AUTO_VALUE_ON_ZERO';");
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft1 VALUES (").append("0,ST_GeomFromText('POINT(0 0)',4326), 0, 0.0,'zero');");
+        sb.append("INSERT INTO ft1 VALUES (").append("0, GEOGRAPHY_POINT(0, 0), 0, 0.0, 'zero');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft1 VALUES (").append("1,ST_GeomFromText('POINT(1 1)',4326), 1, 1.1,'one');");
+        sb.append("INSERT INTO ft1 VALUES (").append("1, GEOGRAPHY_POINT(1, 1), 1, 1.1, 'one');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft1 VALUES (").append("2,ST_GeomFromText('POINT(2 2)',4326), 2, 2.2,'two');");
+        sb.append("INSERT INTO ft1 VALUES (").append("2, GEOGRAPHY_POINT(2, 2), 2, 2.2, 'two');");
         run(sb.toString());
 
         runft4();
@@ -98,38 +98,38 @@ public class MySQLTestSetup extends JDBCTestSetup {
     private void runft4() throws Exception {
         StringBuffer sb = new StringBuffer();
         // JD: COLLATE latin1_general_cs is neccesary to ensure case-sensitive string comparisons
-        sb.append("CREATE TABLE ft4 ")
-                .append("(id int AUTO_INCREMENT PRIMARY KEY , ")
-                .append("geometry POINT, intProperty int, ")
-                .append("doubleProperty double, stringProperty varchar(255) COLLATE latin1_general_cs) ENGINE=InnoDB;");
+        sb.append("CREATE TABLE ft4 (")
+                .append("id int AUTO_INCREMENT PRIMARY KEY,")
+                .append("geometry GEOGRAPHYPOINT, intProperty int, ")
+                .append("doubleProperty double, stringProperty varchar(255) COLLATE latin1_general_cs);");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("0,ST_GeomFromText('POINT(0 0)',4326), 0, 0.0,'zero');");
+        sb.append("INSERT INTO ft4 VALUES (").append("0, GEOGRAPHY_POINT(0, 0), 0, 0.0, 'zero');");
+        run(sb.toString());
+
+//        sb = new StringBuffer();
+//        sb.append("INSERT INTO ft4 VALUES (").append("1, GEOGRAPHY_POINT(0, 0), 1, 1.1, 'one');");
+//        run(sb.toString());
+
+        sb = new StringBuffer();
+        sb.append("INSERT INTO ft4 VALUES (").append("2, GEOGRAPHY_POINT(2, 2), 1, 1.1, 'one_2');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("1,ST_GeomFromText('POINT(1 1)',4326), 1, 1.1,'one');");
+        sb.append("INSERT INTO ft4 VALUES (").append("3, GEOGRAPHY_POINT(3, 3), 1, 1.1, 'one_2');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("2,ST_GeomFromText('POINT(2 2)',4326), 1, 1.1,'one_2');");
+        sb.append("INSERT INTO ft4 VALUES (").append("4, GEOGRAPHY_POINT(4, 4), 2, 2.2,'two');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("3,ST_GeomFromText('POINT(3 3)',4326), 1, 1.1,'one_2');");
+        sb.append("INSERT INTO ft4 VALUES (").append("5, GEOGRAPHY_POINT(5, 5), 2, 2.2,'two_2');");
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("4,ST_GeomFromText('POINT(4 4)',4326), 2, 2.2,'two');");
-        run(sb.toString());
-
-        sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("5,ST_GeomFromText('POINT(5 5)',4326), 2, 2.2,'two_2');");
-        run(sb.toString());
-
-        sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("6,ST_GeomFromText('POINT(6 6)',4326), 3, 3.3,'three');");
+        sb.append("INSERT INTO ft4 VALUES (").append("6, GEOGRAPHY_POINT(6, 6), 3, 3.3,'three');");
         run(sb.toString());
     }
 
@@ -142,7 +142,7 @@ public class MySQLTestSetup extends JDBCTestSetup {
     protected Properties createExampleFixture() {
         Properties p = new Properties();
 
-        p.put("driver", "com.mysql.cj.jdbc.Driver");
+        p.put("driver", "com.singlestore.jdbc.Driver");
         p.put("url", "jdbc:mysql://localhost/geotools");
         p.put("host", "localhost");
         p.put("port", "3306");
