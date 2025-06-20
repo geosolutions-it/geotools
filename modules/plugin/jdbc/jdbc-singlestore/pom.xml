@@ -11,8 +11,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.geotools</groupId>
-    <artifactId>plugin</artifactId>
+    <groupId>org.geotools.jdbc</groupId>
+    <artifactId>gt-jdbc</artifactId>
     <version>34-SNAPSHOT</version>
   </parent>
 
@@ -20,9 +20,11 @@
   <!--     Module Description                                      -->
   <!-- =========================================================== -->
   <groupId>org.geotools.jdbc</groupId>
-  <artifactId>gt-jdbc</artifactId>
-  <packaging>pom</packaging>
-  <name>JDBC DataStore Plugins</name>
+  <artifactId>gt-jdbc-singlestore</artifactId>
+  <packaging>jar</packaging>
+  <name>SingleStore(MemSQL) DataStore</name>
+
+  <description>DataStore for SingleStore Database.</description>
 
   <licenses>
     <license>
@@ -48,59 +50,11 @@
     </developer>
   </developers>
 
-  <modules>
-    <module>jdbc-h2</module>
-    <module>jdbc-oracle</module>
-    <module>jdbc-postgis</module>
-    <module>jdbc-db2</module>
-    <module>jdbc-mysql</module>
-    <module>jdbc-informix</module>
-    <module>jdbc-sqlserver</module>
-    <module>jdbc-hana</module>
-    <module>jdbc-singlestore</module>
-  </modules>
-
   <dependencies>
     <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-jdbc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-jdbc</artifactId>
-      <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-sample-data</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-epsg-hsql</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
     </dependency>
   </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
-        <version>${maven.pmd.plugin.version}</version>
-        <configuration>
-          <!-- Disable JUnit specific rules, these modules tests extends JUnit3 based OnlineTest -->
-          <rulesets>
-            <ruleset>${geotoolsBaseDir}/build/qa/pmd-ruleset.xml</ruleset>
-          </rulesets>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>
