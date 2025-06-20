@@ -36,22 +36,22 @@ import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKTWriter;
 
 /**
- * MySQL database dialect based on basic (non-prepared) statements.
+ * SingleStore database dialect based on basic (non-prepared) statements.
  *
  * @author Justin Deoliveira, OpenGEO
- * @author Nikolaos Pringouris <nprigour@gmail.com> added support for MySQL versions 5.6 (and above)
+ * @author Nikolaos Pringouris <nprigour@gmail.com> added support for SingleStore versions 5.6 (and above)
  */
-public class MySQLDialectBasic extends BasicSQLDialect {
+public class SingleStoreDialectBasic extends BasicSQLDialect {
 
-    MySQLDialect delegate;
+    SingleStoreDialect delegate;
 
-    public MySQLDialectBasic(JDBCDataStore dataStore) {
+    public SingleStoreDialectBasic(JDBCDataStore dataStore) {
         this(dataStore, false);
     }
 
-    public MySQLDialectBasic(JDBCDataStore dataStore, boolean usePreciseSpatialOps) {
+    public SingleStoreDialectBasic(JDBCDataStore dataStore, boolean usePreciseSpatialOps) {
         super(dataStore);
-        delegate = new MySQLDialect(dataStore);
+        delegate = new SingleStoreDialect(dataStore);
         delegate.setUsePreciseSpatialOps(usePreciseSpatialOps);
     }
 
@@ -67,12 +67,12 @@ public class MySQLDialectBasic extends BasicSQLDialect {
         return delegate.getUsePreciseSpatialOps();
     }
 
-    public boolean isMySqlVersion80OrAbove() {
-        return delegate.isMySqlVersion80OrAbove;
+    public boolean isSingleStoreVersion80OrAbove() {
+        return delegate.isSingleStoreVersion80OrAbove;
     }
 
-    public void setMySqlVersion80OrAbove(boolean mySqlVersion80OrAbove) {
-        delegate.isMySqlVersion80OrAbove = mySqlVersion80OrAbove;
+    public void setSingleStoreVersion80OrAbove(boolean SingleStoreVersion80OrAbove) {
+        delegate.isSingleStoreVersion80OrAbove = SingleStoreVersion80OrAbove;
     }
 
     @Override
@@ -178,10 +178,10 @@ public class MySQLDialectBasic extends BasicSQLDialect {
         if (value != null) {
             if (delegate.usePreciseSpatialOps) {
                 sql.append("ST_GeomFromText('");
-                // HACK; mysql 8 will throw a MysqlDataTruncation exception if srid == -1 which
+                // HACK; SingleStore 8 will throw a SingleStoreDataTruncation exception if srid == -1 which
                 // happens when JDBCDataStore#getDescriptorSRID(AttributeDescriptor) can't find the
                 // srid in the attribute descriptor:
-                // com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: SRID value is
+                // com.SingleStore.cj.jdbc.exceptions.SingleStoreDataTruncation: Data truncation: SRID value is
                 // out of range in 'st_geomfromtext'
                 if (srid < 0) srid = 0;
             } else {
@@ -238,8 +238,8 @@ public class MySQLDialectBasic extends BasicSQLDialect {
 
     @Override
     public FilterToSQL createFilterToSQL() {
-        MySQLFilterToSQL fts = new MySQLFilterToSQL(delegate.getUsePreciseSpatialOps());
-        // see https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_backslash_escapes
+        SingleStoreFilterToSQL fts = new SingleStoreFilterToSQL(delegate.getUsePreciseSpatialOps());
+        // see https://dev.SingleStore.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_backslash_escapes
         // NOTE: for future enhancement, do not escape backslashes when the NO_BACKSLASH_ESCAPES
         // mode is enabled since that would create an incorrect string in the SQL
         fts.setEscapeBackslash(true);

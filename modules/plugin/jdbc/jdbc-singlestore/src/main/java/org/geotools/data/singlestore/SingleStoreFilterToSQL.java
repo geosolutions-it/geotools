@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.data.singlestore;
+package org.geotools.data.mysql;
 
 import java.io.IOException;
 import org.geotools.api.filter.expression.Expression;
@@ -36,22 +36,22 @@ import org.geotools.api.filter.spatial.Within;
 import org.geotools.data.jdbc.FilterToSQL;
 import org.geotools.filter.FilterCapabilities;
 import org.locationtech.jts.geom.Geometry;
- * SingleStore database dialect based on basic (non-prepared) statements.
+import org.locationtech.jts.geom.LinearRing;
 
 public class SingleStoreFilterToSQL extends FilterToSQL {
 
     protected boolean usePreciseSpatialOps;
-public class SingleStoreDialectBasic extends BasicSQLDialect {
+
     public SingleStoreFilterToSQL() {
-    SingleStoreDialect delegate;
+        this(false);
     }
-    public SingleStoreDialectBasic(JDBCDataStore dataStore) {
+
     public SingleStoreFilterToSQL(boolean usePreciseSpatialOps) {
         super();
         this.usePreciseSpatialOps = usePreciseSpatialOps;
-    public SingleStoreDialectBasic(JDBCDataStore dataStore, boolean usePreciseSpatialOps) {
+    }
 
-        delegate = new SingleStoreDialect(dataStore);
+    @Override
     protected FilterCapabilities createFilterCapabilities() {
         // MySQL does not actually implement all of the special functions
         FilterCapabilities caps = super.createFilterCapabilities();
@@ -67,12 +67,12 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
         caps.addType(Beyond.class);
 
         return caps;
-    public boolean isSingleStoreVersion80OrAbove() {
-        return delegate.isSingleStoreVersion80OrAbove;
+    }
+
     @Override
     protected void visitLiteralGeometry(Literal expression) throws IOException {
-    public void setSingleStoreVersion80OrAbove(boolean singleStoreVersion80OrAbove) {
-        delegate.isSingleStoreVersion80OrAbove = singleStoreVersion80OrAbove;
+        Geometry g = (Geometry) evaluateLiteral(expression, Geometry.class);
+        if (g instanceof LinearRing) {
             // WKT does not support linear rings
             g = g.getFactory().createLineString(((LinearRing) g).getCoordinateSequence());
         }
@@ -85,7 +85,7 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
 
     @Override
     protected Object visitBinarySpatialOperator(
-            BinarySpatialOperator filter, PropertyName property, Literal geometry, boolean swapped, Object extraData) {
+        BinarySpatialOperator filter, PropertyName property, Literal geometry, boolean swapped, Object extraData) {
 
         if (usePreciseSpatialOps) {
             return visitBinarySpatialOperatorEnhanced(filter, property, geometry, swapped, extraData);
@@ -96,7 +96,7 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
 
     @Override
     protected Object visitBinarySpatialOperator(
-            BinarySpatialOperator filter, Expression e1, Expression e2, Object extraData) {
+        BinarySpatialOperator filter, Expression e1, Expression e2, Object extraData) {
         if (usePreciseSpatialOps) {
             return visitBinarySpatialOperatorEnhanced(filter, e1, e2, false, extraData);
         } else {
@@ -105,7 +105,7 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
     }
     /** pre-5.6 spatial functions. */
     protected Object visitBinarySpatialOperator(
-            BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
+        BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
 
         try {
 
@@ -183,7 +183,7 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
 
     /** supported if version of MySQL is at least 5.6. */
     protected Object visitBinarySpatialOperatorEnhanced(
-            BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
+        BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
 
         try {
 
