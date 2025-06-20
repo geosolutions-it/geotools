@@ -1,0 +1,55 @@
+/*
+ *    GeoTools - The Open Source Java GIS Toolkit
+ *    http://geotools.org
+ *
+ *    (C) 2017, Open Source Geospatial Foundation (OSGeo)
+ *
+ *    This library is free software; you can redistribute it and/or
+ *    modify it under the terms of the GNU Lesser General Public
+ *    License as published by the Free Software Foundation;
+ *    version 2.1 of the License.
+ *
+ *    This library is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *    Lesser General Public License for more details.
+ */
+package org.geotools.data.singlestore;
+
+import static org.junit.Assert.assertFalse;
+
+import java.util.Map;
+import org.geotools.jdbc.JDBCTestSetup;
+import org.geotools.jdbc.JDBCTestSupport;
+import org.junit.Test;
+
+/**
+ * Tests that enhandedSpatialSupport is not enabled in SingleStore versions < 5.6 even if
+ * SingleStoreDataStoreFactory.ENHANCED_SPATIAL_SUPPORT is set.
+ *
+ * @author Justin Deoliveira, The Open Planning Project
+ */
+public class SingleStoreDataStoreManualEnhandedSpatialSupportTest extends JDBCTestSupport {
+    @Override
+    protected JDBCTestSetup createTestSetup() {
+        return new SingleStoreTestSetup();
+    }
+
+    @Override
+    protected Map<String, Object> createDataStoreFactoryParams() throws Exception {
+        // TODO Auto-generated method stub
+        Map<String, Object> params = super.createDataStoreFactoryParams();
+        params.put(SingleStoreDataStoreFactory.ENHANCED_SPATIAL_SUPPORT.key, true);
+        return params;
+    }
+
+    @Test
+    public void testManualEnhancedSpatialSupportDetection() throws Exception {
+        // ensure that if not version 5.6 or later then PreciseSpatialOps are
+        // disabled
+        boolean isSingleStore56 = SingleStoreDataStoreFactory.isSingleStoreVersion56OrAbove(dataStore);
+        if (!isSingleStore56) {
+            assertFalse(((SingleStoreDialectBasic) dialect).getUsePreciseSpatialOps());
+        }
+    }
+}

@@ -1,0 +1,48 @@
+/*
+ *    GeoTools - The Open Source Java GIS Toolkit
+ *    http://geotools.org
+ *
+ *    (C) 2023, Open Source Geospatial Foundation (OSGeo)
+ *
+ *    This library is free software; you can redistribute it and/or
+ *    modify it under the terms of the GNU Lesser General Public
+ *    License as published by the Free Software Foundation;
+ *    version 2.1 of the License.
+ *
+ *    This library is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *    Lesser General Public License for more details.
+ */
+package org.geotools.data.singlestore;
+
+import static org.junit.Assert.assertEquals;
+
+import org.geotools.api.filter.FilterFactory;
+import org.geotools.api.filter.PropertyIsEqualTo;
+import org.geotools.data.jdbc.SQLFilterTestSupport;
+import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.feature.SchemaException;
+import org.junit.Before;
+import org.junit.Test;
+
+public class SingleStoreFilterToSQLTest extends SQLFilterTestSupport {
+
+    private static FilterFactory ff = CommonFactoryFinder.getFilterFactory();
+
+    private SingleStoreFilterToSQL filterToSql;
+
+    @Override
+    @Before
+    public void setUp() throws SchemaException {
+        filterToSql = (SingleStoreFilterToSQL) new SingleStoreDialectBasic(null).createFilterToSQL();
+        filterToSql.setFeatureType(testSchema);
+    }
+
+    @Test
+    public void testEncodeEqualToWithSpecialCharacters() throws Exception {
+        PropertyIsEqualTo expr = ff.equals(ff.property("testString"), ff.literal("\\'FOO"));
+        String actual = filterToSql.encodeToString(expr);
+        assertEquals("WHERE testString = '\\\\''FOO'", actual);
+    }
+}
