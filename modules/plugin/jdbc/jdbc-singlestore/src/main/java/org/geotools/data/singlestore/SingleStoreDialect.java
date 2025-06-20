@@ -49,7 +49,8 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 
 /**
- * Delegate for {@link SingleStoreDialectBasic} and {@link SingleStoreDialectPrepared} which implements the common part of the api.
+ * Delegate for {@link SingleStoreDialectBasic} and {@link SingleStoreDialectPrepared} which implements the common part
+ * of the api.
  *
  * @author Justin Deoliveira, OpenGEO
  */
@@ -68,7 +69,8 @@ public class SingleStoreDialect extends SQLDialect {
     protected String storageEngine;
 
     /**
-     * flag that indicates that precise spatial operation should be used (should apply to SingleStore versions 5.6 and above)
+     * flag that indicates that precise spatial operation should be used (should apply to SingleStore versions 5.6 and
+     * above)
      */
     protected boolean usePreciseSpatialOps;
 

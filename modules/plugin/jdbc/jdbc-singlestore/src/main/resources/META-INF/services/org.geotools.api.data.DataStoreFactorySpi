@@ -1,2 +1,2 @@
-org.geotools.data.singlestore.MySQLDataStoreFactory
-org.geotools.data.singlestore.MySQLJNDIDataStoreFactory
+org.geotools.data.singlestore.SingleStoreDataStoreFactory
+org.geotools.data.singlestore.SingleStoreJNDIDataStoreFactory

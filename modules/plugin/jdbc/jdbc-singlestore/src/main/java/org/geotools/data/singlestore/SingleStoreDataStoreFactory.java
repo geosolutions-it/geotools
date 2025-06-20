@@ -43,9 +43,9 @@ public class SingleStoreDataStoreFactory extends JDBCDataStoreFactory {
             new Param("storage engine", String.class, "Storage Engine", false, "MyISAM");
 
     /**
-     * Enhanced Spatial Support is available from SingleStore version 5.6 and onward. This includes some differentiation of
-     * the spatial function naming which generally follow the naming convention ST_xxxx. Moreover spatial operations are
-     * performed with precise object shape and not with minimum bounding rectangles. As of version 8 it is the only
+     * Enhanced Spatial Support is available from SingleStore version 5.6 and onward. This includes some differentiation
+     * of the spatial function naming which generally follow the naming convention ST_xxxx. Moreover spatial operations
+     * are performed with precise object shape and not with minimum bounding rectangles. As of version 8 it is the only
      * option.
      */
     public static final Param ENHANCED_SPATIAL_SUPPORT =
@@ -115,11 +115,13 @@ public class SingleStoreDataStoreFactory extends JDBCDataStoreFactory {
         if (dialect instanceof SingleStoreDialectBasic) {
             ((SingleStoreDialectBasic) dialect).setStorageEngine(storageEngine);
             ((SingleStoreDialectBasic) dialect).setUsePreciseSpatialOps(enhancedSpatialSupport);
-            ((SingleStoreDialectBasic) dialect).setSingleStoreVersion80OrAbove(this.isSingleStoreVersion80OrAbove(dataStore));
+            ((SingleStoreDialectBasic) dialect)
+                    .setSingleStoreVersion80OrAbove(this.isSingleStoreVersion80OrAbove(dataStore));
         } else {
             ((SingleStoreDialectPrepared) dialect).setStorageEngine(storageEngine);
             ((SingleStoreDialectPrepared) dialect).setUsePreciseSpatialOps(enhancedSpatialSupport);
-            ((SingleStoreDialectPrepared) dialect).setSingleStoreVersion80OrAbove(this.isSingleStoreVersion80OrAbove(dataStore));
+            ((SingleStoreDialectPrepared) dialect)
+                    .setSingleStoreVersion80OrAbove(this.isSingleStoreVersion80OrAbove(dataStore));
         }
 
         return dataStore;

@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package org.geotools.data.mysql;
+package org.geotools.data.singlestore;
 
 import java.io.IOException;
 import org.geotools.api.filter.expression.Expression;
@@ -85,7 +85,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
 
     @Override
     protected Object visitBinarySpatialOperator(
-        BinarySpatialOperator filter, PropertyName property, Literal geometry, boolean swapped, Object extraData) {
+            BinarySpatialOperator filter, PropertyName property, Literal geometry, boolean swapped, Object extraData) {
 
         if (usePreciseSpatialOps) {
             return visitBinarySpatialOperatorEnhanced(filter, property, geometry, swapped, extraData);
@@ -96,7 +96,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
 
     @Override
     protected Object visitBinarySpatialOperator(
-        BinarySpatialOperator filter, Expression e1, Expression e2, Object extraData) {
+            BinarySpatialOperator filter, Expression e1, Expression e2, Object extraData) {
         if (usePreciseSpatialOps) {
             return visitBinarySpatialOperatorEnhanced(filter, e1, e2, false, extraData);
         } else {
@@ -105,7 +105,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
     }
     /** pre-5.6 spatial functions. */
     protected Object visitBinarySpatialOperator(
-        BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
+            BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
 
         try {
 
@@ -183,7 +183,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
 
     /** supported if version of MySQL is at least 5.6. */
     protected Object visitBinarySpatialOperatorEnhanced(
-        BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
+            BinarySpatialOperator filter, Expression e1, Expression e2, boolean swapped, Object extraData) {
 
         try {
 
