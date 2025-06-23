@@ -52,7 +52,6 @@ public class SingleStoreDialectPrepared extends PreparedStatementSQLDialect {
         delegate = new SingleStoreDialect(dataStore);
     }
 
-
     @Override
     public boolean includeTable(String schemaName, String tableName, Connection cx) throws SQLException {
         return delegate.includeTable(schemaName, tableName, cx);
@@ -176,7 +175,7 @@ public class SingleStoreDialectPrepared extends PreparedStatementSQLDialect {
     public void prepareGeometryValue(
             Class<? extends Geometry> gClass, int dimension, int srid, Class binding, StringBuffer sql) {
         if (gClass != null) {
-                sql.append("GeomFromWKB(?)");
+            sql.append("GeomFromWKB(?)");
         } else {
             super.prepareGeometryValue(gClass, dimension, srid, binding, sql);
         }

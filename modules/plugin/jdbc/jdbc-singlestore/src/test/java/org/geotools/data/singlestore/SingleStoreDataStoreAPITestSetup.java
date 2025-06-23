@@ -17,10 +17,6 @@
 package org.geotools.data.singlestore;
 
 import org.geotools.jdbc.JDBCDataStoreAPITestSetup;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.io.IOException;
 
 public class SingleStoreDataStoreAPITestSetup extends JDBCDataStoreAPITestSetup {
     public SingleStoreDataStoreAPITestSetup() {
@@ -28,43 +24,30 @@ public class SingleStoreDataStoreAPITestSetup extends JDBCDataStoreAPITestSetup 
     }
 
     @Override
-    protected int getInitialPrimaryKeyValue() {
-        return 1;
-    }
-
-    @Override
     protected void createRoadTable() throws Exception {
-        run("CREATE ROWSTORE TABLE road(fid int PRIMARY KEY, id int, "
-                + "geom GEOGRAPHY, name varchar(255) );");
-        run("INSERT INTO road (fid,id,geom,name) VALUES (0,0,"
-                + "'LINESTRING(1 1, 2 2, 4 2, 5 1)',"
-                + "'r1');");
-        run("INSERT INTO road (fid,id,geom,name) VALUES ( 1,1,"
-                + "'LINESTRING(3 0, 3 2, 3 3, 3 4)',"
-                + "'r2');");
-        run("INSERT INTO road (fid,id,geom,name) VALUES ( 2,2,"
-                + "'LINESTRING(3 2, 4 2, 5 3)',"
-                + "'r3');");
+        run("CREATE ROWSTORE TABLE road(fid int PRIMARY KEY, id int, " + "geom GEOGRAPHY, name varchar(255) );");
+        run("INSERT INTO road (fid,id,geom,name) VALUES ( 0,0," + "'LINESTRING(1 1, 2 2, 4 2, 5 1)'," + "'r1');");
+        run("INSERT INTO road (fid,id,geom,name) VALUES ( 1,1," + "'LINESTRING(3 0, 3 2, 3 3, 3 4)'," + "'r2');");
+        run("INSERT INTO road (fid,id,geom,name) VALUES ( 2,2," + "'LINESTRING(3 2, 4 2, 5 3)'," + "'r3');");
     }
 
     @Override
     protected void createRiverTable() throws Exception {
         // No Multiline string
-//        run("CREATE ROWSTORE TABLE river(fid int PRIMARY KEY, id int, "
-//                + "geom GEOGRAPHY, river varchar(255) , flow double );");
-//
-//        run("INSERT INTO river (fid,id,geom,river, flow)  VALUES ( 0, 0,"
-//                + "'MULTILINESTRING((5 5, 7 4),(7 5, 9 7, 13 7),(7 5, 9 3, 11 3))',"
-//                + "'rv1', 4.5);");
-//        run("INSERT INTO river (fid,id,geom,river, flow) VALUES ( 1, 1,"
-//                + "'MULTILINESTRING((4 6, 4 8, 6 10))',"
-//                + "'rv2', 3.0);");
+        run("CREATE ROWSTORE TABLE river(fid int PRIMARY KEY, id int, "
+                + "geom GEOGRAPHY, river varchar(255) , flow double );");
+
+        run("INSERT INTO river (fid,id,geom,river, flow)  VALUES ( 0, 0,"
+                + "'LINESTRING(5 5, 7 4,7 5, 9 7, 13 7,7 5, 9 3, 11 3)',"
+                + "'rv1', 4.5);");
+        run("INSERT INTO river (fid,id,geom,river, flow) VALUES ( 1, 1,"
+                + "'LINESTRING(4 6, 4 8, 6 10)',"
+                + "'rv2', 3.0);");
     }
 
     @Override
     protected void createLakeTable() throws Exception {
-        run("CREATE ROWSTORE TABLE lake(fid int PRIMARY KEY, id int, "
-                + "geom GEOGRAPHY, name varchar(255) );");
+        run("CREATE ROWSTORE TABLE lake(fid int PRIMARY KEY, id int, " + "geom GEOGRAPHY, name varchar(255) );");
 
         run("INSERT INTO lake (fid,id,geom,name) VALUES ( 0, 0,"
                 + "'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))',"

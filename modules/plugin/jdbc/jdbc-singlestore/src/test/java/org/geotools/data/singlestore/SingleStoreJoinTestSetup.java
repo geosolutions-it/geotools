@@ -29,14 +29,13 @@ public class SingleStoreJoinTestSetup extends JDBCJoinTestSetup {
     protected void createJoinTable() throws Exception {
         // TODO REMOVE
         // create some data
-//        StringBuffer sb = new StringBuffer();
-//        sb.append("DELETE TABLE IF EXISTS ftjoin;");
-//        run(sb.toString());
-//
-//        sb = new StringBuffer();
-//        sb.append("DELETE TABLE IF EXISTS ftjoin2;");
-//        run(sb.toString());
-
+        //        StringBuffer sb = new StringBuffer();
+        //        sb.append("DELETE TABLE IF EXISTS ftjoin;");
+        //        run(sb.toString());
+        //
+        //        sb = new StringBuffer();
+        //        sb.append("DELETE TABLE IF EXISTS ftjoin2;");
+        //        run(sb.toString());
 
         StringBuffer sb = new StringBuffer();
         sb.append("CREATE ROWSTORE TABLE ftjoin ")
@@ -47,7 +46,6 @@ public class SingleStoreJoinTestSetup extends JDBCJoinTestSetup {
                 .append("SHARD KEY (id));");
         run(sb.toString());
 
-
         sb = new StringBuffer();
         sb.append("INSERT INTO ftjoin VALUES (")
                 .append("0, 'zero', \"POLYGON((-0.1 -0.1, -0.1 0.1, 0.1 0.1, 0.1 -0.1, -0.1 -0.1))\", 0);");
@@ -55,8 +53,7 @@ public class SingleStoreJoinTestSetup extends JDBCJoinTestSetup {
 
         sb = new StringBuffer();
         sb.append("INSERT INTO ftjoin VALUES (")
-                .append(
-                        "1, 'one', \"POLYGON ((-1.1 -1.1, -1.1 1.1, 1.1 1.1, 1.1 -1.1, -1.1 -1.1))\", 1);");
+                .append("1, 'one', \"POLYGON ((-1.1 -1.1, -1.1 1.1, 1.1 1.1, 1.1 -1.1, -1.1 -1.1))\", 1);");
         run(sb.toString());
 
         sb = new StringBuffer();

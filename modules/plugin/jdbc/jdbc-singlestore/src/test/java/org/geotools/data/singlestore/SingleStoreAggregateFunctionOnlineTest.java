@@ -25,5 +25,4 @@ public class SingleStoreAggregateFunctionOnlineTest extends JDBCAggregateFunctio
     protected JDBCAggregateTestSetup createTestSetup() {
         return new SingleStoreAggregateTestSetup();
     }
-
 }

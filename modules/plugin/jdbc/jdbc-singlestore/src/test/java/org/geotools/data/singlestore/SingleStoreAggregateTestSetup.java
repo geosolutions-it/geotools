@@ -27,18 +27,19 @@ public class SingleStoreAggregateTestSetup extends JDBCAggregateTestSetup {
     @Override
     protected void createAggregateTable() throws Exception {
 
-        run( "CREATE ROWSTORE TABLE aggregate (" +
-                "fid INT AUTO_INCREMENT PRIMARY KEY," +
-                "id INT," +
-                "geom GEOGRAPHY NOT NULL," +
-                "name VARCHAR(255)"+
-        ");");
+        run("CREATE ROWSTORE TABLE aggregate (" + "fid INT AUTO_INCREMENT PRIMARY KEY,"
+                + "id INT,"
+                + "geom GEOGRAPHY NOT NULL,"
+                + "name VARCHAR(255)"
+                + ");");
 
-        run("INSERT INTO aggregate (id,name,geom) VALUES ( 0,'muddy1', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
-        run("INSERT INTO aggregate (id,name,geom) VALUES ( 1,'muddy1', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
-        run("INSERT INTO aggregate (id,name,geom) VALUES ( 2,'muddy2', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
+        run(
+                "INSERT INTO aggregate (id,name,geom) VALUES ( 0,'muddy1', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
+        run(
+                "INSERT INTO aggregate (id,name,geom) VALUES ( 1,'muddy1', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
+        run(
+                "INSERT INTO aggregate (id,name,geom) VALUES ( 2,'muddy2', 'POLYGON((12 6, 14 8, 16 6, 16 4, 14 4, 12 6))')");
     }
-
 
     @Override
     protected void dropAggregateTable() throws Exception {

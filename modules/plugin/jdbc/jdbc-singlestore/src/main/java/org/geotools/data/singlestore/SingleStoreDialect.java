@@ -16,6 +16,14 @@
  */
 package org.geotools.data.singlestore;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Map;
+import java.util.logging.Level;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.AttributeDescriptor;
 import org.geotools.api.feature.type.GeometryDescriptor;
@@ -29,38 +37,23 @@ import org.geotools.util.factory.Hints;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKTReader;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import java.util.Map;
-import java.util.logging.Level;
-
 /**
  * Delegate for {@link SingleStoreDialect} and {@link org.geotools.data.singlestore.SingleStoreDialectPrepared} which
  * implements the common part of the api.
- *
  */
 public class SingleStoreDialect extends SQLDialect {
 
-    /**
-     * singlestore spatial types
-     */
-//    protected Integer POINT = Integer.valueOf(1111);
-//    protected Integer GEOMETRY = Integer.valueOf(1111);
+    /** singlestore spatial types */
+    //    protected Integer POINT = Integer.valueOf(1111);
+    //    protected Integer GEOMETRY = Integer.valueOf(1111);
 
     public SingleStoreDialect(JDBCDataStore dataStore) {
         super(dataStore);
     }
-
 
     @Override
     public boolean includeTable(String schemaName, String tableName, Connection cx) throws SQLException {
@@ -72,7 +65,7 @@ public class SingleStoreDialect extends SQLDialect {
 
     @Override
     public String getNameEscape() {
-        return  "";
+        return "";
     }
 
     @Override
@@ -83,9 +76,10 @@ public class SingleStoreDialect extends SQLDialect {
     @Override
     public Integer getGeometrySRID(String schemaName, String tableName, String columnName, Connection cx)
             throws SQLException {
-        String sql = String.format("SELECT COLUMN_NAME, DATA_TYPE " +
-                "FROM INFORMATION_SCHEMA.COLUMNS " +
-                "WHERE TABLE_NAME = '%s' AND COLUMN_NAME = '%s'", tableName, columnName);
+        String sql = String.format(
+                "SELECT COLUMN_NAME, DATA_TYPE " + "FROM INFORMATION_SCHEMA.COLUMNS "
+                        + "WHERE TABLE_NAME = '%s' AND COLUMN_NAME = '%s'",
+                tableName, columnName);
 
         dataStore.getLogger().fine(sql);
 
@@ -105,7 +99,7 @@ public class SingleStoreDialect extends SQLDialect {
             dataStore.closeSafe(st);
         }
         return null;
-       }
+    }
 
     @Override
     public void encodeGeometryEnvelope(String tableName, String geometryColumn, StringBuffer sql) {
@@ -148,30 +142,30 @@ public class SingleStoreDialect extends SQLDialect {
     public void registerClassToSqlMappings(Map<Class<?>, Integer> mappings) {
         super.registerClassToSqlMappings(mappings);
 
-//        mappings.put(Point.class, POINT);
-//        mappings.put(Geometry.class, GEOMETRY);
+        //        mappings.put(Point.class, POINT);
+        //        mappings.put(Geometry.class, GEOMETRY);
     }
 
     @Override
     public void registerSqlTypeToClassMappings(Map<Integer, Class<?>> mappings) {
         super.registerSqlTypeToClassMappings(mappings);
 
-//        mappings.put(POINT, Point.class);
-//        mappings.put(GEOMETRY, Geometry.class);
+        //        mappings.put(POINT, Point.class);
+        //        mappings.put(GEOMETRY, Geometry.class);
     }
 
     @Override
     public void registerSqlTypeNameToClassMappings(Map<String, Class<?>> mappings) {
         super.registerSqlTypeNameToClassMappings(mappings);
 
-//        mappings.put("GEOGRAPHYPOINT", Point.class);
-//        mappings.put("GEOGRAPHY", Geometry.class);
+        //        mappings.put("GEOGRAPHYPOINT", Point.class);
+        //        mappings.put("GEOGRAPHY", Geometry.class);
     }
 
     @Override
     public void registerSqlTypeToSqlTypeNameOverrides(Map<Integer, String> overrides) {
-//        overrides.put(Types.BOOLEAN, "BOOL");
-//        overrides.put(Types.CLOB, "TEXT");
+        //        overrides.put(Types.BOOLEAN, "BOOL");
+        //        overrides.put(Types.CLOB, "TEXT");
     }
 
     @Override
@@ -193,7 +187,7 @@ public class SingleStoreDialect extends SQLDialect {
                 null,
                 dataStore.escapeNamePattern(md, schemaName),
                 dataStore.escapeNamePattern(md, "geometry_columns"),
-                new String[]{"TABLE"});
+                new String[] {"TABLE"});
         try {
             if (!rs.next()) {
                 // create it

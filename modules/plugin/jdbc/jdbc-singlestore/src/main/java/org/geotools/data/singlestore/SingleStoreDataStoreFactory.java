@@ -17,8 +17,6 @@
 package org.geotools.data.singlestore;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Map;
 import org.geotools.api.data.Parameter;
@@ -39,7 +37,6 @@ public class SingleStoreDataStoreFactory extends JDBCDataStoreFactory {
     /** Default port number for MYSQL */
     public static final Param PORT = new Param("port", Integer.class, "Port", true, 3306);
     /** Storage engine to use when creating tables */
-
     public static final Param ENHANCED_SPATIAL_SUPPORT =
             new Param("enhancedSpatialSupport", Boolean.class, "Enhanced Spatial Support", false, false);
 
@@ -93,5 +90,4 @@ public class SingleStoreDataStoreFactory extends JDBCDataStoreFactory {
 
         return dataStore;
     }
-
 }

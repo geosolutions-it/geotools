@@ -16,7 +16,6 @@
  */
 package org.geotools.data.singlestore;
 
-
 import java.util.Map;
 import org.geotools.jdbc.JDBCJNDIDataStoreFactory;
 

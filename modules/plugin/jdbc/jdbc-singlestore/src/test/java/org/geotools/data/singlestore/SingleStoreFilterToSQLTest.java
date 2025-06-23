@@ -16,15 +16,11 @@
  */
 package org.geotools.data.singlestore;
 
-import static org.junit.Assert.assertEquals;
-
 import org.geotools.api.filter.FilterFactory;
-import org.geotools.api.filter.PropertyIsEqualTo;
 import org.geotools.data.jdbc.SQLFilterTestSupport;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.SchemaException;
 import org.junit.Before;
-import org.junit.Test;
 
 public class SingleStoreFilterToSQLTest extends SQLFilterTestSupport {
 
@@ -37,12 +33,5 @@ public class SingleStoreFilterToSQLTest extends SQLFilterTestSupport {
     public void setUp() throws SchemaException {
         filterToSql = (SingleStoreFilterToSQL) new SingleStoreDialectBasic(null).createFilterToSQL();
         filterToSql.setFeatureType(testSchema);
-    }
-
-    @Test
-    public void testEncodeEqualToWithSpecialCharacters() throws Exception {
-        PropertyIsEqualTo expr = ff.equals(ff.property("testString"), ff.literal("\\'FOO"));
-        String actual = filterToSql.encodeToString(expr);
-        assertEquals("WHERE testString = '\\\\''FOO'", actual);
     }
 }

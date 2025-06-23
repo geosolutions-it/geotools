@@ -57,13 +57,8 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
         FilterCapabilities caps = super.createFilterCapabilities();
         caps.addType(BBOX.class);
         caps.addType(Contains.class);
-        caps.addType(Crosses.class);
-        caps.addType(Disjoint.class);
-        caps.addType(Equals.class);
         caps.addType(Intersects.class);
-        caps.addType(Overlaps.class);
-        caps.addType(Touches.class);
-        caps.addType(Within.class);
+        caps.addType(DWithin.class);
         caps.addType(Beyond.class);
 
         return caps;
@@ -76,11 +71,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
             // WKT does not support linear rings
             g = g.getFactory().createLineString(((LinearRing) g).getCoordinateSequence());
         }
-        if (usePreciseSpatialOps) {
-            out.write("ST_GeomFromText('" + g.toText() + "', " + currentSRID + ")");
-        } else {
-            out.write("GeomFromText('" + g.toText() + "', " + currentSRID + ")");
-        }
+        out.write("'" + g.toText() + "'");
     }
 
     @Override
@@ -110,7 +101,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
         try {
 
             if (!(filter instanceof Disjoint)) {
-                out.write("MbrIntersects(");
+                out.write("APPROX_GEOGRAPHY_INTERSECTS(");
                 e1.accept(this, extraData);
                 out.write(",");
                 e2.accept(this, extraData);
@@ -127,7 +118,7 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
             }
 
             if (filter instanceof DistanceBufferOperator) {
-                out.write("Distance(");
+                out.write("GEOGRAPHY_DISTANCE(");
                 e1.accept(this, extraData);
                 out.write(", ");
                 e2.accept(this, extraData);
@@ -143,21 +134,9 @@ public class SingleStoreFilterToSQL extends FilterToSQL {
                 out.write(Double.toString(((DistanceBufferOperator) filter).getDistance()));
             } else if (!(filter instanceof BBOX)) {
                 if (filter instanceof Contains) {
-                    out.write("Contains(");
-                } else if (filter instanceof Crosses) {
-                    out.write("Crosses(");
-                } else if (filter instanceof Disjoint) {
-                    out.write("Disjoint(");
-                } else if (filter instanceof Equals) {
-                    out.write("Equals(");
+                    out.write("GEOGRAPHY_CONTAINS(");
                 } else if (filter instanceof Intersects) {
-                    out.write("Intersects(");
-                } else if (filter instanceof Overlaps) {
-                    out.write("Overlaps(");
-                } else if (filter instanceof Touches) {
-                    out.write("Touches(");
-                } else if (filter instanceof Within) {
-                    out.write("Within(");
+                    out.write("GEOGRAPHY_INTERSECTS(");
                 } else {
                     throw new RuntimeException("Unknown operator: " + filter);
                 }

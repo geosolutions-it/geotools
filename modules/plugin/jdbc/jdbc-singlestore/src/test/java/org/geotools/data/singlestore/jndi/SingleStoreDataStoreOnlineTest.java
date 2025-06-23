@@ -1,5 +1,6 @@
 package org.geotools.data.singlestore.jndi;
 
+import java.io.IOException;
 import org.geotools.data.singlestore.SingleStoreTestSetup;
 import org.geotools.jdbc.JDBCDataStoreOnlineTest;
 import org.geotools.jdbc.JDBCJNDITestSetup;
@@ -7,9 +8,11 @@ import org.geotools.jdbc.JDBCTestSetup;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-
 public class SingleStoreDataStoreOnlineTest extends JDBCDataStoreOnlineTest {
+
+    public SingleStoreDataStoreOnlineTest() {
+        super(1e-6);
+    }
 
     @Override
     protected JDBCTestSetup createTestSetup() {
@@ -26,26 +29,22 @@ public class SingleStoreDataStoreOnlineTest extends JDBCDataStoreOnlineTest {
     @Override
     @Ignore
     @Test
-    public void testCreateSchemaWithConstraints() throws Exception{
-    }
+    public void testCreateSchemaWithConstraints() throws Exception {}
 
     @Override
     @Ignore
     @Test
-    public void testCreateSchema() throws Exception{
-    }
+    public void testCreateSchema() throws Exception {}
 
     @Override
     @Ignore
     @Test
-    public void testGetFeatureWriterAppend(){
-    }
+    public void testGetFeatureWriterAppend() {}
 
     @Override
     @Ignore
     @Test
-    public void testGetFeatureWriterWithFilter(){
-    }
+    public void testGetFeatureWriterWithFilter() {}
 
     @Ignore
     @Override
@@ -71,13 +70,10 @@ public class SingleStoreDataStoreOnlineTest extends JDBCDataStoreOnlineTest {
     @Ignore
     @Override
     @Test
-    public void testCreateSchemaWithNativeType() throws Exception {
-    }
+    public void testCreateSchemaWithNativeType() throws Exception {}
 
     @Ignore
     @Override
     @Test
-    public void testCreateSchemaWithNativeTypename() throws Exception {
-    }
-
+    public void testCreateSchemaWithNativeTypename() throws Exception {}
 }

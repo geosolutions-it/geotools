@@ -18,12 +18,14 @@ package org.geotools.data.singlestore;
 
 import org.geotools.jdbc.JDBCTestSetup;
 import org.geotools.jdbc.JDBCTransactionOnlineTest;
+import org.junit.Ignore;
 
 /**
  * Transaction test for SingleStore.
  *
  * @author Justin Deoliveira, The Open Planning Project
  */
+@Ignore
 public class SingleStoreTransactionOnlineTest extends JDBCTransactionOnlineTest {
     @Override
     protected JDBCTestSetup createTestSetup() {

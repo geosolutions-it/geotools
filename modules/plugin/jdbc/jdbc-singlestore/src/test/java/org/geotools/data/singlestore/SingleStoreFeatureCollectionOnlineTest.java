@@ -25,6 +25,11 @@ import org.geotools.jdbc.JDBCTestSetup;
  * @author Justin Deoliveira, The Open Planning Project
  */
 public class SingleStoreFeatureCollectionOnlineTest extends JDBCFeatureCollectionOnlineTest {
+
+    public SingleStoreFeatureCollectionOnlineTest() {
+        super(1e-6);
+    }
+
     @Override
     protected JDBCTestSetup createTestSetup() {
         return new SingleStoreTestSetup();

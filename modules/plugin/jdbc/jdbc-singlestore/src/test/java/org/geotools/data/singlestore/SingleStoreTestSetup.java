@@ -70,11 +70,11 @@ public class SingleStoreTestSetup extends JDBCTestSetup {
 
         // create some data
         StringBuffer sb = new StringBuffer();
-        // JD: COLLATE latin1_general_cs is neccesary to ensure case-sensitive string comparisons
+        // COLLATE utf8_bin is necessary to ensure case-sensitive string comparisons
         sb.append("CREATE TABLE ft1 ")
                 .append("(id int PRIMARY KEY , ")
                 .append("geometry GEOGRAPHYPOINT, intProperty int, ")
-                .append("doubleProperty DOUBLE(8,2), stringProperty varchar(255) COLLATE latin1_general_cs);");
+                .append("doubleProperty DOUBLE(8,2), stringProperty varchar(255) COLLATE utf8_bin);");
         run(sb.toString());
 
         // setup so that we can start counting from 0, otherwise 0 is treated as a special value
@@ -108,9 +108,9 @@ public class SingleStoreTestSetup extends JDBCTestSetup {
         sb.append("INSERT INTO ft4 VALUES (").append("0, GEOGRAPHY_POINT(0, 0), 0, 0.0, 'zero');");
         run(sb.toString());
 
-//        sb = new StringBuffer();
-//        sb.append("INSERT INTO ft4 VALUES (").append("1, GEOGRAPHY_POINT(0, 0), 1, 1.1, 'one');");
-//        run(sb.toString());
+        //        sb = new StringBuffer();
+        //        sb.append("INSERT INTO ft4 VALUES (").append("1, GEOGRAPHY_POINT(0, 0), 1, 1.1, 'one');");
+        //        run(sb.toString());
 
         sb = new StringBuffer();
         sb.append("INSERT INTO ft4 VALUES (").append("2, GEOGRAPHY_POINT(2, 2), 1, 1.1, 'one_2');");

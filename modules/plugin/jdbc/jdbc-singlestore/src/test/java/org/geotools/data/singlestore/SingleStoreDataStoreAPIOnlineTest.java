@@ -35,6 +35,5 @@ public class SingleStoreDataStoreAPIOnlineTest extends JDBCDataStoreAPIOnlineTes
     @Override
     @Ignore
     @Test
-    public void testCreateSchema() throws Exception {
-    }
+    public void testCreateSchema() throws Exception {}
 }

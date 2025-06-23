@@ -21,10 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.AttributeDescriptor;
 import org.geotools.api.feature.type.GeometryDescriptor;
@@ -32,7 +29,6 @@ import org.geotools.data.jdbc.FilterToSQL;
 import org.geotools.jdbc.BasicSQLDialect;
 import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.util.factory.Hints;
-import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -40,9 +36,7 @@ import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKTReader;
-import org.locationtech.jts.io.WKTWriter;
 
 /**
  * SingleStore database dialect based on basic (non-prepared) statements.
@@ -178,7 +172,8 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
             } else if (value instanceof Polygon) {
                 sql.append(String.format("'%s'", value));
             } else {
-                throw new IOException("Unsupported geometry type: " + value.getClass().getSimpleName());
+                throw new IOException(
+                        "Unsupported geometry type: " + value.getClass().getSimpleName());
             }
         } else {
             sql.append("NULL");
@@ -216,7 +211,6 @@ public class SingleStoreDialectBasic extends BasicSQLDialect {
         }
         return hex.toString();
     }
-
 
     @Override
     public void encodeGeometryEnvelope(String tableName, String geometryColumn, StringBuffer sql) {
