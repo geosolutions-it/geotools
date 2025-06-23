@@ -57,7 +57,6 @@
     <module>jdbc-informix</module>
     <module>jdbc-sqlserver</module>
     <module>jdbc-hana</module>
-    <module>jdbc-singlestore</module>
   </modules>
 
   <dependencies>
