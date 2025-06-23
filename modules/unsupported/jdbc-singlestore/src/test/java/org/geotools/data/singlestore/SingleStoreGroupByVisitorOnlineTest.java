@@ -64,4 +64,32 @@ public class SingleStoreGroupByVisitorOnlineTest extends JDBCGroupByVisitorOnlin
         assertTrue(expectedGeometry.equalsExact((Geometry) v2[0], 1e-6));
         assertEquals(63, ((Number) v2[1]).intValue());
     }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    @Test
+    public void testGroupByGeometry() throws Exception {
+        FilterFactory ff = dataStore.getFilterFactory();
+        PropertyName aggProperty = ff.property(aname("intProperty"));
+        PropertyName groupProperty = ff.property(aname("geometry"));
+        boolean expectOptimized = dataStore.getSQLDialect().canGroupOnGeometry();
+        List<Object[]> value = genericGroupByTestTest(
+                "ft1_group_by", Query.ALL, Aggregate.SUM, aggProperty, expectOptimized, groupProperty);
+        assertEquals(3, value.size());
+        // get them in predictable order
+        value.sort(Comparator.comparing(v -> ((Geometry) v[0])));
+        // geometries have been parsed, sums have the expected value
+        Object[] v0 = value.get(0);
+        Geometry expectedGeometry = new WKTReader().read("POINT(0 0)");
+        assertTrue(expectedGeometry.equalsExact((Geometry) v0[0], 1e-6));
+        assertEquals(3, ((Number) v0[1]).intValue());
+        Object[] v1 = value.get(1);
+        expectedGeometry = new WKTReader().read("POINT(1 1)");
+        assertTrue(expectedGeometry.equalsExact((Geometry) v1[0], 1e-6));
+        assertEquals(33, ((Number) v1[1]).intValue());
+        Object[] v2 = value.get(2);
+        expectedGeometry = new WKTReader().read("POINT(2 2)");
+        assertTrue(expectedGeometry.equalsExact((Geometry) v2[0], 1e-6));
+        assertEquals(63, ((Number) v2[1]).intValue());
+    }
 }

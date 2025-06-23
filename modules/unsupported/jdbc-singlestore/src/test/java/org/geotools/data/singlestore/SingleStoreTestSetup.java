@@ -105,12 +105,12 @@ public class SingleStoreTestSetup extends JDBCTestSetup {
         run(sb.toString());
 
         sb = new StringBuffer();
-        sb.append("INSERT INTO ft4 VALUES (").append("0, GEOGRAPHY_POINT(0, 0), 0, 0.0, 'zero');");
+        sb.append("INSERT INTO ft4 VALUES (").append("-1, GEOGRAPHY_POINT(0, 0), 0, 0.0, 'zero');");
         run(sb.toString());
 
-        //        sb = new StringBuffer();
-        //        sb.append("INSERT INTO ft4 VALUES (").append("1, GEOGRAPHY_POINT(0, 0), 1, 1.1, 'one');");
-        //        run(sb.toString());
+        sb = new StringBuffer();
+        sb.append("INSERT INTO ft4 VALUES (").append("1, GEOGRAPHY_POINT(0, 0), 1, 1.1, 'one');");
+        run(sb.toString());
 
         sb = new StringBuffer();
         sb.append("INSERT INTO ft4 VALUES (").append("2, GEOGRAPHY_POINT(2, 2), 1, 1.1, 'one_2');");
