@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2011, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,7 @@ package org.geotools.data.singlestore;
 import org.geotools.jdbc.JDBCJoinOnlineTest;
 import org.geotools.jdbc.JDBCJoinTestSetup;
 import org.junit.Ignore;
+import org.junit.Test;
 
 public class SingleStoreJoinOnlineTest extends JDBCJoinOnlineTest {
 
@@ -29,6 +30,7 @@ public class SingleStoreJoinOnlineTest extends JDBCJoinOnlineTest {
 
     @Override
     @Ignore
+    @Test
     public void testSimpleJoin() throws Exception {
         // singlestore returns data in unpredictable order, need to find if we can perform sort with join
         // super.testSimpleJoin();
@@ -36,6 +38,7 @@ public class SingleStoreJoinOnlineTest extends JDBCJoinOnlineTest {
 
     @Override
     @Ignore
+    @Test
     public void testSimpleJoinInvertedAliases() throws Exception {
         // singlestore returns data in unpredictable order, need to find if we can perform sort with join
         // super.testSimpleJoinInvertedAliases();
@@ -43,6 +46,7 @@ public class SingleStoreJoinOnlineTest extends JDBCJoinOnlineTest {
 
     @Override
     @Ignore
+    @Test
     public void testSimpleJoinOnPrimaryKey() throws Exception {
         // singlestore returns data in unpredictable order, need to find if we can perform sort with join
         // super.testSimpleJoinOnPrimaryKey();

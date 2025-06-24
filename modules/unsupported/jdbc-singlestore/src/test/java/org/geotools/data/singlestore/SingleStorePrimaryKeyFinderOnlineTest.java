@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2009, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,8 @@ import java.util.Map;
 import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.geotools.jdbc.JDBCPrimaryKeyFinderOnlineTest;
 import org.geotools.jdbc.JDBCPrimaryKeyFinderTestSetup;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class SingleStorePrimaryKeyFinderOnlineTest extends JDBCPrimaryKeyFinderOnlineTest {
 
@@ -29,6 +31,8 @@ public class SingleStorePrimaryKeyFinderOnlineTest extends JDBCPrimaryKeyFinderO
     }
 
     @Override
+    @Ignore
+    @Test
     public void testSequencedPrimaryKey() throws Exception {
         // SingleStore does not do sequences
     }

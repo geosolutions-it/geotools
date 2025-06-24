@@ -4004,6 +4004,10 @@ public final class JDBCDataStore extends ContentDataStore implements GmlObjectSt
         if (visitorLimitOffset) {
             applyLimitOffset(sql, visitor.getStartIndex(), visitor.getMaxFeatures());
         } else if (queryLimitOffset) {
+            if (query.getSortBy() != null && query.getSortBy().length > 0) {
+                // if there is a sort by, we need to apply it before the limit/offset
+                sort(featureType, query.getSortBy(), null, sql);
+            }
             applyLimitOffset(sql, query.getStartIndex(), query.getMaxFeatures());
         }
         boolean isUniqueCount = visitor instanceof UniqueCountVisitor;

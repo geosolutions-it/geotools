@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2008, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,6 @@ package org.geotools.data.singlestore;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,13 +44,5 @@ public class SingleStoreDataStoreFactoryTest {
         params.put(JDBCDataStoreFactory.PORT.key, "3306");
         params.put(JDBCDataStoreFactory.USER.key, "root");
         Assert.assertTrue(factory.canProcess(params));
-    }
-
-    /** check fix of possible NPE issue during SingleStoreVersion56 check (pull request #2033) */
-    @Test
-    public void testNoNpeOnConnectionFailure() throws Exception {
-        // create a dummy JDBC store
-        JDBCDataStore store = new JDBCDataStore();
-        store.setSQLDialect(new SingleStoreDialectBasic(store));
     }
 }

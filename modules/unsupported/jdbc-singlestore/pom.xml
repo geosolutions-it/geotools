@@ -77,7 +77,6 @@
     <dependency>
       <groupId>com.singlestore</groupId>
       <artifactId>singlestore-jdbc-client</artifactId>
-      <version>1.2.5</version>
     </dependency>
   </dependencies>
 

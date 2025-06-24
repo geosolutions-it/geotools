@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2021, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -41,6 +41,7 @@ public class SingleStoreGroupByVisitorOnlineTest extends JDBCGroupByVisitorOnlin
 
     @Override
     @Test
+    @SuppressWarnings("unchecked")
     public void testGroupByGeometryFunction() throws Exception {
         FilterFactory ff = dataStore.getFilterFactory();
         PropertyName aggProperty = ff.property(aname("intProperty"));
@@ -65,9 +66,9 @@ public class SingleStoreGroupByVisitorOnlineTest extends JDBCGroupByVisitorOnlin
         assertEquals(63, ((Number) v2[1]).intValue());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     @Test
+    @SuppressWarnings("unchecked")
     public void testGroupByGeometry() throws Exception {
         FilterFactory ff = dataStore.getFilterFactory();
         PropertyName aggProperty = ff.property(aname("intProperty"));

@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2019, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -20,8 +20,7 @@ import org.geotools.jdbc.JDBCFeatureWriterOnlineTest;
 import org.geotools.jdbc.JDBCTestSetup;
 import org.junit.Ignore;
 
-/** @author Burkhard Strauss */
-@Ignore
+@Ignore // writing not supported by SingleStore yet
 public class SingleStoreFeatureWriterOnlineTest extends JDBCFeatureWriterOnlineTest {
 
     @Override

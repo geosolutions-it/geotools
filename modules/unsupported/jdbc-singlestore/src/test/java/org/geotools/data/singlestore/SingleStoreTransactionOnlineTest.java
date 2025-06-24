@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2008, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -20,12 +20,7 @@ import org.geotools.jdbc.JDBCTestSetup;
 import org.geotools.jdbc.JDBCTransactionOnlineTest;
 import org.junit.Ignore;
 
-/**
- * Transaction test for SingleStore.
- *
- * @author Justin Deoliveira, The Open Planning Project
- */
-@Ignore
+@Ignore // SingleStore datastore does not support writing yet
 public class SingleStoreTransactionOnlineTest extends JDBCTransactionOnlineTest {
     @Override
     protected JDBCTestSetup createTestSetup() {

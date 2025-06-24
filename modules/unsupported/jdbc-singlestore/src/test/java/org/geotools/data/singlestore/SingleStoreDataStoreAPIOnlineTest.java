@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2008, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,12 +28,16 @@ public class SingleStoreDataStoreAPIOnlineTest extends JDBCDataStoreAPIOnlineTes
     }
 
     @Override
+    @Ignore
+    @Test
     public void testGetFeatureWriterConcurrency() throws Exception {
-        // Times out because the table is locked
+        // Times out because the table is locked (writing not supported in SingleStore yet)
     }
 
     @Override
     @Ignore
     @Test
-    public void testCreateSchema() throws Exception {}
+    public void testCreateSchema() throws Exception {
+        // not supporting table creation for the moment
+    }
 }

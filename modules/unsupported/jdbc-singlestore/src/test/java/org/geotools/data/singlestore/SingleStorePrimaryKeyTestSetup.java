@@ -2,7 +2,7 @@
  *    GeoTools - The Open Source Java GIS Toolkit
  *    http://geotools.org
  *
- *    (C) 2002-2008, Open Source Geospatial Foundation (OSGeo)
+ *    (C) 2025, Open Source Geospatial Foundation (OSGeo)
  *
  *    This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -48,8 +48,7 @@ public class SingleStorePrimaryKeyTestSetup extends JDBCPrimaryKeyTestSetup {
     @Override
     protected void createMultiColumnPrimaryKeyTable() throws Exception {
         run("CREATE ROWSTORE TABLE multi ( pkey1 int NOT NULL, pkey2 VARCHAR(255) NOT NULL, "
-                + "name VARCHAR(255), geom GEOGRAPHY)");
-        run("ALTER TABLE multi ADD PRIMARY KEY (pkey1,pkey2)");
+                + "name VARCHAR(255), geom GEOGRAPHY, PRIMARY KEY (pkey1, pkey2))");
 
         run("INSERT INTO multi VALUES (1, 'x', 'one', NULL)");
         run("INSERT INTO multi VALUES (2, 'y', 'two', NULL)");
@@ -67,8 +66,13 @@ public class SingleStorePrimaryKeyTestSetup extends JDBCPrimaryKeyTestSetup {
 
     @Override
     protected void createUniqueIndexTable() throws Exception {
-        run("CREATE TABLE uniq (pkey int, name VARCHAR(255), geom GEOGRAPHYPOINT)");
-        run("CREATE UNIQUE INDEX uniq_key_index ON uniq(pkey)");
+        run("CREATE TABLE uniq (pkey int, name VARCHAR(255), geom GEOGRAPHYPOINT, PRIMARY KEY (pkey))");
+        // SingleStore does not support unique constraints after table creation with an error like:
+        // The unique key named: 'uniq_key_index(pkey)' cannot be created because unique keys must contain all
+        // columns of the shard key. This table has no shard key. See
+        // https://docs.singlestore.com/docs/unique-key-restrictions
+        // for details on restrictions on unique keys in SingleStore.
+        // run("CREATE UNIQUE INDEX uniq_key_index ON uniq(pkey)");
 
         run("INSERT INTO uniq VALUES (1,'one',NULL)");
         run("INSERT INTO uniq VALUES (2,'two',NULL)");
