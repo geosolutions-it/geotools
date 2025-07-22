@@ -15,7 +15,7 @@
   <!-- =========================================================== -->
   <groupId>org.geotools</groupId>
   <artifactId>geotools</artifactId>
-  <version>33.2</version>
+  <version>C105.33.2.00</version>
   <packaging>pom</packaging>
   <name>GeoTools</name>
 
@@ -2121,6 +2121,18 @@
       </plugin>
 
     </plugins>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ftp</artifactId>
+        <version>1.0-beta-2</version>
+      </extension>
+    </extensions>
   </build>
 
   <reporting>
@@ -2668,6 +2680,16 @@
           <url>https://repo.eclipse.org/content/repositories/jts-snapshots</url>
         </repository>
       </repositories>
+    </profile>
+    <profile>
+      <id>deploygeosolutions</id>
+      <distributionManagement>
+        <repository>
+          <uniqueVersion>false</uniqueVersion>
+          <id>geosolutions</id>
+          <url>ftp://demo.geo-solutions.it</url>
+        </repository>
+      </distributionManagement>
     </profile>
   </profiles>
 </project>
