@@ -101,7 +101,6 @@ public class GeoParquetDataStoreFactoryTest {
         Map<String, Object> bothParams = new HashMap<>(urlParams);
         bothParams.put(GeoParquetDataStoreFactory.URI_PARAM.key, "test_file.parquet");
 
-        // This should still pass canProcess but may fail on createDataStore
         assertTrue(factory.canProcess(bothParams));
     }
 
