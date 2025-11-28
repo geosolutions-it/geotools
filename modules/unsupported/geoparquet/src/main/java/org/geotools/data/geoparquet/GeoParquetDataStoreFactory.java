@@ -16,7 +16,14 @@
  */
 package org.geotools.data.geoparquet;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Locale;
 import java.util.Map;
 import org.geotools.api.data.DataAccessFactory;
 import org.geotools.api.data.DataStoreFactorySpi;
@@ -65,5 +72,69 @@ public class GeoParquetDataStoreFactory extends ForwardingDataStoreFactory<GeoPa
     public GeoparquetDataStore createDataStore(Map<String, ?> params) throws IOException {
         JDBCDataStore delegateStore = delegate.createDataStore(params);
         return new GeoparquetDataStore(delegateStore);
+    }
+
+    @Override
+    public boolean canProcess(Map<String, ?> params) {
+        Object uriObj = params.get(URI_PARAM.key);
+        if (uriObj == null) {
+            return false;
+        }
+
+        try {
+            return isParquetCandidate(toURI(uriObj));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static URI toURI(Object value) throws URISyntaxException, MalformedURLException {
+        if (value instanceof URI) {
+            return (URI) value;
+        }
+        if (value instanceof URL) {
+            return ((URL) value).toURI();
+        }
+        if (value instanceof String) {
+            // Try as URI first; fallback to URL->URI to allow things like "file:/path"
+            try {
+                return new URI((String) value);
+            } catch (URISyntaxException ex) {
+                return new URL((String) value).toURI();
+            }
+        }
+        throw new IllegalArgumentException("Unsupported location type for URI/URL lookup: " + value.getClass());
+    }
+
+    private boolean isParquetCandidate(URI uri) {
+        // 1. Check extension (fast path)
+        String path = uri.getPath().toLowerCase(Locale.ROOT);
+        if (!path.endsWith(".parquet") && !path.contains(".parquet?")) {
+            return false;
+        }
+
+        URL url = null;
+        try {
+            url = uri.toURL();
+        } catch (MalformedURLException e) {
+            // If we cannot check the file content but it's a .parquet file,
+            // let's assume is a valid candidate
+            return true;
+        }
+        if ("file".equalsIgnoreCase(url.getProtocol())) {
+            File f = new File(uri.getPath());
+            if (!f.exists() || f.isDirectory()) {
+                return false;
+            }
+        }
+
+        // 3. Optional: check Parquet magic bytes
+        try (InputStream is = url.openStream()) {
+            byte[] magic = new byte[4];
+            if (is.read(magic) != 4) return false;
+            return magic[0] == 'P' && magic[1] == 'A' && magic[2] == 'R' && magic[3] == '1';
+        } catch (IOException e) {
+            return false;
+        }
     }
 }
