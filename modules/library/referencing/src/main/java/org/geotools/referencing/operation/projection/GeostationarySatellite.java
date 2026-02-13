@@ -19,6 +19,9 @@
  */
 package org.geotools.referencing.operation.projection;
 
+import static java.lang.Math.atan;
+import static java.lang.Math.hypot;
+
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import org.geotools.geometry.DirectPosition2D;
@@ -98,12 +101,10 @@ public abstract class GeostationarySatellite extends MapProjection {
         double tmp = radius_g - Vx;
         if (flip_axis) {
             xy.setLocation(
-                    radius_g_1 * Math.atan(Vy / Math.hypot(Vz, tmp)),
-                    radius_g_1 * Math.atan(Vz / tmp));
+                    radius_g_1 * atan(Vy / Math.hypot(Vz, tmp)), radius_g_1 * atan(Vz / tmp));
         } else {
             xy.setLocation(
-                    radius_g_1 * Math.atan(Vy / tmp),
-                    radius_g_1 * Math.atan(Vz / Math.hypot(Vy, tmp)));
+                    radius_g_1 * atan(Vy / tmp), radius_g_1 * atan(Vz / Math.hypot(Vy, tmp)));
         }
         return xy;
     }
@@ -220,7 +221,7 @@ public abstract class GeostationarySatellite extends MapProjection {
             Vz *= k;
             /* Calculation of longitude and latitude.*/
             double lambda = Math.atan2(Vy, Vx);
-            double phi = Math.atan(Vz * Math.cos(lambda) / Vx);
+            double phi = atan(Vz / hypot(Vx, Vy));
 
             p2d.setLocation(lambda, phi);
 
@@ -260,7 +261,7 @@ public abstract class GeostationarySatellite extends MapProjection {
                 throws ProjectionException {
             // from https://github.com/OSGeo/proj.4/blob/4.9/src/PJ_geos.c
             /* Calculation of geocentric latitude. */
-            phi = Math.atan(radius_p2 * Math.tan(phi));
+            phi = atan(radius_p2 * Math.tan(phi));
             /* Calculation of the three components of the vector from satellite to
              ** position on earth surface (lon,lat).*/
             double r = radius_p / Math.hypot(radius_p * Math.cos(phi), Math.sin(phi));
@@ -291,15 +292,23 @@ public abstract class GeostationarySatellite extends MapProjection {
             if (det < 0.) {
                 throw new ProjectionException();
             }
-            /* Calculation of three components of vector from satellite to position.*/
+
+            /* Calculation of distance k from satellite to surface */
             double k = (-b - Math.sqrt(det)) / (2. * a);
+
+            // Second visibility guard, ensures the intersection is not behind the satellite.
+            if (radius_g + k * Vx <= 0) {
+                throw new ProjectionException(
+                        "Point is on the non-visible back-side of the Earth.");
+            }
+
+            /* Calculation of three components of vector from satellite to position.*/
             Vx = radius_g + k * Vx;
             Vy *= k;
             Vz *= k;
             /* Calculation of longitude and latitude.*/
             double lambda = Math.atan2(Vy, Vx);
-            double phi = Math.atan(Vz * Math.cos(lambda) / Vx);
-            phi = Math.atan(radius_p_inv2 * Math.tan(phi));
+            double phi = atan(radius_p_inv2 * Vz / hypot(Vx, Vy));
             p2d.setLocation(lambda, phi);
 
             return p2d;

@@ -16,8 +16,6 @@
  */
 package org.geotools.referencing.factory.wms;
 
-import org.geotools.measure.Latitude;
-import org.geotools.measure.Longitude;
 import org.geotools.metadata.i18n.ErrorKeys;
 import org.geotools.metadata.i18n.Errors;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
@@ -99,14 +97,9 @@ final class Code {
             throw e;
         }
 
-        if (!(longitude >= Longitude.MIN_VALUE
-                && longitude <= Longitude.MAX_VALUE
-                && latitude >= Latitude.MIN_VALUE
-                && latitude <= Latitude.MAX_VALUE)) {
-            // A longitude or latitude is out of range, or was not present
-            // (i.e. the field still has a NaN value).
-            throw noSuchAuthorityCode(type, text);
-        }
+        // do not check lon/lat as some projections (e.g. geostationary satellite) may use them for
+        // other purposes than
+        // longitude and latitude
         this.authority = authority;
         this.code = code;
         this.longitude = longitude;
