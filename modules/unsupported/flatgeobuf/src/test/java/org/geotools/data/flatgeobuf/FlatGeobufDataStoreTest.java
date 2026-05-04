@@ -813,7 +813,7 @@ public class FlatGeobufDataStoreTest {
     public void readEmptyBbox() throws IOException {
         SimpleFeatureSource featureSource = getFeatureSource("empty");
         SimpleFeatureType schema = featureSource.getSchema();
-        FilterFactory ff = CommonFactoryFinder.getFilterFactory();
+        FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
         String geometryPropertyName = schema.getGeometryDescriptor().getLocalName();
         CoordinateReferenceSystem targetCRS =
                 schema.getGeometryDescriptor().getCoordinateReferenceSystem();

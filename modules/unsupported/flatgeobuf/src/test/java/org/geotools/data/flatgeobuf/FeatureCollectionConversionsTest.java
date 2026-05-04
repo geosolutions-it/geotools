@@ -10,7 +10,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Iterator;
-import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.test.TestData;
 import org.junit.Test;
 import org.locationtech.jts.geom.Envelope;
