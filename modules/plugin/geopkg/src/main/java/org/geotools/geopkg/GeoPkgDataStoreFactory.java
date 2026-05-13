@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.geotools.data.Parameter;
@@ -27,6 +29,7 @@ import org.geotools.geopkg.geom.GeoPkgGeomWriter;
 import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.geotools.jdbc.SQLDialect;
+import org.geotools.util.logging.Logging;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
@@ -37,6 +40,8 @@ import org.sqlite.javax.SQLiteConnectionPoolDataSource;
  * @author Niels Charlier
  */
 public class GeoPkgDataStoreFactory extends JDBCDataStoreFactory {
+
+    private static final Logger LOGGER = Logging.getLogger(GeoPkgDataStoreFactory.class);
 
     /** parameter for database type */
     public static final Param DBTYPE =
@@ -147,7 +152,14 @@ public class GeoPkgDataStoreFactory extends JDBCDataStoreFactory {
                 db = new File(baseDirectory, db.getPath());
             }
         }
-        return "jdbc:sqlite:" + db;
+        String jdbcUri = "jdbc:sqlite:" + db.toURI();
+        Object readOnly = READ_ONLY.lookUp(params);
+        if (Boolean.TRUE.equals(readOnly)) {
+            // Refer to: https://www.sqlite.org/wal.html#readonly
+            jdbcUri = jdbcUri + "?immutable=true";
+        }
+        LOGGER.log(Level.FINE, "GeoPackage JDBC URL: " + jdbcUri);
+        return jdbcUri;
     }
 
     @Override

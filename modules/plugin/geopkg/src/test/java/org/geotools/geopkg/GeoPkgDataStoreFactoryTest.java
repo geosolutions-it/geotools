@@ -64,10 +64,11 @@ public class GeoPkgDataStoreFactoryTest {
                                 createGeoPackage(dbName2, null, "foo");
                                 Connection connection =
                                         DriverManager.getConnection(
-                                                "jdbc:sqlite:"
-                                                        + tmp.getRoot().getPath()
-                                                        + File.separator
-                                                        + dbName2);
+                                                "jdbc:sqlite:file:"
+                                                        + tmp.getRoot()
+                                                                .toPath()
+                                                                .resolve(dbName2)
+                                                                .toAbsolutePath());
                                 Statement statement = connection.createStatement();
                                 statement.executeUpdate("PRAGMA locking_mode = EXCLUSIVE");
                                 PreparedStatement preparedStatement =
