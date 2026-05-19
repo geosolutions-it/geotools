@@ -41,7 +41,6 @@ import org.geotools.coverage.grid.io.AbstractGridCoverageWriter;
 import org.geotools.coverage.util.CoverageUtilities;
 import org.geotools.data.DataSourceException;
 import org.geotools.image.ImageWorker;
-import org.geotools.image.io.ImageIOExt;
 import org.geotools.parameter.Parameter;
 import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.util.factory.Hints;
@@ -181,16 +180,7 @@ public final class WorldImageWriter extends AbstractGridCoverageWriter
             createProjectionFile(baseFile, coverage.getCoordinateReferenceSystem());
         }
 
-        // /////////////////////////////////////////////////////////////////////
-        //
-        // Encoding of the original coverage
-        //
-        // ////////////////////////////////////////////////////////////////////
-        outStream = ImageIOExt.createImageOutputStream(gc.getRenderedImage(), destination);
-        if (outStream == null)
-            throw new IOException(
-                    "WorldImageWriter::write:No image output stream avalaible for the provided destination");
-        this.encode(gc, outStream, extension);
+        encode(gc, getImageOutputStream(gc.getRenderedImage()), extension);
     }
 
     /**
