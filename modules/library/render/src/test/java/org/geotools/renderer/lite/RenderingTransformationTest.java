@@ -18,6 +18,7 @@ package org.geotools.renderer.lite;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -33,8 +34,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.media.jai.Interpolation;
 import org.geotools.TestData;
 import org.geotools.api.coverage.grid.Format;
+import org.geotools.api.coverage.grid.GridGeometry;
 import org.geotools.api.data.FeatureSource;
 import org.geotools.api.data.Query;
+import org.geotools.api.data.SimpleFeatureSource;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.parameter.GeneralParameterValue;
 import org.geotools.api.referencing.FactoryException;
@@ -43,9 +46,18 @@ import org.geotools.api.referencing.crs.CRSAuthorityFactory;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.style.Style;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
+import org.geotools.coverage.grid.GridEnvelope2D;
+import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
+import org.geotools.coverage.util.FeatureUtilities;
+import org.geotools.data.DataUtilities;
 import org.geotools.data.property.PropertyDataStore;
+import org.geotools.feature.DefaultFeatureCollection;
+import org.geotools.filter.FunctionExpressionImpl;
+import org.geotools.filter.capability.FunctionNameImpl;
+import org.geotools.filter.function.RenderingTransformation;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.gce.arcgrid.ArcGridReader;
@@ -392,5 +404,84 @@ public class RenderingTransformationTest {
         File rainFile = URLs.urlToFile(rainURL);
         ArcGridReader rainReader = new ArcGridReader(rainFile);
         return rainReader;
+    }
+
+    /**
+     * Verifies that when reprojection is involved, the reprojection gutter added by RenderingTransformationHelper is
+     * removed by clipOnRenderingArea before the transformation receives the coverage. Previously the gutter was baked
+     * into originalRendingEnvelope so it was never trimmed.
+     */
+    @Test
+    public void testReprojectionGutterRemovedByClipOnRenderingArea() throws Exception {
+        // world.tiff is in EPSG:4326; render in EPSG:3857 → reprojection path
+        GeoTiffReader reader = new GeoTiffReader(TestData.copy(this, "geotiff/world.tiff"));
+
+        CoordinateReferenceSystem crs3857 = CRS.decode("EPSG:3857");
+        ReferencedEnvelope renderBbox =
+                new ReferencedEnvelope(-70, 70, -160, 160, CRS.decode("EPSG:4326")).transform(crs3857, true);
+        GridGeometry2D gridGeometry = new GridGeometry2D(new GridEnvelope2D(0, 0, 256, 256), renderBbox);
+
+        SimpleFeatureSource featureSource = DataUtilities.source(FeatureUtilities.wrapGridCoverageReader(reader, null));
+
+        ReferencedEnvelope[] capturedBounds = {null};
+        RenderingTransformation tx = new ClipTestTransformation(capturedBounds);
+
+        RenderingTransformationHelper helper = new RenderingTransformationHelper() {
+            @Override
+            protected GridCoverage2D readCoverage(GridCoverage2DReader r, Object params, GridGeometry2D readGG)
+                    throws IOException {
+                // synthetic coverage in readGG's CRS and extent (includes gutter)
+                ReferencedEnvelope env = new ReferencedEnvelope(readGG.getEnvelope());
+                GridEnvelope2D range = readGG.getGridRange2D();
+                return new GridCoverageFactory()
+                        .create(
+                                "test",
+                                new BufferedImage(range.width, range.height, BufferedImage.TYPE_BYTE_GRAY),
+                                env);
+            }
+        };
+
+        helper.applyRenderingTransformation(tx, featureSource, new Query(), new Query(), gridGeometry, crs3857, null);
+
+        assertNotNull("transformation was not invoked", capturedBounds[0]);
+        // gutter is ~10 output pixels; tolerance of 1% of tile width is well within that
+        double tol = renderBbox.getWidth() * 0.01;
+        assertEquals(renderBbox.getMinX(), capturedBounds[0].getMinX(), tol);
+        assertEquals(renderBbox.getMaxX(), capturedBounds[0].getMaxX(), tol);
+        assertEquals(renderBbox.getMinY(), capturedBounds[0].getMinY(), tol);
+        assertEquals(renderBbox.getMaxY(), capturedBounds[0].getMaxY(), tol);
+    }
+
+    /** Rendering transformation that captures the coverage envelope; clipOnRenderingArea = true. */
+    private static class ClipTestTransformation extends FunctionExpressionImpl implements RenderingTransformation {
+        private final ReferencedEnvelope[] capturedBounds;
+
+        ClipTestTransformation(ReferencedEnvelope[] capturedBounds) {
+            super(new FunctionNameImpl("clipTest", GridCoverage2D.class));
+            this.capturedBounds = capturedBounds;
+        }
+
+        @Override
+        public Object evaluate(Object obj) {
+            if (obj instanceof GridCoverage2D gc) {
+                capturedBounds[0] = new ReferencedEnvelope(gc.getEnvelope2D());
+            }
+            return new DefaultFeatureCollection();
+        }
+
+        @Override
+        public Query invertQuery(Query targetQuery, GridGeometry gridGeometry) {
+            return targetQuery;
+        }
+
+        @Override
+        public GridGeometry invertGridGeometry(Query targetQuery, GridGeometry targetGridGeometry) {
+            return targetGridGeometry;
+        }
+
+        @Override
+        public boolean clipOnRenderingArea() {
+            return true;
+        }
     }
 }

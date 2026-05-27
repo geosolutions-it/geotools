@@ -177,6 +177,24 @@ public abstract class RenderingTransformationHelper {
                 return transformation.evaluate(context);
             }
 
+            // for reprojection, expand readGG to account for warp edge accuracy;
+            // done here, after originalRendingEnvelope was captured, so that
+            // clipOnRenderingArea trims the result back to the true WMS tile area
+            if (!CRS.isEquivalent(reader.getCoordinateReferenceSystem(), gridGeometry.getCoordinateReferenceSystem())) {
+                GridEnvelope2D env = readGG.getGridRange2D();
+                Rectangle expanded = new Rectangle(
+                        env.x - TRANSFORM_READ_BUFFER_PIXELS,
+                        env.y - TRANSFORM_READ_BUFFER_PIXELS,
+                        env.width + TRANSFORM_READ_BUFFER_PIXELS * 2,
+                        env.height + TRANSFORM_READ_BUFFER_PIXELS * 2);
+                readGG = new GridGeometry2D(
+                        new GridEnvelope2D(expanded),
+                        PixelInCell.CELL_CORNER,
+                        readGG.getGridToCRS(PixelInCell.CELL_CORNER),
+                        readGG.getCoordinateReferenceSystem(),
+                        null);
+            }
+
             // don't read more than the native resolution (in case we are oversampling)
             if (CRS.isEquivalent(reader.getCoordinateReferenceSystem(), gridGeometry.getCoordinateReferenceSystem())
                     && !oversample) {

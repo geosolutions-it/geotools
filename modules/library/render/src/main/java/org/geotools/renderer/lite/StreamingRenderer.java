@@ -86,7 +86,6 @@ import org.geotools.api.parameter.GeneralParameterValue;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.crs.SingleCRS;
-import org.geotools.api.referencing.datum.PixelInCell;
 import org.geotools.api.referencing.operation.MathTransform;
 import org.geotools.api.referencing.operation.MathTransform2D;
 import org.geotools.api.referencing.operation.TransformException;
@@ -192,8 +191,6 @@ import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
  * @version $Id$
  */
 public class StreamingRenderer implements GTRenderer {
-
-    private static final int REPROJECTION_RASTER_GUTTER = 10;
 
     private static final int defaultMaxFiltersToSendToDatastore = 5; // default
 
@@ -2914,32 +2911,15 @@ public class StreamingRenderer implements GTRenderer {
     }
 
     /**
-     * Builds a raster grid geometry that will be used for reading, taking into account the original map extent and
-     * target paint area, and expanding the target raster area by {@link #REPROJECTION_RASTER_GUTTER}
+     * Builds a raster grid geometry for reading, mapping the screen area to the original map extent. For reprojection
+     * paths, {@link RenderingTransformationHelper} adds a read gutter internally after capturing the clip envelope, so
+     * that {@code clipOnRenderingArea} trims correctly.
      */
     GridGeometry2D getRasterGridGeometry(CoordinateReferenceSystem destinationCrs, CoordinateReferenceSystem sourceCRS)
             throws NoninvertibleTransformException {
-        GridGeometry2D readGG;
-        if (sourceCRS == null || destinationCrs == null || CRS.isEquivalent(destinationCrs, sourceCRS)) {
-            readGG = new GridGeometry2D(new GridEnvelope2D(screenSize), originalMapExtent);
-        } else {
-            // reprojection involved, read a bit more pixels to account for rotation
-            Rectangle bufferedTargetArea = (Rectangle) screenSize.clone();
-            bufferedTargetArea.add( // exand top/right
-                    screenSize.x + screenSize.width + REPROJECTION_RASTER_GUTTER,
-                    screenSize.y + screenSize.height + REPROJECTION_RASTER_GUTTER);
-            bufferedTargetArea.add( // exand bottom/left
-                    screenSize.x - REPROJECTION_RASTER_GUTTER, screenSize.y - REPROJECTION_RASTER_GUTTER);
-
-            // now create the final envelope accordingly
-            readGG = new GridGeometry2D(
-                    new GridEnvelope2D(bufferedTargetArea),
-                    PixelInCell.CELL_CORNER,
-                    new AffineTransform2D(worldToScreenTransform.createInverse()),
-                    originalMapExtent.getCoordinateReferenceSystem(),
-                    null);
-        }
-        return readGG;
+        // No gutter here; the reprojection gutter is applied in RenderingTransformationHelper
+        // after capturing originalRendingEnvelope, so clipOnRenderingArea can trim correctly
+        return new GridGeometry2D(new GridEnvelope2D(screenSize), originalMapExtent);
     }
 
     /**
