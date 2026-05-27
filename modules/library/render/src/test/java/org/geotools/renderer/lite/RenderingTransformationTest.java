@@ -463,7 +463,8 @@ public class RenderingTransformationTest {
 
         @Override
         public Object evaluate(Object obj) {
-            if (obj instanceof GridCoverage2D gc) {
+            if (obj instanceof GridCoverage2D) {
+                GridCoverage2D gc = (GridCoverage2D) obj;
                 capturedBounds[0] = new ReferencedEnvelope(gc.getEnvelope2D());
             }
             return new DefaultFeatureCollection();
