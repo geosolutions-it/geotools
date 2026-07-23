@@ -141,12 +141,29 @@ public class ReadResolutionCalculator {
             }
         } catch (Throwable e) {
             if (LOGGER.isLoggable(Level.INFO))
-                LOGGER.log(Level.INFO, "Unable to compute requested resolution", e);
+                LOGGER.log(Level.INFO, "Unable to compute the accurate requested resolution", e);
         }
 
-        //
-        // use the coverage resolution since we cannot compute the requested one
-        //
+        // The accurate computation failed, fall back on the classic envelope based resolution:
+        // far better than the native one, which forces a full resolution read and downsampling.
+        // Skipped when the classic computation is the one that just failed, it is deterministic
+        // and would fail the same way. Any other failure still gets the fallback: the classic
+        // computation ignores the requested grid to world, so it can succeed where the branches
+        // above threw.
+        boolean classicAlreadyFailed =
+                !accurateResolution
+                        && destinationToSourceTransform != null
+                        && !destinationToSourceTransform.isIdentity();
+        if (!classicAlreadyFailed) {
+            try {
+                return computeClassicResolution(readBounds);
+            } catch (RuntimeException e) {
+                if (LOGGER.isLoggable(Level.INFO))
+                    LOGGER.log(Level.INFO, "Unable to compute the classic requested resolution", e);
+            }
+        }
+
+        // last resort: nothing worked, read at the native resolution
         LOGGER.log(
                 Level.WARNING,
                 "Unable to compute requested resolution, the reader will pick the native one");
@@ -216,16 +233,41 @@ public class ReadResolutionCalculator {
                 points[k + 7] = y + resY / 2;
             }
         }
-        destinationToSourceTransform.transform(points, 0, points, 0, NPOINTS);
-
+        // Reproject one probe segment at a time: with projections not defined over the whole
+        // plane (e.g. geostationary, whose disc border is not transformable) some points throw,
+        // so skipping them lets a tile straddling the border still use the probe logic, and stay
+        // consistent with its fully interior neighbours.
         double minDistance = Double.MAX_VALUE;
+        double[] segment = new double[4];
+        int dropped = 0;
         for (int i = 0; i < points.length && minDistance > 0; i += 4) {
-            double dx = points[i + 2] - points[i];
-            double dy = points[i + 3] - points[i + 1];
+            try {
+                destinationToSourceTransform.transform(points, i, segment, 0, 2);
+            } catch (TransformException e) {
+                // the exception carries no detail beyond "out of domain", the count is the signal
+                dropped++;
+                continue;
+            }
+            double dx = segment[2] - segment[0];
+            double dy = segment[3] - segment[1];
             double d = Math.sqrt(dx * dx + dy * dy);
             if (d < minDistance) {
                 minDistance = d;
             }
+        }
+        if (minDistance == Double.MAX_VALUE) {
+            throw new TransformException(
+                    "All resolution probe points fall outside the projection validity area");
+        }
+        // FINE, not INFO: a mosaic straddling the border hits this on every tile
+        if (dropped > 0 && LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(
+                    "Skipped "
+                            + dropped
+                            + " of "
+                            + points.length / 4
+                            + " resolution probe segments falling outside the projection validity"
+                            + " area, resolution computed from the remaining ones");
         }
 
         // reprojection can turn a segment into a zero length one
