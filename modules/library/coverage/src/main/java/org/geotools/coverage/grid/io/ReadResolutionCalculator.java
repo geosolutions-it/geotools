@@ -141,12 +141,24 @@ public class ReadResolutionCalculator {
             }
         } catch (Throwable e) {
             if (LOGGER.isLoggable(Level.INFO))
-                LOGGER.log(Level.INFO, "Unable to compute requested resolution", e);
+                LOGGER.log(Level.INFO, "Unable to compute the accurate requested resolution", e);
         }
 
-        //
-        // use the coverage resolution since we cannot compute the requested one
-        //
+        // The accurate computation failed. This is common with projections that
+        // are not defined over the whole plane (e.g. geostationary): the accuracy
+        // probe reprojects points that fall outside the projection validity area
+        // and the transform throws. Fall back on the classic envelope based
+        // resolution, derived purely from the requested raster area and read
+        // bounds, which cannot fail. This is far better than reading at native
+        // resolution, which forces a full resolution read and downsampling.
+        try {
+            return computeClassicResolution(readBounds);
+        } catch (Throwable e) {
+            if (LOGGER.isLoggable(Level.INFO))
+                LOGGER.log(Level.INFO, "Unable to compute the classic requested resolution", e);
+        }
+
+        // last resort: nothing worked, read at the native resolution
         LOGGER.log(
                 Level.WARNING,
                 "Unable to compute requested resolution, the reader will pick the native one");
@@ -216,16 +228,33 @@ public class ReadResolutionCalculator {
                 points[k + 7] = y + resY / 2;
             }
         }
-        destinationToSourceTransform.transform(points, 0, points, 0, NPOINTS);
-
+        // Reproject the probe segments to the source CRS one at a time. Points can
+        // fall outside the projection validity area (e.g. off the disc in a
+        // geostationary CRS, whose border is not transformable) and throw; we skip
+        // those segments and keep the valid ones, so a tile straddling the border
+        // still derives its resolution from the same probe logic as a fully
+        // interior tile and stays consistent with its neighbours. Only a tile with
+        // no valid probe point at all fails, and it renders nothing anyway.
         double minDistance = Double.MAX_VALUE;
+        double[] segment = new double[4];
+        int validSegments = 0;
         for (int i = 0; i < points.length && minDistance > 0; i += 4) {
-            double dx = points[i + 2] - points[i];
-            double dy = points[i + 3] - points[i + 1];
+            try {
+                destinationToSourceTransform.transform(points, i, segment, 0, 2);
+            } catch (TransformException e) {
+                continue;
+            }
+            double dx = segment[2] - segment[0];
+            double dy = segment[3] - segment[1];
             double d = Math.sqrt(dx * dx + dy * dy);
             if (d < minDistance) {
                 minDistance = d;
             }
+            validSegments++;
+        }
+        if (validSegments == 0) {
+            throw new TransformException(
+                    "All resolution probe points fall outside the projection validity area");
         }
 
         // reprojection can turn a segment into a zero length one

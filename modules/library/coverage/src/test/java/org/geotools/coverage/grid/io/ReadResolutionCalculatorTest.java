@@ -17,6 +17,8 @@
 package org.geotools.coverage.grid.io;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -28,6 +30,14 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 public class ReadResolutionCalculatorTest {
 
     private static final double NATIVE_RES = 0.02;
+
+    /** Geostationary projection, defined only over the satellite disc. */
+    private static final String GEOS_WKT =
+            "PROJCS[\"GEOS\", GEOGCS[\"WGS84\", DATUM[\"WGS84\", "
+                    + "SPHEROID[\"WGS84\", 6378137.0, 298.257223563]], PRIMEM[\"Greenwich\", 0.0], "
+                    + "UNIT[\"degree\", 0.017453292519943295]], PROJECTION[\"GEOS\"], "
+                    + "PARAMETER[\"central_meridian\", 0.0], PARAMETER[\"satellite_height\", 35785831.0], "
+                    + "PARAMETER[\"false_easting\", 0.0], PARAMETER[\"false_northing\", 0.0], UNIT[\"m\", 1.0]]";
 
     @Test
     public void testReadResolutionCalculator() throws Exception {
@@ -75,6 +85,36 @@ public class ReadResolutionCalculatorTest {
         // Before the fix, that computation would have returned a wrong full resolution
         assertEquals(1.53466E-4, requestedResolution[0], 1e-6);
         assertEquals(1.53466E-4, requestedResolution[1], 1e-6);
+    }
+
+    @Test
+    public void testAccurateResolutionToleratesPointsOutsideProjectionValidity() throws Exception {
+        // A geostationary tile straddling the disc border: some accuracy probe
+        // points fall outside the projection validity and throw. The calculator
+        // must keep the valid probe points and still produce an accurate
+        // resolution (not the native full resolution sentinel), so this tile stays
+        // consistent with fully interior neighbours in a tiled map.
+        final CoordinateReferenceSystem requestCRS = CRS.parseWKT(GEOS_WKT);
+        final CoordinateReferenceSystem nativeCRS = CRS.decode("EPSG:4326", true);
+        // a tile in the geostationary CRS whose area reaches past the disc edge
+        final ReferencedEnvelope requestBounds =
+                new ReferencedEnvelope(4000000, 5400000, 0, 1400000, requestCRS);
+        final ReferencedEnvelope readBounds = requestBounds.transform(nativeCRS, true);
+        GridGeometry2D gg = new GridGeometry2D(new GridEnvelope2D(0, 0, 256, 256), requestBounds);
+
+        // a distinctive native resolution so we can tell the sentinel apart
+        final double nativeSentinel = 123.0;
+        ReadResolutionCalculator calculator =
+                new ReadResolutionCalculator(
+                        gg, nativeCRS, new double[] {nativeSentinel, nativeSentinel});
+        calculator.setAccurateResolution(true);
+        double[] res = calculator.computeRequestedResolution(readBounds);
+
+        // a resolution was computed from the valid probe points, not the native
+        // sentinel that the old all-or-nothing probe would have returned
+        assertNotEquals(nativeSentinel, res[0], 0d);
+        assertNotEquals(nativeSentinel, res[1], 0d);
+        assertTrue("resolution should be positive", res[0] > 0 && res[1] > 0);
     }
 
     @Test
