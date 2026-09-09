@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.geotools</groupId>
     <artifactId>gt-ogr</artifactId>
-    <version>34.5</version>
+    <version>34.5-C321</version>
   </parent>
 
   <!-- =========================================================== -->
